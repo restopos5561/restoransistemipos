@@ -1,0 +1,111 @@
+{
+  "info": {
+    "name": "Settings API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Settings",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/settings?restaurantId=1&page=1&limit=25",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "settings"],
+          "query": [
+            {"key": "restaurantId", "value": "1"},
+            {"key": "page", "value": "1"},
+            {"key": "limit", "value": "25"}
+          ]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Create Settings",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/settings",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "settings"]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"restaurantId\": 1,\n    \"appName\": \"Restoran Yönetim Sistemi\",\n    \"appLogoUrl\": null,\n    \"currency\": \"TL\",\n    \"timezone\": \"Europe/Istanbul\",\n    \"dailyCloseTime\": \"03:00\",\n    \"workingHours\": \"08:00-00:00\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Get Settings By ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/settings/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "settings", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Update Settings",
+      "request": {
+        "method": "PUT",
+        "url": {
+          "raw": "{{baseUrl}}/api/settings/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "settings", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"appName\": \"Yeni Restoran Yönetim Sistemi\",\n    \"appLogoUrl\": \"https://cdn.logo.com/img-updated.png\",\n    \"currency\": \"USD\",\n    \"timezone\": \"Europe/London\",\n    \"dailyCloseTime\": \"02:00\",\n    \"workingHours\": \"07:00-23:59\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Delete Settings",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/settings/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "settings", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Get Settings By Restaurant ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/settings/restaurant/:restaurantId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "settings", "restaurant", ":restaurantId"],
+          "variable": [{"key": "restaurantId", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    }
+  ]
+} 

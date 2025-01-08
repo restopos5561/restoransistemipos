@@ -1,0 +1,705 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Ana Restoran Modeli
+model Restaurant {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // İlişkiler
+  branches       Branch[]
+  users          User[]
+  products       Product[]
+  categories     Category[]
+  orders         Order[]
+  customers      Customer[]
+  reservations   Reservation[]
+  suppliers      Supplier[]
+  accounts       Account[]
+  settings       Settings?
+  printers       Printer[]
+  stockHistory   StockHistory[]
+  purchaseOrders PurchaseOrder[]
+}
+
+// Restoran Şubesi Modeli
+model Branch {
+  id             Int             @id @default(autoincrement())
+  restaurantId   Int
+  restaurant     Restaurant      @relation(fields: [restaurantId], references: [id])
+  name           String
+  address        String?
+  settings       BranchSettings?
+  isActive       Boolean         @default(true)
+  isMainBranch   Boolean         @default(false)
+  tables         Table[]
+  users          User[]          // Ana şube kullanıcıları
+  printers       Printer[]
+  orders         Order[]         @relation("BranchOrders")
+  stocks         Stock[]
+  stockCounts    StockCount[]
+  purchaseOrders PurchaseOrder[]
+  userBranches   UserBranch[]    // Çoklu şube ilişkisi
+}
+
+// Şube Ayarları Modeli
+model BranchSettings {
+  id             Int     @id @default(autoincrement())
+  branchId       Int     @unique
+  branch         Branch  @relation(fields: [branchId], references: [id])
+  currency       String?
+  timezone       String?
+  dailyCloseTime String?
+  workingHours   String? // Şube çalışma saatleri
+  // ... diğer şubeye özel ayarlar
+}
+
+// Masa Modeli
+model Table {
+  id           Int           @id @default(autoincrement())
+  branchId     Int
+  branch       Branch        @relation(fields: [branchId], references: [id])
+  tableNumber  String
+  capacity     Int?
+  location     String? // Salon 1, Teras vb.
+  status       TableStatus   @default(IDLE)
+  isActive     Boolean       @default(true)
+  orders       Order[] // Masada açılan adisyonlar/siparişler
+  reservations Reservation[] // Masa için yapılan rezervasyonlar
+}
+
+// Masa Durumları
+enum TableStatus {
+  IDLE // Boş
+  OCCUPIED // Dolu
+  RESERVED // Rezerve
+}
+
+// Kullanıcı Modeli
+model User {
+  id                Int              @id @default(autoincrement())
+  restaurantId      Int
+  restaurant        Restaurant       @relation(fields: [restaurantId], references: [id])
+  branchId          Int?
+  branch            Branch?          @relation(fields: [branchId], references: [id])
+  name             String
+  email            String           @unique
+  password         String
+  role             Role             @default(WAITER)
+  resetToken       String?          @unique
+  resetTokenExpires DateTime?
+  permissions      UserPermissions?
+  orders           Order[]
+  refreshTokens    RefreshToken[]
+  userBranches     UserBranch[]
+}
+
+// RefreshToken Modeli
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+// Kullanıcı Rolleri
+enum Role {
+  ADMIN // Yönetici
+  MANAGER // Müdür
+  STAFF // Personel
+  CASHIER // Kasiyer
+  WAITER // Garson
+  CHEF // Aşçı
+  RUNNER // Komi
+  BAR // Bar Personeli
+}
+
+// Kullanıcı İzinleri Modeli
+model UserPermissions {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // İlişkiler
+  user        User         @relation(fields: [userId], references: [id])
+  permissions Permission[]
+}
+
+// İzin Modeli (Yetkilendirme için)
+model Permission {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // İlişkiler
+  userPermissions UserPermissions[]
+}
+
+// Ürün Modeli
+model Product {
+  id                 Int                  @id @default(autoincrement())
+  restaurantId       Int
+  restaurant         Restaurant           @relation(fields: [restaurantId], references: [id])
+  name               String
+  description        String?
+  price              Float
+  categoryId         Int?
+  category           Category?            @relation(fields: [categoryId], references: [id])
+  stocks             Stock[] // One-to-many ilişki
+  variants           ProductVariant[] // Ürün varyantları (boyut, renk vb.)
+  orderItems         OrderItem[] // Ürünün dahil olduğu sipariş kalemleri
+  recipe             Recipe? // Ürün reçetesi
+  barcode            String?
+  cost               Float?
+  taxRate            Float?
+  unit               String? // Adet, Kg, Gram, Porsiyon vb.
+  productSuppliers   ProductSupplier[] // Ürünün tedarikçileri
+  optionGroups       ProductOptionGroup[] // Ürün seçenek grupları (örneğin, hamburger için soslar)
+  priceHistory       PriceHistory[] // Ürün fiyat değişiklikleri geçmişi
+  purchaseOrderItems PurchaseOrderItem[]  @relation("ProductPurchaseOrderItems")
+  StockHistory       StockHistory[]
+  isActive           Boolean              @default(true)
+  preparationTime    Int? // Hazırlama süresi (dakika)
+  stockTracking      Boolean              @default(false) // Stok takibi yapılsın mı?
+  stockCountItems    StockCountItem[]
+  productOptions     ProductOption[]      // İlişki adı "productOptions" olarak kalsın
+}
+
+// Ürün Kategorisi Modeli
+model Category {
+  id           Int        @id @default(autoincrement())
+  restaurantId Int
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  name         String
+  description  String?
+  products     Product[]
+  isActive     Boolean    @default(true)
+}
+
+// Stok Modeli
+model Stock {
+  id                Int              @id @default(autoincrement())
+  productId         Int // @unique kaldırıldı
+  product           Product          @relation(fields: [productId], references: [id])
+  quantity          Int              @default(0)
+  lowStockThreshold Int?
+  idealStockLevel   Int?
+  lastStockUpdate   DateTime?
+  stockHistory      StockHistory[]
+  fromTransfers     StockTransfer[]  @relation("FromStock")
+  toTransfers       StockTransfer[]  @relation("ToStock")
+  branchId          Int
+  branch            Branch           @relation(fields: [branchId], references: [id])
+  expirationDate    DateTime?
+  stockCountItems   StockCountItem[]
+
+  @@unique([productId, branchId])
+}
+
+// Stok Geçmişi Modeli
+model StockHistory {
+  id                  Int                  @id @default(autoincrement())
+  stockId             Int
+  stock               Stock                @relation(fields: [stockId], references: [id])
+  productId           Int
+  product             Product              @relation(fields: [productId], references: [id])
+  quantity            Int
+  date                DateTime             @default(now())
+  type                StockTransactionType
+  notes               String?
+  restaurant          Restaurant           @relation(fields: [restaurantId], references: [id])
+  restaurantId        Int
+  orderId             Int? // Satış için
+  purchaseOrderItemId Int? // Satın alma için
+  stockTransferId     Int? // Transfer için
+  order               Order?               @relation(fields: [orderId], references: [id])
+  purchaseOrderItem   PurchaseOrderItem?   @relation(fields: [purchaseOrderItemId], references: [id])
+  stockTransfer       StockTransfer?       @relation(fields: [stockTransferId], references: [id])
+}
+
+// Stok Hareket Türleri
+enum StockTransactionType {
+  IN // Giriş
+  OUT // Çıkış
+  ADJUSTMENT // Düzeltme (örn. sayım farkı)
+  TRANSFER // Transfer (örn. şubeler arası)
+  WASTE // Fire
+}
+
+// Ürün Varyantı Modeli
+model ProductVariant {
+  id              Int     @id @default(autoincrement())
+  productId       Int
+  product         Product @relation(fields: [productId], references: [id])
+  name            String // Varyant adı (ör. Beden, Renk)
+  value           String // Varyant değeri (ör. Büyük, Kırmızı)
+  priceAdjustment Float? // Fiyat farkı (varsa)
+}
+
+// Sipariş Modeli
+model Order {
+  id                        Int            @id @default(autoincrement())
+  restaurantId              Int
+  restaurant                Restaurant     @relation(fields: [restaurantId], references: [id])
+  branchId                  Int?
+  branch                    Branch?        @relation(fields: [branchId], references: [id], name: "BranchOrders")
+  tableId                   Int?
+  table                     Table?         @relation(fields: [tableId], references: [id])
+  customerId                Int?
+  customer                  Customer?      @relation(fields: [customerId], references: [id])
+  waiterId                  Int?
+  waiter                    User?          @relation(fields: [waiterId], references: [id])
+  orderTime                 DateTime       @default(now())
+  totalAmount               Float          @default(0)
+  totalPriceBeforeDiscounts Decimal        @default(0) @db.Decimal(10, 2)
+  orderItems                OrderItem[]
+  payment                   Payment?
+  orderSource               OrderSource    @default(IN_STORE)
+  status                    OrderStatus    @default(PENDING)
+  orderNotes                String?
+  openingTime               DateTime?
+  closingTime               DateTime?
+  priority                  Boolean?       @default(false)
+  discounts                 Discount[]
+  stockHistories            StockHistory[]
+  preparationStartTime      DateTime?
+  preparationEndTime        DateTime?
+  customerCount             Int?           @default(1)
+  completedAt               DateTime?
+  discountAmount           Float          @default(0)
+  discountType             String?
+  paymentStatus            PaymentStatus  @default(PENDING)
+}
+
+// Sipariş Kaynağı
+enum OrderSource {
+  IN_STORE // Restoranda verilen sipariş
+  PACKAGE // Paket sipariş
+  ONLINE // Online platformlardan gelen sipariş (ileride entegrasyonlarla genişletilebilir)
+}
+
+// Sipariş Durumları
+enum OrderStatus {
+  PENDING // Beklemede
+  PREPARING // Hazırlanıyor
+  READY // Hazır
+  DELIVERED // Teslim Edildi
+  COMPLETED // Tamamlandı
+  CANCELLED // İptal Edildi
+  ITEM_ISSUE // Ürün Hazırlanamama Durumu
+  PARTIALLY_PAID // Kısmi Ödeme Yapıldı
+}
+
+// Sipariş Kalemi Modeli
+model OrderItem {
+  id                   Int              @id @default(autoincrement())
+  orderId              Int
+  order                Order            @relation(fields: [orderId], references: [id])
+  productId            Int
+  product              Product          @relation(fields: [productId], references: [id])
+  quantity             Int
+  unitPrice            Decimal          @db.Decimal(10, 2)
+  note                 String? // notes değil, note kullanıyoruz
+  isVoid               Boolean?         @default(false)
+  type                 OrderItemType?   @default(SALE)
+  orderItemStatus      OrderItemStatus? @default(PENDING)
+  preparationStartTime DateTime?
+  preparationEndTime   DateTime?
+  selectedOptions      ProductOption[]  @relation("OrderItemOptions")
+  discounts            Discount[]       @relation("OrderItemDiscount")
+}
+
+// Sipariş Kalem Türleri (Satış, İkram, İptal)
+enum OrderItemType {
+  SALE // Satış
+  COMPLEMENTARY // İkram
+  VOID // İptal
+}
+
+// Sipariş Kalem Durumları
+enum OrderItemStatus {
+  PENDING // Beklemede
+  PREPARING // Hazırlanıyor
+  READY // Hazır
+}
+
+// Müşteri Modeli
+model Customer {
+  id           Int           @id @default(autoincrement())
+  restaurantId Int
+  restaurant   Restaurant    @relation(fields: [restaurantId], references: [id])
+  name         String
+  phoneNumber  String?
+  email        String?
+  orders       Order[] // Müşterinin verdiği siparişler
+  reservations Reservation[] // Müşterinin yaptığı rezervasyonlar
+  accounts     Account[]     @relation("CustomerAccounts")
+}
+
+// Ödeme Modeli
+model Payment {
+  id            Int           @id @default(autoincrement())
+  orderId       Int           @unique
+  order         Order         @relation(fields: [orderId], references: [id])
+  paymentMethod PaymentMethod
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentTime   DateTime      @default(now())
+  transactionId String?
+  cardPayment   CardPayment?
+}
+
+// Ödeme Yöntemleri
+enum PaymentMethod {
+  CASH // Nakit
+  CREDIT_CARD // Kredi Kartı
+  DEBIT_CARD // Banka Kartı
+  VOUCHER // Yemek Çeki
+  OTHER // Diğer
+  GIFT_CERTIFICATE // Hediye Çeki
+  LOYALTY_POINTS // Sadakat Puanı
+}
+
+// Kart Ödeme Detayları
+model CardPayment {
+  id             Int     @id @default(autoincrement())
+  paymentId      Int     @unique
+  payment        Payment @relation(fields: [paymentId], references: [id])
+  cardType       String? // VISA, MASTERCARD, AMEX vb.
+  lastFourDigits String?
+  transactionId  String? // Kartlı ödeme işlemleri için benzersiz id
+}
+
+// Rezervasyon Modeli
+model Reservation {
+  id                 Int               @id @default(autoincrement())
+  restaurantId       Int
+  restaurant         Restaurant        @relation(fields: [restaurantId], references: [id])
+  customerId         Int
+  customer           Customer          @relation(fields: [customerId], references: [id])
+  tableId            Int?
+  table              Table?            @relation(fields: [tableId], references: [id])
+  reservationTime    DateTime
+  partySize          Int? // Kişi sayısı
+  notes              String?
+  status             ReservationStatus @default(PENDING)
+  cancellationReason String?
+}
+
+// Rezervasyon Durumları
+enum ReservationStatus {
+  PENDING // Beklemede
+  CONFIRMED // Onaylandı
+  CANCELLED // İptal Edildi
+  COMPLETED // Tamamlandı
+}
+
+// Tedarikçi Modeli
+model Supplier {
+  id             Int               @id @default(autoincrement())
+  restaurantId   Int
+  restaurant     Restaurant        @relation(fields: [restaurantId], references: [id])
+  name           String
+  contactName    String?
+  phone          String?
+  email          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  products       ProductSupplier[] // Tedarik ettiği ürünler
+  purchaseOrders PurchaseOrder[] // Tedarikçiye verilen siparişler
+  accounts       Account[] // Tedarikçi cari hesapları
+}
+
+// Ürün-Tedarikçi İlişkisi Modeli
+model ProductSupplier {
+  productId           Int
+  product             Product  @relation(fields: [productId], references: [id])
+  supplierId          Int
+  supplier            Supplier @relation(fields: [supplierId], references: [id])
+  isPrimary           Boolean? // Birincil tedarikçi mi
+  lastPurchasePrice   Float? // Son alış fiyatı
+  supplierProductCode String? // Tedarikçideki ürün kodu
+
+  @@id([productId, supplierId])
+}
+
+// Satın Alma Siparişi Modeli
+model PurchaseOrder {
+  id                   Int                 @id @default(autoincrement())
+  supplierId           Int
+  restaurantId         Int
+  branchId             Int
+  supplier             Supplier            @relation(fields: [supplierId], references: [id])
+  restaurant           Restaurant          @relation(fields: [restaurantId], references: [id])
+  branch               Branch              @relation(fields: [branchId], references: [id])
+  orderDate            DateTime            @default(now())
+  expectedDeliveryDate DateTime?
+  status               PurchaseOrderStatus @default(PENDING)
+  notes                String?
+  totalAmount          Float
+  purchaseOrderItems   PurchaseOrderItem[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([restaurantId])
+  @@index([branchId])
+  @@index([supplierId])
+}
+
+// Satın Alma Sipariş Durumları
+enum PurchaseOrderStatus {
+  PENDING // Beklemede
+  ORDERED // Sipariş Verildi
+  SHIPPED // Sevk Edildi
+  DELIVERED // Teslim Edildi
+  CANCELLED // İptal Edildi
+}
+
+// Satın Alma Sipariş Kalemi Modeli
+model PurchaseOrderItem {
+  id              Int            @id @default(autoincrement())
+  purchaseOrderId Int
+  purchaseOrder   PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id])
+  productId       Int
+  product         Product        @relation(fields: [productId], references: [id], name: "ProductPurchaseOrderItems")
+  quantity        Int
+  unitPrice       Decimal?       @db.Decimal(10, 2)
+  totalPrice      Decimal?       @db.Decimal(10, 2)
+  stockHistories  StockHistory[]
+}
+
+// Cari Hesap Modeli
+model Account {
+  id           Int                  @id @default(autoincrement())
+  restaurantId Int
+  restaurant   Restaurant           @relation(fields: [restaurantId], references: [id])
+  accountName  String
+  accountType  AccountType
+  balance      Float                @default(0)
+  creditLimit  Float? // Kredi limiti (varsa)
+  transactions AccountTransaction[]
+  supplierId   Int?
+  supplier     Supplier?            @relation(fields: [supplierId], references: [id])
+  customerId   Int?
+  customer     Customer?            @relation(fields: [customerId], references: [id], name: "CustomerAccounts")
+}
+
+// Cari Hesap Türleri
+enum AccountType {
+  SUPPLIER // Tedarikçi
+  CUSTOMER // Müşteri
+  REVENUE // Gelir
+  EXPENSE // Gider
+}
+
+// Cari Hesap Hareketi Modeli
+model AccountTransaction {
+  id          Int             @id @default(autoincrement())
+  accountId   Int
+  account     Account         @relation(fields: [accountId], references: [id])
+  date        DateTime        @default(now())
+  amount      Float
+  type        TransactionType
+  description String?
+}
+
+// Cari Hesap Hareket Türleri
+enum TransactionType {
+  CREDIT // Alacak
+  DEBIT // Borç
+}
+
+// Ayarlar Modeli (Restoran geneli için)
+model Settings {
+  id             Int        @id @default(autoincrement())
+  restaurantId   Int        @unique
+  restaurant     Restaurant @relation(fields: [restaurantId], references: [id])
+  appName        String?
+  appLogoUrl     String?
+  currency       String?
+  timezone       String?
+  dailyCloseTime String? // Gün sonu saati
+  workingHours   String? // Restoran çalışma saatleri
+  // ... diğer ayarlar
+}
+
+// Reçete Modeli
+model Recipe {
+  id          Int                @id @default(autoincrement())
+  productId   Int                @unique
+  product     Product            @relation(fields: [productId], references: [id])
+  version     Int                @default(1) // Reçete versiyonu
+  isActive    Boolean            @default(true) // Aktif/Pasif durumu
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  ingredients RecipeIngredient[]
+}
+
+// Reçete İçeriği Modeli
+model RecipeIngredient {
+  id       Int     @id @default(autoincrement())
+  recipeId Int
+  recipe   Recipe  @relation(fields: [recipeId], references: [id])
+  name     String
+  quantity Decimal @db.Decimal(10, 3)
+  unit     String // Birim (kg, lt, adet vb.)
+  cost     Decimal @db.Decimal(10, 2) // Malzeme maliyeti
+  waste    Decimal @db.Decimal(5, 2) // Fire oranı (%)
+}
+
+// Ürün Seçenek Grubu Modeli (örneğin, hamburger için soslar)
+model ProductOptionGroup {
+  id          Int             @id @default(autoincrement())
+  productId   Int
+  product     Product         @relation(fields: [productId], references: [id])
+  name        String // Seçenek grubu adı (ör. Soslar, Ek Malzemeler)
+  isRequired  Boolean         @default(false)
+  minQuantity Int?            @default(0)
+  maxQuantity Int?            @default(999)
+  options     ProductOption[] // Seçenekler (ör. Ketçap, Mayonez)
+}
+
+// Ürün Seçeneği Modeli (örneğin, ketçap, mayonez)
+model ProductOption {
+  id              Int                @id @default(autoincrement())
+  optionGroupId   Int
+  optionGroup     ProductOptionGroup @relation(fields: [optionGroupId], references: [id])
+  name            String // Seçenek adı (ör. Ketçap, Mayonez)
+  priceAdjustment Float? // Ek ücret (varsa)
+  orderItems      OrderItem[]        @relation("OrderItemOptions")
+  product           Product    @relation(fields: [productId], references: [id])
+  productId         Int
+}
+
+// İndirim Modeli
+model Discount {
+  id             Int          @id @default(autoincrement())
+  orderId        Int?
+  orderItemId    Int?
+  discountType   DiscountType
+  discountAmount Float
+  note           String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // İlişkiler - düzeltilmiş hali
+  order     Order?     @relation(fields: [orderId], references: [id])
+  orderItem OrderItem? @relation("OrderItemDiscount", fields: [orderItemId], references: [id])
+
+  @@index([orderId])
+  @@index([orderItemId])
+}
+
+// İndirim Türleri
+enum DiscountType {
+  PERCENTAGE // Yüzdelik indirim
+  FIXED_AMOUNT // Sabit tutar indirimi
+  BUY_X_GET_Y_FREE // X al Y bedava
+}
+
+// Ürün Fiyat Geçmişi Modeli
+model PriceHistory {
+  id        Int       @id @default(autoincrement())
+  productId Int
+  product   Product   @relation(fields: [productId], references: [id])
+  oldPrice  Float
+  newPrice  Float
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+}
+
+// Yazıcı Modeli
+model Printer {
+  id           Int         @id @default(autoincrement())
+  restaurantId Int
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  branchId     Int?
+  branch       Branch?     @relation(fields: [branchId], references: [id])
+  name         String
+  type         PrinterType
+  ipAddress    String?
+  port         Int?
+  isActive     Boolean     @default(true)
+  isDefault    Boolean     @default(false)
+}
+
+// Yazıcı Türleri
+enum PrinterType {
+  KITCHEN // Mutfak Yazıcısı
+  CASHIER // Kasa Yazıcısı
+  LABEL // Etiket Yazıcısı
+  OTHER // Diğer
+}
+
+// Yeni eklenen StockTransfer modeli
+model StockTransfer {
+  id             Int            @id @default(autoincrement())
+  fromStockId    Int
+  toStockId      Int
+  quantity       Int
+  date           DateTime       @default(now())
+  notes          String?
+  stockHistories StockHistory[]
+
+  fromStock Stock @relation("FromStock", fields: [fromStockId], references: [id])
+  toStock   Stock @relation("ToStock", fields: [toStockId], references: [id])
+}
+
+model StockCount {
+  id          Int              @id @default(autoincrement())
+  branchId    Int
+  branch      Branch           @relation(fields: [branchId], references: [id])
+  countedBy   Int
+  countedDate DateTime
+  items       StockCountItem[]
+  createdAt   DateTime         @default(now())
+}
+
+model StockCountItem {
+  id              Int        @id @default(autoincrement())
+  stockCountId    Int
+  stockCount      StockCount @relation(fields: [stockCountId], references: [id])
+  productId       Int
+  product         Product    @relation(fields: [productId], references: [id])
+  stockId         Int
+  stock           Stock      @relation(fields: [stockId], references: [id])
+  systemQuantity  Int
+  countedQuantity Int
+  difference      Int
+}
+
+// Yeni model: User-Branch many-to-many ilişkisi için
+model UserBranch {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  branchId  Int
+  user      User     @relation(fields: [userId], references: [id])
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, branchId])
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  REFUNDED
+  CANCELLED
+}

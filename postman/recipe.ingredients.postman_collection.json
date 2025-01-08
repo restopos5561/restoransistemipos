@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "Recipe Ingredients API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Recipe Ingredients",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/recipe-ingredients?recipeId=1&productId=1&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "recipe-ingredients"],
+          "query": [
+            {"key": "recipeId", "value": "1"},
+            {"key": "productId", "value": "1"},
+            {"key": "page", "value": "1"},
+            {"key": "limit", "value": "10"}
+          ]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Create Recipe Ingredient",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/recipe-ingredients",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "recipe-ingredients"]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"recipeId\": 1,\n    \"name\": \"Tavuk Göğsü\",\n    \"quantity\": \"200 gram\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Get Recipe Ingredient By ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/recipe-ingredients/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "recipe-ingredients", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Update Recipe Ingredient",
+      "request": {
+        "method": "PUT",
+        "url": {
+          "raw": "{{baseUrl}}/api/recipe-ingredients/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "recipe-ingredients", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Organik Tavuk Göğsü\",\n    \"quantity\": \"250 gram\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Delete Recipe Ingredient",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/recipe-ingredients/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "recipe-ingredients", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Get Ingredients By Recipe ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/recipe-ingredients/recipe/:recipeId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "recipe-ingredients", "recipe", ":recipeId"],
+          "variable": [{"key": "recipeId", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    }
+  ]
+} 

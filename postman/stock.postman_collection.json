@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "Stock API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Stocks",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks"]
+        },
+        "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}]
+      }
+    },
+    {
+      "name": "Get Stock By Id",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}]
+      }
+    },
+    {
+      "name": "Get Stock History",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/:id/history",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", ":id", "history"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}]
+      }
+    },
+    {
+      "name": "Get Stock Movements",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/movements",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "movements"],
+          "query": [
+            {"key": "restaurantId", "value": "1"},
+            {"key": "branchId", "value": "1"},
+            {"key": "page", "value": "1"},
+            {"key": "limit", "value": "10"}
+          ]
+        },
+        "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}]
+      }
+    },
+    {
+      "name": "Get Expiring Stock",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/expiring",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "expiring"],
+          "query": [
+            {"key": "restaurantId", "value": "1"},
+            {"key": "branchId", "value": "1"},
+            {"key": "daysToExpiration", "value": "30"},
+            {"key": "page", "value": "1"},
+            {"key": "limit", "value": "10"}
+          ]
+        },
+        "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}]
+      }
+    },
+    {
+      "name": "Get Low Stock",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/low",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "low"],
+          "query": [
+            {"key": "restaurantId", "value": "1"},
+            {"key": "branchId", "value": "1"},
+            {"key": "page", "value": "1"},
+            {"key": "limit", "value": "10"}
+          ]
+        },
+        "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}]
+      }
+    },
+    {
+      "name": "Transfer Stock",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/transfer",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "transfer"]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"fromBranchId\": 1,\n    \"toBranchId\": 2,\n    \"productId\": 1,\n    \"quantity\": 50,\n    \"transferBy\": 1,\n    \"notes\": \"Şubeler arası transfer\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Stock Count",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/stocks/count",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "stocks", "count"]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"branchId\": 1,\n    \"countedBy\": 1,\n    \"countedDate\": \"2024-01-15T10:00:00Z\",\n    \"products\": [{\n        \"productId\": 1,\n        \"countedQuantity\": 100,\n        \"countedStockId\": 1\n    }]\n}"
+        }
+      }
+    }
+  ]
+} 

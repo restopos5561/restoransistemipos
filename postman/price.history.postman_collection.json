@@ -1,0 +1,76 @@
+{
+  "info": {
+    "name": "Price History API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Price History",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/price-history?productId=1&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "price-history"],
+          "query": [
+            {"key": "productId", "value": "1"},
+            {"key": "page", "value": "1"},
+            {"key": "limit", "value": "10"}
+          ]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Create Price History",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/price-history",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "price-history"]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"productId\": 1,\n    \"oldPrice\": 45,\n    \"newPrice\": 50,\n    \"startDate\": \"2023-11-15T00:00:00Z\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Get Price History By ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/price-history/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "price-history", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Get Price History By Product ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/price-history/product/:productId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "price-history", "product", ":productId"],
+          "variable": [{"key": "productId", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    }
+  ]
+} 

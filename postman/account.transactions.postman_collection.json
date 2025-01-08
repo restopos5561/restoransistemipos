@@ -1,0 +1,46 @@
+{
+  "info": {
+    "name": "Account Transactions API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Transactions",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/accounts/transactions?accountId=1&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "accounts", "transactions"],
+          "query": [
+            {"key": "accountId", "value": "1"},
+            {"key": "page", "value": "1"},
+            {"key": "limit", "value": "10"}
+          ]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Create Transaction",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/accounts/transactions",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "accounts", "transactions"]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"accountId\": 1,\n    \"type\": \"CREDIT\",\n    \"amount\": 500,\n    \"description\": \"Nakit giriş\"\n}"
+        }
+      }
+    }
+  ]
+} 

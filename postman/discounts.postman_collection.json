@@ -1,0 +1,195 @@
+{
+  "info": {
+    "name": "Discounts API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Discounts",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/discounts?orderId=1&orderItemId=1&type=PERCENTAGE&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "discounts"],
+          "query": [
+            {
+              "key": "orderId",
+              "value": "1",
+              "description": "Sipariş ID'sine göre filtreleme"
+            },
+            {
+              "key": "orderItemId",
+              "value": "1",
+              "description": "Sipariş kalemi ID'sine göre filtreleme"
+            },
+            {
+              "key": "type",
+              "value": "PERCENTAGE",
+              "description": "İndirim türüne göre filtreleme"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "description": "Tüm indirimleri listeler"
+      }
+    },
+    {
+      "name": "Create Discount",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/discounts",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "discounts"]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"orderId\": 1,\n    \"orderItemId\": null,\n    \"discountType\": \"PERCENTAGE\",\n    \"discountAmount\": 10,\n    \"note\": \"Öğrenci indirimi\"\n}"
+        },
+        "description": "Yeni indirim oluşturur"
+      }
+    },
+    {
+      "name": "Get Discount By Id",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/discounts/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "discounts", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1",
+              "description": "İndirim ID"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "description": "ID'ye göre indirim detaylarını getirir"
+      }
+    },
+    {
+      "name": "Update Discount",
+      "request": {
+        "method": "PUT",
+        "url": {
+          "raw": "{{baseUrl}}/api/discounts/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "discounts", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1",
+              "description": "İndirim ID"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"discountType\": \"FIXED_AMOUNT\",\n    \"discountAmount\": 20,\n    \"note\": \"Güncellendi: Kampanya indirimi\"\n}"
+        },
+        "description": "İndirim bilgilerini günceller"
+      }
+    },
+    {
+      "name": "Delete Discount",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/discounts/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "discounts", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1",
+              "description": "İndirim ID"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "description": "İndirimi siler"
+      }
+    },
+    {
+      "name": "Get Order Discounts",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/discounts/order/:orderId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "discounts", "order", ":orderId"],
+          "variable": [
+            {
+              "key": "orderId",
+              "value": "1",
+              "description": "Sipariş ID"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "description": "Siparişe ait indirimleri listeler"
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  }
+} 

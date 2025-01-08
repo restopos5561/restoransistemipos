@@ -1,0 +1,144 @@
+{
+  "info": {
+    "name": "Reservations API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Reservations",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations?restaurantId=1&status=PENDING&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations"],
+          "query": [
+            {"key": "restaurantId", "value": "1"},
+            {"key": "status", "value": "PENDING"},
+            {"key": "page", "value": "1"},
+            {"key": "limit", "value": "10"}
+          ]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Get Reservation By Id",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Create Reservation",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations"]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"restaurantId\": 1,\n    \"customerId\": 1,\n    \"tableId\": 1,\n    \"reservationTime\": \"2024-03-20T19:00:00Z\",\n    \"partySize\": 4,\n    \"notes\": \"Pencere kenarı tercih edilir\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Update Reservation",
+      "request": {
+        "method": "PUT",
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"tableId\": 2,\n    \"reservationTime\": \"2024-03-20T20:00:00Z\",\n    \"partySize\": 6,\n    \"notes\": \"Güncellendi\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Delete Reservation",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Update Reservation Status",
+      "request": {
+        "method": "PATCH",
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations/1/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations", "1", "status"]
+        },
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"status\": \"CONFIRMED\",\n    \"cancellationReason\": null\n}"
+        }
+      }
+    },
+    {
+      "name": "Get Reservations By Date",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations/date/2024-03-20",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations", "date", "2024-03-20"]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Get Reservations By Customer",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/reservations/customer/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reservations", "customer", "1"]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    }
+  ]
+} 

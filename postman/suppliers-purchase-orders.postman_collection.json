@@ -1,0 +1,458 @@
+{
+  "info": {
+    "name": "Suppliers & Purchase Orders API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Suppliers",
+      "item": [
+        {
+          "name": "Get Suppliers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/suppliers?restaurantId=1&search=tedarikci&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "suppliers"],
+              "query": [
+                {
+                  "key": "restaurantId",
+                  "value": "1"
+                },
+                {
+                  "key": "search",
+                  "value": "tedarikci"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Get Supplier By Id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/suppliers/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "suppliers", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Create Supplier",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/suppliers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "suppliers"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"restaurantId\": 1,\n    \"name\": \"Test Tedarikçi\",\n    \"contactName\": \"Ahmet Yılmaz\",\n    \"phone\": \"05551234567\",\n    \"email\": \"ahmet@tedarikci.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Supplier",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/suppliers/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "suppliers", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Test Tedarikçi Güncel\",\n    \"contactName\": \"Mehmet Yılmaz\",\n    \"phone\": \"05559876543\",\n    \"email\": \"mehmet@tedarikci.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Supplier",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/suppliers/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "suppliers", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Add Product to Supplier",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/suppliers/:id/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "suppliers", ":id", "products"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"productId\": 1,\n    \"isPrimary\": true,\n    \"lastPurchasePrice\": 100,\n    \"supplierProductCode\": \"SUP001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Suppliers By Product",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/suppliers/product/:productId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "suppliers", "product", ":productId"],
+              "variable": [
+                {
+                  "key": "productId",
+                  "value": "1"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Purchase Orders",
+      "item": [
+        {
+          "name": "Get Purchase Orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders?restaurantId=1&branchId=1&supplierId=1&status=PENDING&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "purchase-orders"],
+              "query": [
+                {
+                  "key": "restaurantId",
+                  "value": "1"
+                },
+                {
+                  "key": "branchId",
+                  "value": "1"
+                },
+                {
+                  "key": "supplierId",
+                  "value": "1"
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Create Purchase Order",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "purchase-orders"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"supplierId\": 1,\n    \"restaurantId\": 1,\n    \"branchId\": 1,\n    \"expectedDeliveryDate\": \"2024-03-20T10:00:00Z\",\n    \"notes\": \"Acil sipariş\",\n    \"items\": [\n        {\n            \"productId\": 1,\n            \"quantity\": 10,\n            \"unitPrice\": 50\n        },\n        {\n            \"productId\": 2,\n            \"quantity\": 5,\n            \"unitPrice\": 30\n        }\n    ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Purchase Order By Id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "purchase-orders", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Update Purchase Order",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "purchase-orders", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"expectedDeliveryDate\": \"2024-03-21T10:00:00Z\",\n    \"notes\": \"Güncellendi\",\n    \"items\": [\n        {\n            \"productId\": 1,\n            \"quantity\": 15,\n            \"unitPrice\": 45\n        }\n    ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Purchase Order",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "purchase-orders", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Update Purchase Order Status",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/:id/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "purchase-orders", ":id", "status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"DELIVERED\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Purchase Orders By Supplier",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/supplier/:supplierId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "purchase-orders", "supplier", ":supplierId"],
+              "variable": [
+                {
+                  "key": "supplierId",
+                  "value": "1"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Get Purchase Orders By Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/status/:status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "purchase-orders", "status", ":status"],
+              "variable": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Get Purchase Orders By Date Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/date-range?startDate=2024-03-01T00:00:00Z&endDate=2024-03-31T23:59:59Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "purchase-orders", "date-range"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-03-01T00:00:00Z"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-03-31T23:59:59Z"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+} 

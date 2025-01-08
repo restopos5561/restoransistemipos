@@ -1,0 +1,125 @@
+{
+  "info": {
+    "name": "Kitchen & Bar API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Kitchen",
+      "item": [
+        {
+          "name": "Get Kitchen Orders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/kitchen/orders",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Update Kitchen Order Status",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/api/kitchen/orders/:id/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "kitchen", "orders", ":id", "status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Sipariş ID"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"PREPARING\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Kitchen Queue",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/kitchen/queue",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bar",
+      "item": [
+        {
+          "name": "Get Bar Orders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/bar/orders",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Update Bar Order Status",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/bar/orders/:id/status",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"PREPARING\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Get Bar Queue",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/bar/queue",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+} 

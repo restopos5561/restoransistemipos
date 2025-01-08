@@ -1,0 +1,282 @@
+{
+  "info": {
+    "name": "Permissions API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Permissions",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.environment.get('accessToken')) {",
+              "    console.log('Access token not found in environment variables!')",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/permissions",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "permissions"]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Get Permission By Id",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.environment.get('accessToken')) {",
+              "    console.log('Access token not found in environment variables!')",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/permissions/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "permissions", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Create Permission",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.environment.get('accessToken')) {",
+              "    console.log('Access token not found in environment variables!')",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/permissions",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "permissions"]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"MANAGE_INVENTORY\",\n    \"description\": \"Envanter yönetimi yetkisi\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Update Permission",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.environment.get('accessToken')) {",
+              "    console.log('Access token not found in environment variables!')",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "url": {
+          "raw": "{{baseUrl}}/api/permissions/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "permissions", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"MANAGE_INVENTORY_UPDATED\",\n    \"description\": \"Güncellenmiş envanter yönetimi yetkisi\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Delete Permission",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.environment.get('accessToken')) {",
+              "    console.log('Access token not found in environment variables!')",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/permissions/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "permissions", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Get User Permissions",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.environment.get('accessToken')) {",
+              "    console.log('Access token not found in environment variables!')",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/user-permissions/:userId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "user-permissions", ":userId"],
+          "variable": [
+            {
+              "key": "userId",
+              "value": "1"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Update User Permissions",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.environment.get('accessToken')) {",
+              "    console.log('Access token not found in environment variables!')",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/user-permissions/:userId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "user-permissions", ":userId"],
+          "variable": [
+            {
+              "key": "userId",
+              "value": "1"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"permissions\": [\n        {\n            \"permissionId\": 1,\n            \"allowed\": true\n        },\n        {\n            \"permissionId\": 2,\n            \"allowed\": false\n        }\n    ]\n}"
+        }
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.environment.get('baseUrl')) {",
+          "    pm.environment.set('baseUrl', 'http://localhost:3002');",
+          "}",
+          "",
+          "if (!pm.environment.get('accessToken')) {",
+          "    console.warn('⚠️ accessToken environment variable is not set. Please login first.');",
+          "}"
+        ]
+      }
+    }
+  ]
+} 

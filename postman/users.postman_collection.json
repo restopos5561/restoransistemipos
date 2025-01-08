@@ -1,0 +1,236 @@
+{
+  "info": {
+    "_postman_id": "2a3b4c5d-6e7f-8g9h-0i1j-2k3l4m5n6o7p",
+    "name": "RestoPOS - Users API",
+    "description": "Restoran POS Sistemi Kullanıcı Yönetimi API'leri",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Users",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users"]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "description": "Tüm kullanıcıları listeler"
+      }
+    },
+    {
+      "name": "Get User By ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/users/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1",
+              "description": "Kullanıcı ID"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "description": "ID'ye göre kullanıcı getirir"
+      }
+    },
+    {
+      "name": "Create User",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users"]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"testuser@example.com\",\n    \"password\": \"123456\",\n    \"role\": \"STAFF\",\n    \"branchId\": 1,\n    \"restaurantId\": 1,\n    \"permissions\": [\"CREATE_PRODUCT\", \"VIEW_REPORTS\"]\n}"
+        },
+        "description": "Yeni kullanıcı oluşturur"
+      }
+    },
+    {
+      "name": "Update User",
+      "request": {
+        "method": "PUT",
+        "url": {
+          "raw": "{{baseUrl}}/api/users/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1",
+              "description": "Kullanıcı ID"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Updated User\",\n    \"email\": \"updated@example.com\",\n    \"role\": \"MANAGER\"\n}"
+        },
+        "description": "Kullanıcı bilgilerini günceller"
+      }
+    },
+    {
+      "name": "Delete User",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/users/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", ":id"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1",
+              "description": "Kullanıcı ID"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "description": "Kullanıcıyı siler"
+      }
+    },
+    {
+      "name": "Update User Permissions",
+      "request": {
+        "method": "PUT",
+        "url": {
+          "raw": "{{baseUrl}}/api/users/:id/permissions",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", ":id", "permissions"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1",
+              "description": "Kullanıcı ID"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"permissions\": [\"CREATE_PRODUCT\", \"VIEW_REPORTS\", \"MANAGE_USERS\"]\n}"
+        },
+        "description": "Kullanıcı yetkilerini günceller"
+      }
+    },
+    {
+      "name": "Batch Create Users",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/users/batch",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"users\": [\n        {\n            \"name\": \"Test User 1\",\n            \"email\": \"test1@example.com\",\n            \"password\": \"123456\",\n            \"role\": \"STAFF\",\n            \"branchId\": 1,\n            \"restaurantId\": 1\n        },\n        {\n            \"name\": \"Test User 2\",\n            \"email\": \"test2@example.com\",\n            \"password\": \"123456\",\n            \"role\": \"STAFF\",\n            \"branchId\": 1,\n            \"restaurantId\": 1\n        }\n    ]\n}"
+        }
+      }
+    },
+    {
+      "name": "Batch Update Users",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/users/batch",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"users\": [\n        {\n            \"id\": 1,\n            \"name\": \"Updated User 1\"\n        },\n        {\n            \"id\": 2,\n            \"role\": \"MANAGER\"\n        }\n    ]\n}"
+        }
+      }
+    },
+    {
+      "name": "Batch Delete Users",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"ids\": [2, 4]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/users/batch",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "batch"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3002",
+      "type": "string"
+    }
+  ]
+} 

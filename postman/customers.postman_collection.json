@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "Customers API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Customers",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/customers?search=&page=1&limit=10&restaurantId=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "customers"],
+          "query": [
+            {"key": "search", "value": ""},
+            {"key": "page", "value": "1"},
+            {"key": "limit", "value": "10"},
+            {"key": "restaurantId", "value": "1"}
+          ]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Create Customer",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/customers",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "customers"]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"restaurantId\": 1,\n    \"name\": \"Ahmet Yılmaz\",\n    \"phoneNumber\": \"05321234567\",\n    \"email\": \"ahmet@example.com\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Get Customer By Id",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/customers/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "customers", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Update Customer",
+      "request": {
+        "method": "PUT",
+        "url": {
+          "raw": "{{baseUrl}}/api/customers/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "customers", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Ahmet Yılmaz Güncel\",\n    \"phoneNumber\": \"05321234568\",\n    \"email\": \"ahmet.yilmaz@example.com\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Delete Customer",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/customers/:id",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "customers", ":id"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    },
+    {
+      "name": "Get Customer Orders",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/customers/:id/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "customers", ":id", "orders"],
+          "variable": [{"key": "id", "value": "1"}]
+        },
+        "header": [
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ]
+      }
+    }
+  ]
+} 
