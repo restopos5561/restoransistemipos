@@ -48,6 +48,11 @@ export const authService = {
                 if (!success) {
                     throw new Error('Token kaydetme işlemi başarısız oldu');
                 }
+
+                // RestaurantId'yi kaydet
+                if (response.data.data.user?.restaurantId) {
+                    localStorage.setItem('restaurantId', response.data.data.user.restaurantId.toString());
+                }
             }
 
             return response.data;
@@ -91,6 +96,11 @@ export const authService = {
 
             if (!response.data || !response.data.data) {
                 throw new Error('Invalid profile response');
+            }
+
+            // RestaurantId'yi güncelle
+            if (response.data.data.restaurantId) {
+                localStorage.setItem('restaurantId', response.data.data.restaurantId.toString());
             }
 
             return response.data.data;

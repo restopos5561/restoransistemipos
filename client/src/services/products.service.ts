@@ -17,7 +17,7 @@ const productsService = {
     const response = await api.get(API_ENDPOINTS.PRODUCTS.LIST, { 
       params: {
         ...params,
-        restaurantId: params.restaurantId || localStorage.getItem('restaurantId')
+        restaurantId: params.restaurantId || Number(localStorage.getItem('restaurantId'))
       }
     });
     return response.data;
@@ -33,7 +33,7 @@ const productsService = {
   createProduct: async (data: any) => {
     const response = await api.post(API_ENDPOINTS.PRODUCTS.CREATE, {
       ...data,
-      restaurantId: data.restaurantId || localStorage.getItem('restaurantId')
+      restaurantId: data.restaurantId || Number(localStorage.getItem('restaurantId'))
     });
     return response.data;
   },
@@ -42,7 +42,7 @@ const productsService = {
   updateProduct: async (id: number, data: any) => {
     const response = await api.put(API_ENDPOINTS.PRODUCTS.UPDATE(id.toString()), {
       ...data,
-      restaurantId: data.restaurantId || localStorage.getItem('restaurantId')
+      restaurantId: data.restaurantId || Number(localStorage.getItem('restaurantId'))
     });
     return response.data;
   },

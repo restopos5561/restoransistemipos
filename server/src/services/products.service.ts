@@ -7,7 +7,6 @@ const prisma = new PrismaClient();
 interface CreateProductInput {
   restaurantId: number;
   categoryId: number;
-  branchId: number;
   name: string;
   description?: string;
   price: number;
@@ -20,7 +19,6 @@ interface CreateProductInput {
 
 interface UpdateProductInput {
   categoryId?: number;
-  branchId?: number;
   name?: string;
   description?: string;
   price?: number;
@@ -143,11 +141,17 @@ export class ProductsService {
 
     // Eğer stok takibi isteniyorsa stock objesi ekle
     if (data.stockTracking && data.stockQuantity !== undefined) {
+      // Restoranın tüm şubelerini bul
+      const branches = await prisma.branch.findMany({
+        where: { restaurantId: data.restaurantId },
+      });
+
+      // Her şube için stok kaydı oluştur
       productData.stocks = {
-        create: {
+        create: branches.map((branch) => ({
           quantity: data.stockQuantity,
-          branchId: data.branchId,
-        },
+          branchId: branch.id,
+        })),
       };
     }
 
@@ -199,12 +203,17 @@ export class ProductsService {
     // Stok güncelleme işlemi
     if (data.stockTracking !== undefined) {
       if (data.stockTracking) {
-        // Stok takibi açılıyorsa ve henüz stok kaydı yoksa oluştur
+        // Restoranın tüm şubelerini bul
+        const branches = await prisma.branch.findMany({
+          where: { restaurantId: product.restaurantId },
+        });
+
+        // Her şube için stok kaydı oluştur
         updateData.stocks = {
-          create: {
+          create: branches.map((branch) => ({
             quantity: 0,
-            branchId: data.branchId,
-          },
+            branchId: branch.id,
+          })),
         };
       } else {
         // Stok takibi kapatılıyorsa stok kaydını sil
