@@ -82,7 +82,7 @@ export class TablesController {
   transferTable = async (req: Request, res: Response) => {
     const { fromTableId, toTableId } = req.body;
 
-    const table = await this.tablesService.transferTable(fromTableId, toTableId);
+    const table = await this.tablesService.transferTable({ fromTableId, toTableId });
 
     res.status(200).json({
       success: true,

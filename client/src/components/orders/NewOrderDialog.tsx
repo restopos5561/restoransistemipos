@@ -21,7 +21,7 @@ import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import { OrderSource } from '../../types/enums';
 import { useAuth } from '../../hooks/useAuth';
 import ordersService from '../../services/orders.service';
-import tablesService from '../../services/tables.service';
+import { tablesService } from '../../services/tables.service';
 import productsService from '../../services/products.service';
 import customersService from '../../services/customers.service';
 import { toast } from 'react-hot-toast';

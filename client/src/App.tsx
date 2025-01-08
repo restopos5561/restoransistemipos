@@ -17,6 +17,7 @@ import EditOrderPage from './pages/orders/EditOrderPage';
 import PaymentPage from './pages/orders/PaymentPage';
 import KitchenPage from './pages/kitchen/KitchenPage';
 import BarPage from './pages/bar/BarPage';
+import TablesPage from './pages/tables/TablesPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Loading from './components/common/Loading/Loading';
@@ -27,11 +28,13 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { tr } from 'date-fns/locale';
 import theme from './theme/theme';
+import { useConfirm } from './hooks/useConfirm';
 
 const queryClient = new QueryClient();
 
 const App: React.FC = () => {
     const isLoading = useLoadingStore((state) => state.isLoading);
+    const confirm = useConfirm();
 
     return (
         <ErrorBoundary>
@@ -64,6 +67,9 @@ const App: React.FC = () => {
                                         {/* Kitchen & Bar Routes */}
                                         <Route path="/kitchen" element={<KitchenPage />} />
                                         <Route path="/bar" element={<BarPage />} />
+
+                                        {/* Tables Route */}
+                                        <Route path="/tables" element={<TablesPage />} />
                                     </Route>
                                 </Route>
 
@@ -77,6 +83,7 @@ const App: React.FC = () => {
                                 closeOnClick
                                 pauseOnHover
                             />
+                            <confirm.ConfirmationDialog />
                         </BrowserRouter>
                     </LocalizationProvider>
                 </ThemeProvider>

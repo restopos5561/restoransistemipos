@@ -4,7 +4,7 @@ import TimerIcon from '@mui/icons-material/Timer';
 import PendingIcon from '@mui/icons-material/Pending';
 import LocalBarIcon from '@mui/icons-material/LocalBar';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import StatCard from '../common/StatCard';
+import { StatCard } from '../common';
 
 interface BarStatsProps {
   stats: {

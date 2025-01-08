@@ -238,10 +238,10 @@ export class TablesService {
     });
   }
 
-  async transferTable(fromTableId: number, toTableId: number): Promise<Table> {
+  async transferTable(data: { fromTableId: number; toTableId: number }): Promise<Table> {
     const [fromTable, toTable] = await Promise.all([
       prisma.table.findUnique({
-        where: { id: fromTableId },
+        where: { id: data.fromTableId },
         include: {
           branch: true,
           orders: {
@@ -254,7 +254,7 @@ export class TablesService {
         },
       }),
       prisma.table.findUnique({
-        where: { id: toTableId },
+        where: { id: data.toTableId },
         include: {
           branch: true,
           orders: {
@@ -269,7 +269,7 @@ export class TablesService {
     ]);
 
     if (!fromTable || !toTable) {
-      throw new TableNotFoundError(fromTableId || toTableId);
+      throw new TableNotFoundError(data.fromTableId || data.toTableId);
     }
 
     if (fromTable.branchId !== toTable.branchId) {
@@ -283,21 +283,21 @@ export class TablesService {
     return prisma.$transaction(async (tx) => {
       await tx.order.updateMany({
         where: {
-          tableId: fromTableId,
+          tableId: data.fromTableId,
           status: {
             in: [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY],
           },
         },
-        data: { tableId: toTableId },
+        data: { tableId: data.toTableId },
       });
 
       await tx.table.update({
-        where: { id: fromTableId },
+        where: { id: data.fromTableId },
         data: { status: TableStatus.IDLE },
       });
 
       return tx.table.update({
-        where: { id: toTableId },
+        where: { id: data.toTableId },
         data: { status: TableStatus.OCCUPIED },
         include: { branch: true },
       });

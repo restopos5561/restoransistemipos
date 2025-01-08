@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
-import { Box, CircularProgress, IconButton, Drawer, List, ListItem, ListItemIcon, ListItemText, ListItemButton, Typography, Stack, useTheme, alpha } from '@mui/material';
+import { Box, CircularProgress, IconButton, Drawer, List, ListItem, ListItemIcon, ListItemText, ListItemButton, Stack, useTheme, alpha } from '@mui/material';
 import { 
     Menu as MenuIcon,
     Dashboard as DashboardIcon,
@@ -9,7 +9,8 @@ import {
     Settings as SettingsIcon,
     Kitchen as KitchenIcon,
     LocalBar as BarIcon,
-    ChevronRight
+    ChevronRight,
+    TableRestaurant as TableIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -23,6 +24,7 @@ const menuItems = [
     { text: 'Siparişler', icon: <ReceiptIcon />, path: '/orders' },
     { text: 'Mutfak', icon: <KitchenIcon />, path: '/kitchen', role: ['ADMIN', 'CHEF'] },
     { text: 'Bar', icon: <BarIcon />, path: '/bar', role: ['ADMIN', 'BAR'] },
+    { text: 'Masalar', icon: <TableIcon />, path: '/tables', role: ['ADMIN', 'WAITER'] },
     { text: 'Ürünler', icon: <RestaurantIcon />, path: '/products' },
     { text: 'Ayarlar', icon: <SettingsIcon />, path: '/settings', role: ['ADMIN'] }
 ];
