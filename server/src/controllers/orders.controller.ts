@@ -27,8 +27,20 @@ export class OrdersController {
   };
 
   createOrder = async (req: Request, res: Response) => {
-    const order = await this.ordersService.createOrder(req.body);
-    res.status(201).json({ success: true, data: order });
+    try {
+      const order = await this.ordersService.createOrder(req.body);
+      res.status(201).json({ success: true, data: order });
+    } catch (error: any) {
+      console.error('Create order error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Something went wrong',
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          details: error.message || 'An unexpected error occurred'
+        }
+      });
+    }
   };
 
   updateOrder = async (req: Request, res: Response) => {

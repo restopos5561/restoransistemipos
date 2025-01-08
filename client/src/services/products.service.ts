@@ -1,35 +1,73 @@
 import api from './api';
 import { API_ENDPOINTS } from '../config/constants';
 
+interface ProductListParams {
+  branchId?: number;
+  restaurantId?: number;
+  categoryId?: number;
+  search?: string;
+  isActive?: boolean;
+  page?: number;
+  limit?: number;
+}
+
 const productsService = {
-  getProducts: async (restaurantId: number, categoryId?: number, search?: string) => {
-    const params = new URLSearchParams({
-      restaurantId: restaurantId.toString(),
-      ...(categoryId && { categoryId: categoryId.toString() }),
-      ...(search && { search })
+  // Get all products with optional filtering
+  getProducts: async (params: ProductListParams = {}) => {
+    const response = await api.get(API_ENDPOINTS.PRODUCTS.LIST, { 
+      params: {
+        ...params,
+        restaurantId: params.restaurantId || localStorage.getItem('restaurantId')
+      }
     });
-    
-    const response = await api.get(`${API_ENDPOINTS.PRODUCTS.LIST}?${params}`);
     return response.data;
   },
 
-  getProductById: async (restaurantId: number, id: string | number) => {
+  // Get a single product by ID
+  getProductById: async (id: number) => {
     const response = await api.get(API_ENDPOINTS.PRODUCTS.DETAIL(id.toString()));
     return response.data;
   },
 
-  createProduct: async (restaurantId: number, data: any) => {
-    const response = await api.post(API_ENDPOINTS.PRODUCTS.CREATE, data);
+  // Create a new product
+  createProduct: async (data: any) => {
+    const response = await api.post(API_ENDPOINTS.PRODUCTS.CREATE, {
+      ...data,
+      restaurantId: data.restaurantId || localStorage.getItem('restaurantId')
+    });
     return response.data;
   },
 
-  updateProduct: async (restaurantId: number, id: string | number, data: any) => {
-    const response = await api.put(API_ENDPOINTS.PRODUCTS.UPDATE(id.toString()), data);
+  // Update a product
+  updateProduct: async (id: number, data: any) => {
+    const response = await api.put(API_ENDPOINTS.PRODUCTS.UPDATE(id.toString()), {
+      ...data,
+      restaurantId: data.restaurantId || localStorage.getItem('restaurantId')
+    });
     return response.data;
   },
 
-  deleteProduct: async (restaurantId: number, id: string | number) => {
+  // Delete a product
+  deleteProduct: async (id: number) => {
     const response = await api.delete(API_ENDPOINTS.PRODUCTS.DELETE(id.toString()));
+    return response.data;
+  },
+
+  // Update product status
+  updateProductStatus: async (id: number, isActive: boolean) => {
+    const response = await api.patch(API_ENDPOINTS.PRODUCTS.STATUS(id.toString()), { isActive });
+    return response.data;
+  },
+
+  // Get product stock
+  getProductStock: async (id: number, branchId: number) => {
+    const response = await api.get(API_ENDPOINTS.PRODUCTS.STOCK(id.toString()), { params: { branchId } });
+    return response.data;
+  },
+
+  // Get product options
+  getProductOptions: async (id: number) => {
+    const response = await api.get(API_ENDPOINTS.PRODUCTS.OPTIONS(id.toString()));
     return response.data;
   }
 };

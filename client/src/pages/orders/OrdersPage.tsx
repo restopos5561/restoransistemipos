@@ -41,6 +41,7 @@ import { toast } from 'react-hot-toast';
 import SearchBar from '../../components/common/SearchBar/SearchBar';
 import Pagination from '../../components/common/Pagination/Pagination';
 import DateRangePicker from '../../components/common/DateRangePicker';
+import NewOrderDialog from '../../components/orders/NewOrderDialog';
 
 // Services
 import ordersService from '../../services/orders.service';
@@ -94,6 +95,7 @@ const OrdersPage: React.FC = () => {
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
   const [bulkActionDialogOpen, setBulkActionDialogOpen] = useState(false);
   const [bulkActionType, setBulkActionType] = useState<'delete' | 'status' | null>(null);
+  const [newOrderDialogOpen, setNewOrderDialogOpen] = useState(false);
 
   // Sipariş durumuna göre chip rengi ve metin
   const getStatusColor = useCallback((status: OrderStatus) => {
@@ -232,6 +234,18 @@ const OrdersPage: React.FC = () => {
     setBulkActionDialogOpen(true);
   };
 
+  const handleNewOrder = () => {
+    setNewOrderDialogOpen(true);
+  };
+
+  const handleNewOrderClose = () => {
+    setNewOrderDialogOpen(false);
+  };
+
+  const handleOrderCreated = () => {
+    fetchOrders();
+  };
+
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
@@ -281,7 +295,7 @@ const OrdersPage: React.FC = () => {
                 bgcolor: theme.palette.primary.dark
               }
             }}
-            onClick={() => navigate('/orders/new')}
+            onClick={handleNewOrder}
           >
             Yeni Sipariş
           </Button>
@@ -570,6 +584,12 @@ const OrdersPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <NewOrderDialog
+        open={newOrderDialogOpen}
+        onClose={handleNewOrderClose}
+        onOrderCreated={handleOrderCreated}
+      />
     </Box>
   );
 };

@@ -12,6 +12,7 @@ export enum PaymentStatus {
 export const OrderSchema = {
   create: z.object({
     branchId: z.number(),
+    restaurantId: z.number(),
     orderSource: z.nativeEnum(OrderSource),
     tableId: z.number().nullable().optional(),
     customerId: z.number().nullable().optional(),
@@ -21,9 +22,9 @@ export const OrderSchema = {
       z.object({
         productId: z.number(),
         quantity: z.number().min(1),
-        notes: z.string().optional(),
+        notes: z.string().optional()
       })
-    ).min(1),
+    ).min(1)
   }),
 
   update: z.object({

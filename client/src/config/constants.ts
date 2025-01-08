@@ -24,6 +24,9 @@ export const API_ENDPOINTS = {
     CREATE: '/products',
     UPDATE: (id: string) => `/products/${id}`,
     DELETE: (id: string) => `/products/${id}`,
+    STATUS: (id: string) => `/products/${id}/status`,
+    STOCK: (id: string) => `/products/${id}/stock`,
+    OPTIONS: (id: string) => `/products/${id}/options`,
   },
   ORDERS: {
     LIST: '/orders',
@@ -38,5 +41,21 @@ export const API_ENDPOINTS = {
     PRINT: '/orders/print',
     ADD_ITEMS: (id: string) => `/orders/${id}/items`,
   },
-  // Diğer endpoint'ler...
+  TABLES: {
+    LIST: '/tables',
+    DETAIL: (id: string) => `/tables/${id}`,
+    CREATE: '/tables',
+    UPDATE: (id: string) => `/tables/${id}`,
+    DELETE: (id: string) => `/tables/${id}`,
+    STATUS: (id: string) => `/tables/${id}/status`,
+  },
+  CUSTOMERS: {
+    LIST: '/customers',
+    DETAIL: (id: string) => `/customers/${id}`,
+    CREATE: '/customers',
+    UPDATE: (id: string) => `/customers/${id}`,
+    DELETE: (id: string) => `/customers/${id}`,
+    ORDERS: (id: string) => `/customers/${id}/orders`,
+    RESERVATIONS: (id: string) => `/customers/${id}/reservations`,
+  },
 } as const;
