@@ -25,4 +25,8 @@ router.get('/queue', (req, res, next) => {
   kitchenController.getQueue(req, res, next);
 });
 
+router.get('/stats', (req, res, next) => {
+  kitchenController.getStats(req, res, next);
+});
+
 export { router as kitchenRoutes };

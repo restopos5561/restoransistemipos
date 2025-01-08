@@ -16,18 +16,19 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3002',
         changeOrigin: true,
+        secure: false,
       },
-      '/fonts': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        secure: false
-      }
     },
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-      'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-    }
+  },
+  build: {
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', '@mui/material', '@mui/icons-material'],
+        },
+      },
+    },
   },
   assetsInclude: ['**/*.woff2', '**/*.woff'],
 }); 

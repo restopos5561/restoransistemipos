@@ -1,5 +1,6 @@
 import { PrismaClient, OrderStatus } from '@prisma/client';
 import { BadRequestError } from '../errors/bad-request-error';
+import { startOfDay, endOfDay } from 'date-fns';
 
 const prisma = new PrismaClient();
 
@@ -101,5 +102,90 @@ export class KitchenService {
       status: ['PENDING', 'PREPARING'],
       limit: 50,
     });
+  }
+
+  async getStats(branchId?: number) {
+    const today = new Date();
+    const whereBase = {
+      ...(branchId && { branchId }),
+      orderItems: {
+        some: {
+          product: {
+            categoryId: {
+              not: {
+                in: [2], // İçecekler kategorisi
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const [
+      pendingCount,
+      preparingCount,
+      completedToday,
+      averagePreparationTime
+    ] = await Promise.all([
+      // Bekleyen sipariş sayısı
+      prisma.order.count({
+        where: {
+          ...whereBase,
+          status: OrderStatus.PENDING,
+        },
+      }),
+
+      // Hazırlanan sipariş sayısı
+      prisma.order.count({
+        where: {
+          ...whereBase,
+          status: OrderStatus.PREPARING,
+        },
+      }),
+
+      // Bugün tamamlanan sipariş sayısı
+      prisma.order.count({
+        where: {
+          ...whereBase,
+          status: OrderStatus.COMPLETED,
+          completedAt: {
+            gte: startOfDay(today),
+            lte: endOfDay(today),
+          },
+        },
+      }),
+
+      // Ortalama hazırlama süresi (dakika)
+      prisma.order.findMany({
+        where: {
+          ...whereBase,
+          status: OrderStatus.COMPLETED,
+          preparationStartTime: { not: null },
+          preparationEndTime: { not: null },
+        },
+        select: {
+          preparationStartTime: true,
+          preparationEndTime: true,
+        },
+      }).then(orders => {
+        if (orders.length === 0) return 0;
+        
+        const totalMinutes = orders.reduce((acc, order) => {
+          const startTime = order.preparationStartTime as Date;
+          const endTime = order.preparationEndTime as Date;
+          const minutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+          return acc + minutes;
+        }, 0);
+
+        return Math.round(totalMinutes / orders.length);
+      }),
+    ]);
+
+    return {
+      pendingCount,
+      preparingCount,
+      completedToday,
+      averagePreparationTime,
+    };
   }
 }

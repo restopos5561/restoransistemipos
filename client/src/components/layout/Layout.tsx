@@ -7,6 +7,8 @@ import {
     Restaurant as RestaurantIcon,
     Receipt as ReceiptIcon,
     Settings as SettingsIcon,
+    Kitchen as KitchenIcon,
+    LocalBar as BarIcon,
     ChevronRight
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
@@ -19,8 +21,10 @@ const DRAWER_WIDTH = 280;
 const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Siparişler', icon: <ReceiptIcon />, path: '/orders' },
+    { text: 'Mutfak', icon: <KitchenIcon />, path: '/kitchen', role: ['ADMIN', 'CHEF'] },
+    { text: 'Bar', icon: <BarIcon />, path: '/bar', role: ['ADMIN', 'BAR'] },
     { text: 'Ürünler', icon: <RestaurantIcon />, path: '/products' },
-    { text: 'Ayarlar', icon: <SettingsIcon />, path: '/settings', role: 'ADMIN' }
+    { text: 'Ayarlar', icon: <SettingsIcon />, path: '/settings', role: ['ADMIN'] }
 ];
 
 const Layout: React.FC = () => {
@@ -29,6 +33,8 @@ const Layout: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const theme = useTheme();
+
+    console.log('Current profile:', profile);
 
     if (isProfileLoading) {
         return (
@@ -47,6 +53,10 @@ const Layout: React.FC = () => {
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
     }
+
+    const filteredMenuItems = menuItems.filter(item => 
+        !item.role || (Array.isArray(item.role) && profile?.role && item.role.includes(profile.role))
+    );
 
     return (
         <Box sx={{ 
@@ -67,97 +77,58 @@ const Layout: React.FC = () => {
                     }
                 }}
             >
-                <Stack spacing={4} sx={{ height: '100%', p: 3 }}>
-                    {/* Logo ve Başlık */}
-                    <Stack direction="row" spacing={2} alignItems="center">
-                        <Box
-                            sx={{
-                                width: 40,
-                                height: 40,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: 2,
-                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                color: theme.palette.primary.main
-                            }}
-                        >
-                            <Logo />
-                        </Box>
-                        <Typography variant="h6" fontWeight={600}>
-                            Restaurant POS
-                        </Typography>
+                <Stack spacing={2} sx={{ height: '100%', p: 2 }}>
+                    <Stack 
+                        direction="row" 
+                        alignItems="center" 
+                        justifyContent="space-between"
+                        sx={{ py: 1 }}
+                    >
+                        <Logo />
+                        <IconButton onClick={() => setIsOpen(false)}>
+                            <ChevronRight />
+                        </IconButton>
                     </Stack>
 
-                    {/* Menü Öğeleri */}
                     <List sx={{ flex: 1 }}>
-                        {menuItems.map((item) => {
-                            if (item.role && profile?.role !== item.role) {
-                                return null;
-                            }
-
-                            const isSelected = location.pathname === item.path;
-
-                            return (
-                                <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-                                    <ListItemButton
-                                        selected={isSelected}
-                                        onClick={() => {
-                                            navigate(item.path);
-                                            setIsOpen(false);
-                                        }}
-                                        sx={{
-                                            borderRadius: 2,
-                                            py: 1.5,
-                                            px: 2,
-                                            transition: 'all 0.2s ease',
-                                            '&.Mui-selected': {
-                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                                '&:hover': {
-                                                    bgcolor: alpha(theme.palette.primary.main, 0.15),
-                                                },
-                                                '& .MuiListItemIcon-root': {
-                                                    color: theme.palette.primary.main,
-                                                },
-                                                '& .MuiTypography-root': {
-                                                    color: theme.palette.primary.main,
-                                                    fontWeight: 600
-                                                }
-                                            },
+                        {filteredMenuItems.map((item) => (
+                            <ListItem key={item.text} disablePadding>
+                                <ListItemButton
+                                    onClick={() => {
+                                        navigate(item.path);
+                                        setIsOpen(false);
+                                    }}
+                                    selected={location.pathname === item.path}
+                                    sx={{
+                                        borderRadius: 1,
+                                        mb: 0.5,
+                                        '&.Mui-selected': {
+                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
                                             '&:hover': {
-                                                bgcolor: alpha(theme.palette.primary.main, 0.05),
-                                            }
+                                                bgcolor: alpha(theme.palette.primary.main, 0.15),
+                                            },
+                                        },
+                                    }}
+                                >
+                                    <ListItemIcon sx={{ 
+                                        minWidth: 40,
+                                        color: location.pathname === item.path 
+                                            ? theme.palette.primary.main 
+                                            : theme.palette.text.secondary
+                                    }}>
+                                        {item.icon}
+                                    </ListItemIcon>
+                                    <ListItemText 
+                                        primary={item.text} 
+                                        primaryTypographyProps={{
+                                            color: location.pathname === item.path 
+                                                ? theme.palette.primary.main 
+                                                : theme.palette.text.primary
                                         }}
-                                    >
-                                        <ListItemIcon sx={{ 
-                                            color: isSelected ? theme.palette.primary.main : theme.palette.text.secondary,
-                                            minWidth: 40,
-                                            transition: 'all 0.2s ease'
-                                        }}>
-                                            {item.icon}
-                                        </ListItemIcon>
-                                        <ListItemText 
-                                            primary={
-                                                <Typography sx={{ 
-                                                    color: isSelected ? theme.palette.primary.main : theme.palette.text.primary,
-                                                    fontWeight: isSelected ? 600 : 500,
-                                                    fontSize: '0.875rem',
-                                                    transition: 'all 0.2s ease'
-                                                }}>
-                                                    {item.text}
-                                                </Typography>
-                                            }
-                                        />
-                                        {isSelected && (
-                                            <ChevronRight sx={{ 
-                                                color: theme.palette.primary.main,
-                                                opacity: 0.5
-                                            }} />
-                                        )}
-                                    </ListItemButton>
-                                </ListItem>
-                            );
-                        })}
+                                    />
+                                </ListItemButton>
+                            </ListItem>
+                        ))}
                     </List>
                 </Stack>
             </Drawer>

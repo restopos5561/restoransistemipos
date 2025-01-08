@@ -100,4 +100,55 @@ export interface OrderListResponse {
   limit: number;
   totalPages: number;
   error?: string;
+}
+
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  PREPARING = 'PREPARING',
+  READY = 'READY',
+  DELIVERED = 'DELIVERED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  ITEM_ISSUE = 'ITEM_ISSUE',
+  PARTIALLY_PAID = 'PARTIALLY_PAID'
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  categoryId?: number;
+}
+
+export interface OrderItem {
+  id: number;
+  orderId: number;
+  productId: number;
+  product: Product;
+  quantity: number;
+  unitPrice: number;
+  note?: string;
+  selectedOptions?: any[];
+}
+
+export interface Table {
+  id: number;
+  tableNumber: string;
+  capacity?: number;
+  location?: string;
+}
+
+export interface Order {
+  id: number;
+  tableId?: number;
+  table?: Table;
+  orderItems: OrderItem[];
+  totalAmount: number;
+  status: OrderStatus;
+  orderTime: string;
+  priority?: boolean;
+  preparationStartTime?: string;
+  preparationEndTime?: string;
+  orderNotes?: string;
 } 

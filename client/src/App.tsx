@@ -15,6 +15,8 @@ import NewOrderPage from './pages/orders/NewOrderPage';
 import OrderDetailPage from './pages/orders/OrderDetailPage';
 import EditOrderPage from './pages/orders/EditOrderPage';
 import PaymentPage from './pages/orders/PaymentPage';
+import KitchenPage from './pages/kitchen/KitchenPage';
+import BarPage from './pages/bar/BarPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Loading from './components/common/Loading/Loading';
@@ -58,6 +60,10 @@ const App: React.FC = () => {
                                         <Route path="/orders/:id" element={<OrderDetailPage />} />
                                         <Route path="/orders/:id/edit" element={<EditOrderPage />} />
                                         <Route path="/orders/:id/payment" element={<PaymentPage />} />
+
+                                        {/* Kitchen & Bar Routes */}
+                                        <Route path="/kitchen" element={<KitchenPage />} />
+                                        <Route path="/bar" element={<BarPage />} />
                                     </Route>
                                 </Route>
 
