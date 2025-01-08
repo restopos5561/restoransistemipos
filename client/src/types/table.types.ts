@@ -4,6 +4,14 @@ export enum TableStatus {
   RESERVED = 'RESERVED'
 }
 
+export interface Order {
+  id: number;
+  orderNumber: string;
+  status: 'PENDING' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
+  totalAmount: number;
+  createdAt: string;
+}
+
 export interface Table {
   id: number;
   branchId: number;
@@ -12,6 +20,11 @@ export interface Table {
   location?: string;
   status: TableStatus;
   isActive: boolean;
+  activeOrders?: Order[];
+  branch?: {
+    id: number;
+    name: string;
+  };
 }
 
 export interface CreateTableInput {
@@ -37,6 +50,7 @@ export interface TableFilters {
   restaurantId?: number;
   status?: TableStatus;
   location?: string;
+  capacity?: number;
   isActive?: boolean;
   search?: string;
   page?: number;

@@ -40,12 +40,25 @@ export class BranchesService {
   }
 
   async getBranchById(id: number): Promise<Branch | null> {
-    return prisma.branch.findUnique({
-      where: { id },
-      include: {
-        settings: true,
-      },
-    });
+    try {
+      const branchId = Number(id);
+      if (isNaN(branchId)) {
+        throw new BadRequestError('Geçersiz şube ID');
+      }
+
+      return prisma.branch.findUnique({
+        where: { 
+          id: branchId
+        },
+        include: {
+          settings: true,
+          restaurant: true
+        }
+      });
+    } catch (error) {
+      console.error('getBranchById error:', error);
+      throw error;
+    }
   }
 
   async createBranch(data: CreateBranchInput): Promise<Branch> {

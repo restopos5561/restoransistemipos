@@ -3,4 +3,7 @@ export { default as TableFilters } from './TableFilters';
 export { default as TableStats } from './TableStats';
 export { default as TableFormDialog } from './TableFormDialog';
 export { default as TableTransferDialog } from './TableTransferDialog';
-export { default as TableMergeDialog } from './TableMergeDialog'; 
+export { default as TableMergeDialog } from './TableMergeDialog';
+export { default as TableDetailDialog } from './TableDetailDialog';
+export { default as TableGrid } from './TableGrid';
+export { default as TableMergeWizard } from './TableMergeWizard'; 

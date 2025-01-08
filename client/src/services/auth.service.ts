@@ -72,10 +72,29 @@ export const authService = {
             if (!tokenService.hasValidTokens()) {
                 throw new Error('No valid tokens found');
             }
-            const response = await api.get<ProfileResponse>(API_ENDPOINTS.AUTH.ME);
+
+            const accessToken = tokenService.getAccessToken();
+            if (!accessToken) {
+                throw new Error('No access token found');
+            }
+
+            const response = await api.get<ProfileResponse>(API_ENDPOINTS.AUTH.ME, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                },
+                timeout: 10000 // 10 saniye timeout
+            });
+
+            if (!response.data || !response.data.data) {
+                throw new Error('Invalid profile response');
+            }
+
             return response.data.data;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Get profile error:', error);
+            if (error.code === 'ECONNABORTED') {
+                throw new Error('Profil bilgileri alınamadı. Sunucu yanıt vermiyor.');
+            }
             throw error;
         }
     },
@@ -95,7 +114,7 @@ export const authService = {
             return response.data;
         } catch (error) {
             console.error('Refresh token error:', error);
-            tokenService.clearTokens(); // Hata durumunda token'ları temizle
+            tokenService.clearTokens();
             throw error;
         }
     },
@@ -115,7 +134,7 @@ export const authService = {
             return response.data;
         } catch (error) {
             console.error('Register error:', error);
-            tokenService.clearTokens(); // Hata durumunda token'ları temizle
+            tokenService.clearTokens();
             throw error;
         }
     },
@@ -146,5 +165,5 @@ export const authService = {
             }
             throw error;
         }
-    },
+    }
 }; 

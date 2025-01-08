@@ -9,6 +9,23 @@ export class BranchesController {
     this.branchesService = new BranchesService();
   }
 
+  getCurrentBranch = async (req: Request, res: Response) => {
+    if (!req.user?.branchId) {
+      throw new BadRequestError('Kullanıcının aktif bir şubesi bulunamadı');
+    }
+
+    const branch = await this.branchesService.getBranchById(req.user.branchId);
+    
+    if (!branch) {
+      throw new BadRequestError('Şube bulunamadı');
+    }
+
+    res.status(200).json({
+      success: true,
+      data: branch,
+    });
+  };
+
   getBranches = async (req: Request, res: Response) => {
     const { restaurantId } = req.params;
     const branches = await this.branchesService.getBranches(Number(restaurantId));

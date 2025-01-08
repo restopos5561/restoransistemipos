@@ -19,16 +19,45 @@ export default defineConfig({
         secure: false,
       },
     },
+    fs: {
+      strict: false
+    }
   },
   build: {
     sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', '@mui/material', '@mui/icons-material'],
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'mui-vendor': ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers'],
+          'form-vendor': ['react-hook-form', '@hookform/resolvers'],
+          'utils-vendor': ['date-fns', 'axios', 'zustand']
         },
       },
     },
+    chunkSizeWarningLimit: 2000,
   },
-  assetsInclude: ['**/*.woff2', '**/*.woff'],
+  optimizeDeps: {
+    force: true,
+    esbuildOptions: {
+      sourcemap: true,
+      target: 'esnext'
+    },
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/x-date-pickers',
+      'react-hook-form',
+      '@hookform/resolvers',
+      'date-fns',
+      'axios',
+      'zustand'
+    ]
+  },
+  css: {
+    devSourcemap: true
+  }
 }); 

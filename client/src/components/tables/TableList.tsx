@@ -14,11 +14,14 @@ import {
   Box,
   Typography,
   Chip,
+  Badge,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import CallMergeIcon from '@mui/icons-material/CallMerge';
+import InfoIcon from '@mui/icons-material/Info';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
 
 import { Table as TableType, TableStatus } from '../../types/table.types';
 
@@ -31,6 +34,7 @@ interface TableListProps {
   onTransferClick: (table: TableType) => void;
   onMergeClick: (table: TableType) => void;
   onDeleteClick: (table: TableType) => void;
+  onDetailClick: (table: TableType) => void;
 }
 
 const getStatusColor = (status: TableStatus) => {
@@ -68,6 +72,7 @@ const TableList: React.FC<TableListProps> = ({
   onTransferClick,
   onMergeClick,
   onDeleteClick,
+  onDetailClick,
 }) => {
   if (!tables.length) {
     return (
@@ -89,13 +94,34 @@ const TableList: React.FC<TableListProps> = ({
               <TableCell>Kapasite</TableCell>
               <TableCell>Konum</TableCell>
               <TableCell>Durum</TableCell>
+              <TableCell>Aktif Siparişler</TableCell>
+              <TableCell>Şube</TableCell>
               <TableCell align="right">İşlemler</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {tables.map((table) => (
-              <TableRow key={table.id}>
-                <TableCell>{table.tableNumber}</TableCell>
+              <TableRow 
+                key={table.id}
+                sx={{
+                  backgroundColor: table.status === TableStatus.OCCUPIED ? 
+                    'rgba(211, 47, 47, 0.04)' : 'inherit'
+                }}
+              >
+                <TableCell>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    {table.tableNumber}
+                    {table.activeOrders && table.activeOrders.length > 0 && (
+                      <Badge 
+                        badgeContent={table.activeOrders.length} 
+                        color="error"
+                        sx={{ '& .MuiBadge-badge': { fontSize: '0.6rem' } }}
+                      >
+                        <RestaurantIcon color="action" fontSize="small" />
+                      </Badge>
+                    )}
+                  </Stack>
+                </TableCell>
                 <TableCell>{table.capacity}</TableCell>
                 <TableCell>{table.location || '-'}</TableCell>
                 <TableCell>
@@ -105,8 +131,42 @@ const TableList: React.FC<TableListProps> = ({
                     size="small"
                   />
                 </TableCell>
+                <TableCell>
+                  {table.activeOrders && table.activeOrders.length > 0 ? (
+                    <Stack spacing={1}>
+                      {table.activeOrders.map((order) => (
+                        <Chip
+                          key={order.id}
+                          size="small"
+                          label={`${order.orderNumber} (${order.status})`}
+                          color={
+                            order.status === 'READY' ? 'success' :
+                            order.status === 'PREPARING' ? 'warning' : 'default'
+                          }
+                          sx={{ fontSize: '0.75rem' }}
+                        />
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      Aktif sipariş yok
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {table.branch?.name || '-'}
+                </TableCell>
                 <TableCell align="right">
                   <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <Tooltip title="Detaylar">
+                      <IconButton
+                        size="small"
+                        onClick={() => onDetailClick(table)}
+                      >
+                        <InfoIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+
                     <Tooltip title="Düzenle">
                       <IconButton
                         size="small"

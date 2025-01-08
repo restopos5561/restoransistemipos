@@ -6,6 +6,7 @@ const api = axios.create({
     baseURL: API_CONFIG.BASE_URL,
     timeout: API_CONFIG.TIMEOUT,
     headers: API_CONFIG.HEADERS,
+    withCredentials: true
 });
 
 // Request interceptor
@@ -18,6 +19,7 @@ api.interceptors.request.use(
         return config;
     },
     (error) => {
+        console.error('Request interceptor error:', error);
         return Promise.reject(error);
     }
 );
@@ -27,6 +29,12 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+
+        // Timeout hatası kontrolü
+        if (error.code === 'ECONNABORTED') {
+            console.error('Request timeout:', error);
+            return Promise.reject(new Error('İstek zaman aşımına uğradı. Lütfen tekrar deneyin.'));
+        }
 
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
@@ -45,6 +53,7 @@ api.interceptors.response.use(
 
                 return api(originalRequest);
             } catch (refreshError) {
+                console.error('Token refresh error:', refreshError);
                 tokenService.clearTokens();
                 window.location.href = '/login';
                 return Promise.reject(refreshError);
