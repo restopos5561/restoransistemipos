@@ -3,6 +3,8 @@ import { AuthController } from '../controllers/auth.controller';
 import { validateRequest } from '../middleware/validate-request';
 import { requireAuth } from '../middleware/auth.middleware';
 import { AuthSchema } from '../schemas/auth.schema';
+import { asyncHandler } from '../middleware/async-handler';
+import { authenticate } from '../middleware/authenticate';
 
 const router = Router();
 const controller = new AuthController();
@@ -16,5 +18,10 @@ router.post('/reset-password', validateRequest(AuthSchema.resetPassword), contro
 router.post('/refresh', validateRequest(AuthSchema.refreshToken), controller.refreshToken);
 router.post('/logout', controller.logout);
 router.get('/me', requireAuth, controller.getCurrentUser);
+router.get(
+  '/branches',
+  authenticate,
+  asyncHandler(controller.getUserBranches)
+);
 
 export { router as authRouter };

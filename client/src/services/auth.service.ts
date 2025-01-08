@@ -10,7 +10,11 @@ export const authService = {
             
             // Şube seçimi sonrası login
             if (credentials.branchId) {
-                const response = await api.post(API_ENDPOINTS.AUTH.LOGIN_WITH_BRANCH, credentials);
+                const branchLoginData = {
+                    email: credentials.email,
+                    branchId: credentials.branchId
+                };
+                const response = await api.post(API_ENDPOINTS.AUTH.LOGIN_WITH_BRANCH, branchLoginData);
                 console.log('Branch login response:', response.data);
                 
                 if (response.data.data?.accessToken && response.data.data?.refreshToken) {
@@ -158,6 +162,18 @@ export const authService = {
                 password,
                 confirmPassword: password
             });
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.data) {
+                throw new Error(error.response.data.error);
+            }
+            throw error;
+        }
+    },
+
+    async getUserBranches() {
+        try {
+            const response = await api.get('/auth/branches');
             return response.data;
         } catch (error: any) {
             if (error.response?.data) {

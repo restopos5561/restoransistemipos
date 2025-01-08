@@ -1,6 +1,18 @@
 import { Request, Response } from 'express';
 import { TablesService } from '../services/tables.service';
 import { TableStatus } from '@prisma/client';
+import { BadRequestError } from '../errors/bad-request-error';
+import { JwtPayload } from 'jsonwebtoken';
+
+interface AuthenticatedRequest extends Request {
+  user?: JwtPayload & {
+    userId: number;
+    email: string;
+    role: string;
+    name: string;
+    branchId?: number;
+  };
+}
 
 export class TablesController {
   private tablesService: TablesService;
@@ -9,13 +21,19 @@ export class TablesController {
     this.tablesService = new TablesService();
   }
 
-  getTables = async (req: Request, res: Response) => {
+  getTables = async (req: AuthenticatedRequest, res: Response) => {
+    // Kullanıcının şube ID'sini kontrol et
+    const branchId = req.user?.branchId;
+    if (!branchId) {
+      throw new BadRequestError('Şube seçilmedi');
+    }
+
     const filters = {
-      branchId: req.query.branchId ? Number(req.query.branchId) : undefined,
+      branchId,
       status: req.query.status as TableStatus,
       location: req.query.location as string,
       capacity: req.query.capacity ? Number(req.query.capacity) : undefined,
-      active: req.query.isActive ? req.query.isActive === 'true' : undefined,
+      isActive: req.query.isActive ? req.query.isActive === 'true' : undefined,
       page: req.query.page ? Number(req.query.page) : undefined,
       limit: req.query.limit ? Number(req.query.limit) : undefined,
     };

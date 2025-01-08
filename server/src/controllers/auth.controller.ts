@@ -5,6 +5,7 @@ import { UnauthorizedError } from '../errors/unauthorized-error';
 import { BadRequestError } from '../errors/bad-request-error';
 import { ForbiddenError } from '../errors/forbidden-error';
 import { sendResetPasswordEmail } from '../utils/email.utils';
+import { UsersService } from '../services/users.service';
 
 const prisma = new PrismaClient();
 
@@ -19,6 +20,12 @@ interface AuthenticatedRequest extends Request {
 }
 
 export class AuthController {
+  private usersService: UsersService;
+
+  constructor() {
+    this.usersService = new UsersService();
+  }
+
   async login(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, password } = req.body;
@@ -220,9 +227,9 @@ export class AuthController {
     });
   }
 
-  async loginWithBranch(req: Request, res: Response) {
+  async loginWithBranch(req: Request, res: Response, next: NextFunction) {
     try {
-      const { email, password, branchId } = req.body;
+      const { email, branchId } = req.body;
 
       const user = await prisma.user.findUnique({
         where: { email },
@@ -248,17 +255,14 @@ export class AuthController {
         }
       });
 
-      if (!user || !(await comparePassword(password, user.password))) {
-        throw new UnauthorizedError('Geçersiz email veya şifre');
+      if (!user) {
+        throw new UnauthorizedError('Kullanıcı bulunamadı');
       }
 
-      // Seçilen şubeyi bul
-      const selectedBranch = user.userBranches.find(
-        ub => ub.branch.id === branchId && ub.branch.isActive
-      )?.branch;
-
-      if (!selectedBranch) {
-        throw new UnauthorizedError('Geçersiz veya aktif olmayan şube seçimi');
+      // Kullanıcının seçilen şubeye erişimi var mı kontrol et
+      const userBranch = user.userBranches.find(ub => ub.branch.id === branchId);
+      if (!userBranch || !userBranch.branch.isActive) {
+        throw new ForbiddenError('Bu şubeye erişim yetkiniz yok');
       }
 
       // Token'ları oluştur
@@ -267,7 +271,7 @@ export class AuthController {
         email: user.email,
         role: user.role,
         name: user.name,
-        branchId: selectedBranch.id
+        branchId: userBranch.branch.id
       });
 
       res.json({
@@ -278,13 +282,13 @@ export class AuthController {
             name: user.name,
             email: user.email,
             role: user.role,
-            branchId: selectedBranch.id,
-            restaurantId: selectedBranch.restaurantId,
+            branchId: userBranch.branch.id,
+            restaurantId: userBranch.branch.restaurantId,
             branch: {
-              id: selectedBranch.id,
-              name: selectedBranch.name,
-              restaurantId: selectedBranch.restaurantId,
-              restaurant: selectedBranch.restaurant
+              id: userBranch.branch.id,
+              name: userBranch.branch.name,
+              restaurantId: userBranch.branch.restaurantId,
+              restaurant: userBranch.branch.restaurant
             }
           },
           accessToken: tokens.accessToken,
@@ -292,11 +296,8 @@ export class AuthController {
         }
       });
 
-    } catch (error: any) {
-      res.status(401).json({
-        success: false,
-        error: error?.message || 'Giriş yapılamadı',
-      });
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -444,4 +445,48 @@ export class AuthController {
       next(error);
     }
   }
+
+  getUserBranches = async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user?.userId) {
+      throw new BadRequestError('Kullanıcı bulunamadı');
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      include: {
+        userBranches: {
+          include: {
+            branch: {
+              select: {
+                id: true,
+                name: true,
+                isActive: true,
+                restaurantId: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      throw new BadRequestError('Kullanıcı bulunamadı');
+    }
+
+    // Sadece aktif şubeleri filtrele
+    const branches = user.userBranches
+      .filter(ub => ub.branch.isActive)
+      .map(ub => ({
+        id: ub.branch.id,
+        name: ub.branch.name,
+        restaurantId: ub.branch.restaurantId,
+      }));
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        branches
+      }
+    });
+  };
 }

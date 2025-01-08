@@ -34,7 +34,6 @@ export const AuthSchema = {
   loginWithBranch: z.object({
     body: z.object({
       email: z.string().email('Geçersiz email formatı'),
-      password: z.string().min(6, 'Şifre en az 6 karakter olmalıdır'),
       branchId: z.number().int().positive('Branch ID pozitif bir sayı olmalıdır'),
     }),
   }),

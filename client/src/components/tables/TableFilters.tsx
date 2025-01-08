@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   Paper,
   Stack,
@@ -9,10 +9,11 @@ import {
   MenuItem,
   SelectChangeEvent,
   Grid,
+  InputAdornment,
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import { debounce } from 'lodash';
 import { TableStatus, TableFilters } from '../../types/table.types';
-import { useQuery } from '@tanstack/react-query';
-import branchService from '../../services/branch.service';
 
 interface TableFiltersProps {
   filters: TableFilters;
@@ -23,18 +24,20 @@ const TableFiltersComponent: React.FC<TableFiltersProps> = ({
   filters,
   onFilterChange,
 }) => {
-  // Şubeleri getir
-  const { data: branchData } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => branchService.getCurrentBranch(),
-  });
+  // Debounce edilmiş arama fonksiyonu
+  const debouncedSearch = useCallback(
+    debounce((value: string) => {
+      onFilterChange({ search: value || undefined });
+    }, 300),
+    [onFilterChange]
+  );
 
   const handleStatusChange = (event: SelectChangeEvent<TableStatus | ''>) => {
     onFilterChange({ status: event.target.value as TableStatus || undefined });
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    onFilterChange({ search: event.target.value || undefined });
+    debouncedSearch(event.target.value);
   };
 
   const handleLocationChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,41 +49,26 @@ const TableFiltersComponent: React.FC<TableFiltersProps> = ({
     onFilterChange({ capacity: value });
   };
 
-  const handleBranchChange = (event: SelectChangeEvent<number | ''>) => {
-    onFilterChange({ branchId: event.target.value as number || undefined });
-  };
-
   return (
     <Paper sx={{ p: 2 }}>
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Stack direction="row" spacing={2}>
             <TextField
-              label="Ara"
+              label="Hızlı Arama"
               size="small"
-              value={filters.search || ''}
+              defaultValue={filters.search || ''}
               onChange={handleSearchChange}
-              placeholder="Masa no ile ara..."
+              placeholder="Masa no, konum, kapasite ile ara..."
+              sx={{ minWidth: 300 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
             />
-
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel id="branch-select-label">Şube</InputLabel>
-              <Select
-                labelId="branch-select-label"
-                value={filters.branchId || ''}
-                label="Şube"
-                onChange={handleBranchChange}
-              >
-                <MenuItem value="">
-                  <em>Tüm Şubeler</em>
-                </MenuItem>
-                {branchData?.data?.branches?.map((branch: any) => (
-                  <MenuItem key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 120 }}>
               <InputLabel id="status-select-label">Durum</InputLabel>
@@ -98,11 +86,7 @@ const TableFiltersComponent: React.FC<TableFiltersProps> = ({
                 <MenuItem value={TableStatus.RESERVED}>Rezerve</MenuItem>
               </Select>
             </FormControl>
-          </Stack>
-        </Grid>
 
-        <Grid item xs={12}>
-          <Stack direction="row" spacing={2}>
             <TextField
               label="Konum"
               size="small"

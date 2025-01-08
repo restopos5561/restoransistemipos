@@ -22,7 +22,7 @@ interface UpdateTableInput {
 
 export class TablesService {
   async getTables(filters: {
-    branchId?: number;
+    branchId: number;
     status?: TableStatus;
     location?: string;
     capacity?: number;
@@ -30,8 +30,12 @@ export class TablesService {
     page?: number;
     limit?: number;
   }) {
+    if (!filters.branchId) {
+      throw new BadRequestError('Şube ID zorunludur');
+    }
+
     const where = {
-      ...(filters.branchId && { branchId: filters.branchId }),
+      branchId: filters.branchId,
       ...(filters.status && { status: filters.status }),
       ...(filters.location && { location: filters.location }),
       ...(filters.capacity && { capacity: filters.capacity }),

@@ -19,6 +19,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 
 import { tablesService } from '../../services/tables.service';
+import { authService } from '../../services/auth.service';
 import { TableStatus, TableFilters as TableFiltersType, Table } from '../../types/table.types';
 import {
   TableList,
@@ -33,7 +34,6 @@ import {
   TableLayout,
 } from '../../components/tables';
 import { useConfirm } from '../../hooks';
-import branchService from '../../services/branch.service';
 
 type ViewMode = 'list' | 'grid' | 'layout';
 
@@ -58,25 +58,44 @@ const TablesPage: React.FC = () => {
     status: undefined,
     isActive: true,
     page: 1,
-    limit: 10
-  });
-
-  // Masaları getir
-  const { data: tablesData, isLoading } = useQuery({
-    queryKey: ['tables', filters],
-    queryFn: () => tablesService.getTables(filters),
-    refetchInterval: 30000,
+    limit: 10,
+    branchId: 0
   });
 
   // Seçili şube bilgisini al
-  const { data: branchData } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => branchService.getCurrentBranch(),
+  const { data: profileData } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => authService.getProfile(),
   });
 
-  const selectedBranch = branchData?.data?.branches?.find(
-    (branch: any) => branch.id === filters.branchId
-  );
+  // Şube değiştiğinde filtreyi güncelle
+  React.useEffect(() => {
+    if (profileData?.branchId) {
+      setFilters(prev => ({
+        ...prev,
+        branchId: profileData.branchId
+      }));
+    }
+  }, [profileData?.branchId]);
+
+  // Masaları getir - branchId zorunlu olmalı
+  const { data: tablesData, isLoading } = useQuery({
+    queryKey: ['tables', filters],
+    queryFn: () => {
+      if (!filters.branchId) {
+        return Promise.reject(new Error('Şube seçilmedi'));
+      }
+      return tablesService.getTables(filters);
+    },
+    refetchInterval: 30000,
+    enabled: filters.branchId > 0
+  });
+
+  // İstatistikler için şube bilgisi
+  const selectedBranch = profileData ? {
+    id: profileData.branchId,
+    name: profileData.name
+  } : null;
 
   // Masa silme mutation'ı
   const deleteMutation = useMutation({
@@ -216,7 +235,7 @@ const TablesPage: React.FC = () => {
     updatePositionMutation.mutate({ id: tableId, position });
   };
 
-  if (isLoading) {
+  if (isLoading || !selectedBranch) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
         <Typography>Yükleniyor...</Typography>
@@ -275,7 +294,7 @@ const TablesPage: React.FC = () => {
         </Stack>
 
         {/* İstatistikler */}
-        {tablesData && (
+        {tablesData && selectedBranch && (
           <TableStats
             totalTables={tablesData.data.total}
             availableTables={tablesData.data.tables.filter(t => t.status === TableStatus.IDLE).length}

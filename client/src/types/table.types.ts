@@ -69,7 +69,7 @@ export interface UpdateTableStatusInput {
 }
 
 export interface TableFilters {
-  branchId?: number;
+  branchId: number;
   restaurantId?: number;
   status?: TableStatus;
   location?: string;

@@ -2,6 +2,7 @@ import React from 'react';
 import { AppBar, Toolbar, Typography, Box, IconButton, Avatar, useTheme, alpha } from '@mui/material';
 import { ExitToApp, Person } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
+import BranchSelector from './BranchSelector';
 
 interface HeaderProps {
     children?: React.ReactNode;
@@ -28,6 +29,8 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                     gap: 2,
                     ml: 'auto'
                 }}>
+                    <BranchSelector />
+                    
                     <Box sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
