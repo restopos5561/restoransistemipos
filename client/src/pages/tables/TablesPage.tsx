@@ -14,6 +14,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
+import GridOnIcon from '@mui/icons-material/GridOn';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 
@@ -29,11 +30,12 @@ import {
   TableMergeDialog,
   TableDetailDialog,
   TableMergeWizard,
+  TableLayout,
 } from '../../components/tables';
 import { useConfirm } from '../../hooks';
 import branchService from '../../services/branch.service';
 
-type ViewMode = 'list' | 'grid';
+type ViewMode = 'list' | 'grid' | 'layout';
 
 const TablesPage: React.FC = () => {
   const theme = useTheme();
@@ -42,6 +44,7 @@ const TablesPage: React.FC = () => {
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [isEditingLayout, setIsEditingLayout] = useState(false);
 
   // Dialog state'leri
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -114,6 +117,34 @@ const TablesPage: React.FC = () => {
     },
   });
 
+  // Masa notu güncelleme mutation'ı
+  const updateNotesMutation = useMutation({
+    mutationFn: ({ id, notes }: { id: number; notes: string }) =>
+      tablesService.updateTable(id, { notes }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tables'] });
+      toast.success('Masa notu başarıyla güncellendi');
+    },
+    onError: () => {
+      toast.error('Masa notu güncellenirken bir hata oluştu');
+    },
+  });
+
+  // Masa konumu güncelleme mutation'ı
+  const updatePositionMutation = useMutation({
+    mutationFn: ({ id, position }: { id: number; position: { x: number; y: number } }) =>
+      tablesService.updateTable(id, { 
+        positionX: position.x,
+        positionY: position.y,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tables'] });
+    },
+    onError: () => {
+      toast.error('Masa konumu güncellenirken bir hata oluştu');
+    },
+  });
+
   const handleMerge = async (mainTableId: number, tableIdsToMerge: number[]) => {
     await mergeMutation.mutateAsync({ mainTableId, tableIdsToMerge });
   };
@@ -177,6 +208,14 @@ const TablesPage: React.FC = () => {
     }
   };
 
+  const handleUpdateNotes = (tableId: number, notes: string) => {
+    updateNotesMutation.mutate({ id: tableId, notes });
+  };
+
+  const handleTableMove = (tableId: number, position: { x: number; y: number }) => {
+    updatePositionMutation.mutate({ id: tableId, position });
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -207,6 +246,9 @@ const TablesPage: React.FC = () => {
               </ToggleButton>
               <ToggleButton value="grid">
                 <ViewModuleIcon />
+              </ToggleButton>
+              <ToggleButton value="layout">
+                <GridOnIcon />
               </ToggleButton>
             </ToggleButtonGroup>
 
@@ -249,7 +291,7 @@ const TablesPage: React.FC = () => {
           onFilterChange={handleFilterChange}
         />
 
-        {/* Masa Listesi/Grid */}
+        {/* Masa Listesi/Grid/Yerleşim */}
         {tablesData && (
           viewMode === 'list' ? (
             <TableList
@@ -263,7 +305,7 @@ const TablesPage: React.FC = () => {
               onDeleteClick={handleDeleteClick}
               onDetailClick={handleDetailClick}
             />
-          ) : (
+          ) : viewMode === 'grid' ? (
             <TableGrid
               tables={tablesData.data.tables}
               onEditClick={handleEditClick}
@@ -272,6 +314,15 @@ const TablesPage: React.FC = () => {
               onDeleteClick={handleDeleteClick}
               onDetailClick={handleDetailClick}
               onStatusChange={handleStatusChange}
+            />
+          ) : (
+            <TableLayout
+              tables={tablesData.data.tables}
+              isEditing={isEditingLayout}
+              onTableClick={handleDetailClick}
+              onTableMove={handleTableMove}
+              onEditClick={() => setIsEditingLayout(true)}
+              onSaveClick={() => setIsEditingLayout(false)}
             />
           )
         )}
@@ -327,6 +378,7 @@ const TablesPage: React.FC = () => {
           setSelectedTable(undefined);
         }}
         table={selectedTable}
+        onUpdateNotes={handleUpdateNotes}
       />
 
       {/* Onay Dialog'u */}

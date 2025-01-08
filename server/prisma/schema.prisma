@@ -76,6 +76,8 @@ model Table {
   location     String? // Salon 1, Teras vb.
   status       TableStatus   @default(IDLE)
   isActive     Boolean       @default(true)
+  positionX    Int?         // Masa yerleşim planındaki X koordinatı
+  positionY    Int?         // Masa yerleşim planındaki Y koordinatı
   orders       Order[] // Masada açılan adisyonlar/siparişler
   reservations Reservation[] // Masa için yapılan rezervasyonlar
 }

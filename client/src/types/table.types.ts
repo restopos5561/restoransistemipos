@@ -12,6 +12,19 @@ export interface Order {
   createdAt: string;
 }
 
+export interface TableHistory {
+  id: number;
+  tableId: number;
+  status: TableStatus;
+  action: 'STATUS_CHANGE' | 'ORDER_ADDED' | 'ORDER_COMPLETED' | 'TRANSFER' | 'MERGE';
+  description: string;
+  createdAt: string;
+  createdBy?: {
+    id: number;
+    name: string;
+  };
+}
+
 export interface Table {
   id: number;
   branchId: number;
@@ -20,7 +33,11 @@ export interface Table {
   location?: string;
   status: TableStatus;
   isActive: boolean;
+  notes?: string;
+  positionX?: number;
+  positionY?: number;
   activeOrders?: Order[];
+  history?: TableHistory[];
   branch?: {
     id: number;
     name: string;
@@ -32,6 +49,9 @@ export interface CreateTableInput {
   tableNumber: string;
   capacity?: number;
   location?: string;
+  notes?: string;
+  positionX?: number;
+  positionY?: number;
 }
 
 export interface UpdateTableInput {
@@ -39,6 +59,9 @@ export interface UpdateTableInput {
   capacity?: number;
   location?: string;
   isActive?: boolean;
+  notes?: string;
+  positionX?: number;
+  positionY?: number;
 }
 
 export interface UpdateTableStatusInput {

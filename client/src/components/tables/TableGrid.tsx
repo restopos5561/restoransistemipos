@@ -167,23 +167,83 @@ const TableCard: React.FC<{
       </Box>
 
       {/* Alt Kısım */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
-        <Chip
-          icon={getStatusIcon(table.status)}
-          label={getStatusText(table.status)}
-          size="small"
-          onClick={handleStatusClick}
-          sx={{ 
-            backgroundColor: alpha(getStatusColor(table.status), 0.1),
-            color: getStatusColor(table.status),
-            '& .MuiChip-icon': {
-              color: 'inherit'
-            }
-          }}
-        />
-        <IconButton size="small" onClick={() => onDetailClick(table)}>
-          <InfoIcon fontSize="small" />
-        </IconButton>
+      <Stack spacing={1}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Chip
+            icon={getStatusIcon(table.status)}
+            label={getStatusText(table.status)}
+            size="small"
+            onClick={handleStatusClick}
+            sx={{ 
+              backgroundColor: alpha(getStatusColor(table.status), 0.1),
+              color: getStatusColor(table.status),
+              '& .MuiChip-icon': {
+                color: 'inherit'
+              }
+            }}
+          />
+          <IconButton size="small" onClick={() => onDetailClick(table)}>
+            <InfoIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+
+        {/* Hızlı Durum Değiştirme Butonları */}
+        <Stack direction="row" spacing={1} justifyContent="center">
+          <Tooltip title="Boş">
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => onStatusChange(table, TableStatus.IDLE)}
+                disabled={table.status === TableStatus.IDLE}
+                sx={{
+                  color: '#2e7d32',
+                  bgcolor: table.status === TableStatus.IDLE ? alpha('#2e7d32', 0.1) : 'transparent',
+                  '&:hover': {
+                    bgcolor: alpha('#2e7d32', 0.1),
+                  },
+                }}
+              >
+                <CheckCircleIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Dolu">
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => onStatusChange(table, TableStatus.OCCUPIED)}
+                disabled={table.status === TableStatus.OCCUPIED}
+                sx={{
+                  color: '#d32f2f',
+                  bgcolor: table.status === TableStatus.OCCUPIED ? alpha('#d32f2f', 0.1) : 'transparent',
+                  '&:hover': {
+                    bgcolor: alpha('#d32f2f', 0.1),
+                  },
+                }}
+              >
+                <DoNotDisturbIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Rezerve">
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => onStatusChange(table, TableStatus.RESERVED)}
+                disabled={table.status === TableStatus.RESERVED}
+                sx={{
+                  color: '#ed6c02',
+                  bgcolor: table.status === TableStatus.RESERVED ? alpha('#ed6c02', 0.1) : 'transparent',
+                  '&:hover': {
+                    bgcolor: alpha('#ed6c02', 0.1),
+                  },
+                }}
+              >
+                <EventSeatIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Stack>
       </Stack>
 
       {/* İşlem Menüsü */}

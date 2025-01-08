@@ -16,6 +16,8 @@ interface UpdateTableInput {
   capacity?: number;
   location?: string;
   isActive?: boolean;
+  positionX?: number;
+  positionY?: number;
 }
 
 export class TablesService {
@@ -127,9 +129,19 @@ export class TablesService {
       }
     }
 
+    // Position verisi varsa, ayrı olarak işle
+    const { position, ...restData } = data as any;
+    const updateData = {
+      ...restData,
+      ...(position && {
+        positionX: position.x,
+        positionY: position.y,
+      }),
+    };
+
     return prisma.table.update({
       where: { id },
-      data,
+      data: updateData,
       include: {
         branch: true,
       },
