@@ -361,6 +361,7 @@ const TablesPage: React.FC = () => {
           toast.success(selectedTable ? 'Masa başarıyla güncellendi' : 'Masa başarıyla oluşturuldu');
         }}
         editData={selectedTable}
+        branchId={filters.branchId}
       />
 
       <TableTransferDialog

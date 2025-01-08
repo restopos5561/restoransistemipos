@@ -18,6 +18,7 @@ interface TableFormDialogProps {
   onClose: () => void;
   onSuccess: () => void;
   editData?: Table;
+  branchId: number;
 }
 
 const TableFormDialog: React.FC<TableFormDialogProps> = ({
@@ -25,6 +26,7 @@ const TableFormDialog: React.FC<TableFormDialogProps> = ({
   onClose,
   onSuccess,
   editData,
+  branchId,
 }) => {
   const [formData, setFormData] = React.useState({
     tableNumber: '',
@@ -53,7 +55,7 @@ const TableFormDialog: React.FC<TableFormDialogProps> = ({
       tablesService.createTable({
         ...data,
         capacity: Number(data.capacity),
-        branchId: 1,
+        branchId,
       }),
     onSuccess: () => {
       onSuccess();
