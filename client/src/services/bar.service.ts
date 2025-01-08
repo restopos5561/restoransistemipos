@@ -1,9 +1,9 @@
 import api from './api';
-import { KitchenOrdersFilters, KitchenOrdersResponse, UpdateOrderStatusRequest } from '../types/kitchen.types';
+import { BarOrdersFilters, BarOrdersResponse, UpdateOrderStatusRequest, StatsResponse } from '../types/bar.types';
 import { Order } from '../types/order.types';
 
 class BarService {
-  async getOrders(filters: KitchenOrdersFilters): Promise<KitchenOrdersResponse> {
+  async getOrders(filters: BarOrdersFilters): Promise<BarOrdersResponse> {
     const params = {
       ...filters,
       status: filters.status?.join(',')
@@ -18,8 +18,13 @@ class BarService {
     return response.data;
   }
 
-  async getQueue(): Promise<KitchenOrdersResponse> {
+  async getQueue(): Promise<BarOrdersResponse> {
     const response = await api.get('/bar/queue');
+    return response.data;
+  }
+
+  async getStats(): Promise<StatsResponse> {
+    const response = await api.get('/bar/stats');
     return response.data;
   }
 }

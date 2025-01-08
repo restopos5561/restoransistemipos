@@ -1,33 +1,36 @@
 import React from 'react';
+import { Container, Typography, Button, Box, Stack, Grid, alpha } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Container,
-  Grid,
-  Typography,
-  Box,
-  Stack,
-  Button,
-  useTheme,
-  alpha,
-} from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
-import OrderCard from '../../components/orders/OrderCard';
+import { toast } from 'react-toastify';
 import { barService } from '../../services/bar.service';
 import { OrderStatus } from '../../types/order.types';
-import { toast } from 'react-toastify';
+import { BarOrdersFilters } from '../../types/bar.types';
+import OrderCard from '../../components/orders/OrderCard';
+import BarStats from '../../components/bar/BarStats';
 
 const BarPage: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
 
+  const filters: BarOrdersFilters = {
+    status: [OrderStatus.PENDING, OrderStatus.PREPARING],
+    onlyBeverages: true
+  };
+
+  // İstatistikleri getir
+  const { data: statsData } = useQuery({
+    queryKey: ['bar-stats'],
+    queryFn: () => barService.getStats(),
+    refetchInterval: 30000,
+  });
+
   // Siparişleri getir
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ['bar-orders'],
-    queryFn: () => barService.getOrders({ 
-      status: ['PENDING', 'PREPARING'],
-      onlyBeverages: true 
-    }),
-    refetchInterval: 30000, // Her 30 saniyede bir yenile
+    queryFn: () => barService.getOrders(filters),
+    refetchInterval: 30000,
   });
 
   // Sipariş durumu güncelleme
@@ -35,7 +38,8 @@ const BarPage: React.FC = () => {
     mutationFn: ({ orderId, status }: { orderId: number; status: OrderStatus }) =>
       barService.updateOrderStatus(orderId, { status }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['bar-orders']);
+      queryClient.invalidateQueries({ queryKey: ['bar-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['bar-stats'] });
       toast.success('Sipariş durumu güncellendi');
     },
     onError: () => {
@@ -48,7 +52,8 @@ const BarPage: React.FC = () => {
   };
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries(['bar-orders']);
+    queryClient.invalidateQueries({ queryKey: ['bar-orders'] });
+    queryClient.invalidateQueries({ queryKey: ['bar-stats'] });
   };
 
   if (isLoading) {
@@ -59,8 +64,8 @@ const BarPage: React.FC = () => {
     );
   }
 
-  const pendingOrders = ordersData?.orders.filter(order => order.status === 'PENDING') || [];
-  const preparingOrders = ordersData?.orders.filter(order => order.status === 'PREPARING') || [];
+  const pendingOrders = ordersData?.orders.filter(order => order.status === OrderStatus.PENDING) || [];
+  const preparingOrders = ordersData?.orders.filter(order => order.status === OrderStatus.PREPARING) || [];
 
   return (
     <Container maxWidth="xl">
@@ -85,6 +90,9 @@ const BarPage: React.FC = () => {
             Yenile
           </Button>
         </Stack>
+
+        {/* İstatistikler */}
+        {statsData && <BarStats stats={statsData.data} />}
 
         <Grid container spacing={3}>
           {/* Bekleyen Siparişler */}

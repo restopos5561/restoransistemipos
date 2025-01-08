@@ -22,4 +22,8 @@ router.get('/queue', (req, res, next) => {
   barController.getQueue(req, res, next);
 });
 
+router.get('/stats', (req, res, next) => {
+  barController.getStats(req, res, next);
+});
+
 export { router as barRoutes };

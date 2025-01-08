@@ -60,4 +60,18 @@ export class BarController {
       next(error);
     }
   }
+
+  async getStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const branchId = req.query.branchId ? parseInt(req.query.branchId as string) : undefined;
+      const stats = await barService.getStats(branchId);
+
+      res.json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
