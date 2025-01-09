@@ -23,6 +23,16 @@ import ProductDetailPage from './pages/products/ProductDetailPage';
 import NewProductPage from './pages/products/NewProductPage';
 import StocksPage from './pages/stocks/StocksPage';
 import CategoriesPage from './pages/products/CategoriesPage';
+import CustomersPage from './pages/customers/CustomersPage';
+import NewCustomerPage from './pages/customers/NewCustomerPage';
+import CustomerDetailPage from './pages/customers/CustomerDetailPage';
+import EditCustomerPage from './pages/customers/EditCustomerPage';
+import SuppliersPage from './pages/suppliers/SuppliersPage';
+import NewSupplierPage from './pages/suppliers/NewSupplierPage';
+import EditSupplierPage from './pages/suppliers/EditSupplierPage';
+import SupplierDetailPage from './pages/suppliers/SupplierDetailPage';
+import AccountsPage from './pages/accounts/AccountsPage';
+import AccountDetailPage from './pages/accounts/AccountDetailPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Loading from './components/common/Loading/Loading';
@@ -34,14 +44,6 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { tr } from 'date-fns/locale';
 import theme from './theme/theme';
 import { useConfirm } from './hooks/useConfirm';
-import CustomersPage from './pages/customers/CustomersPage';
-import NewCustomerPage from './pages/customers/NewCustomerPage';
-import CustomerDetailPage from './pages/customers/CustomerDetailPage';
-import EditCustomerPage from './pages/customers/EditCustomerPage';
-import SuppliersPage from './pages/suppliers/SuppliersPage';
-import NewSupplierPage from './pages/suppliers/NewSupplierPage';
-import EditSupplierPage from './pages/suppliers/EditSupplierPage';
-import SupplierDetailPage from './pages/suppliers/SupplierDetailPage';
 
 const queryClient = new QueryClient();
 
@@ -104,6 +106,10 @@ const App: React.FC = () => {
                                         <Route path="/customers/new" element={<NewCustomerPage />} />
                                         <Route path="/customers/:id" element={<CustomerDetailPage />} />
                                         <Route path="/customers/:id/edit" element={<EditCustomerPage />} />
+
+                                        {/* Accounts Route */}
+                                        <Route path="/accounts" element={<AccountsPage />} />
+                                        <Route path="/accounts/:id" element={<AccountDetailPage />} />
                                     </Route>
                                 </Route>
 

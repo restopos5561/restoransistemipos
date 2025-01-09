@@ -9,6 +9,7 @@ router.get('/balance', controller.getAccountBalance);
 
 // Genel route'ları sonra tanımla
 router.get('/', controller.getAccounts);
+router.get('/:id', controller.getAccountById);
 router.post('/', controller.createAccount);
 router.put('/:id', controller.updateAccount);
 router.delete('/:id', controller.deleteAccount);

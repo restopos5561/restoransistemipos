@@ -47,7 +47,12 @@ export class AccountController {
         throw new BadRequestError('Geçersiz hesap ID');
       }
 
-      const account = await accountService.getAccountById(id);
+      const restaurantId = req.query.restaurantId ? parseInt(req.query.restaurantId as string) : undefined;
+      if (!restaurantId) {
+        throw new BadRequestError('Restaurant ID gerekli');
+      }
+
+      const account = await accountService.getAccountById(id, restaurantId);
       if (!account) {
         throw new BadRequestError('Hesap bulunamadı');
       }

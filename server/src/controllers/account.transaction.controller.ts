@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { AccountTransactionService } from '../services/account.transaction.service';
 import { BadRequestError } from '../errors/bad-request-error';
+import { PrismaClient } from '@prisma/client';
 
 const accountTransactionService = new AccountTransactionService();
+const prisma = new PrismaClient();
 
 export class AccountTransactionController {
   async getTransactions(req: Request, res: Response, next: NextFunction) {
@@ -64,6 +66,23 @@ export class AccountTransactionController {
       const accountId = parseInt(req.params.accountId);
       if (isNaN(accountId)) {
         throw new BadRequestError('Geçersiz hesap ID');
+      }
+
+      const restaurantId = req.query.restaurantId ? parseInt(req.query.restaurantId as string) : undefined;
+      if (!restaurantId) {
+        throw new BadRequestError('Restaurant ID gerekli');
+      }
+
+      // Önce hesabın restaurantId'sini kontrol et
+      const account = await prisma.account.findFirst({
+        where: { 
+          id: accountId,
+          restaurantId
+        }
+      });
+
+      if (!account) {
+        throw new BadRequestError('Hesap bulunamadı');
       }
 
       const transactions = await accountTransactionService.getTransactionsByAccountId(accountId);

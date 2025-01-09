@@ -9,13 +9,37 @@ interface CustomerListParams {
   restaurantId?: number;
 }
 
+interface Customer {
+  id: number;
+  name: string;
+  email?: string;
+  phoneNumber?: string;
+  address?: string;
+  restaurantId: number;
+}
+
+interface CustomerListResponse {
+  customers: Customer[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+}
+
 const customersService = {
   // Get all customers with optional filtering
   getCustomers: async (params: CustomerListParams = {}) => {
     try {
-      console.log('Servis - Müşteri listesi isteği:', params);
+      console.log('Müşteri Servisi - Parametre:', params);
       
       const restaurantId = params.restaurantId || localStorage.getItem('restaurantId');
+      console.log('Müşteri Servisi - Restaurant ID:', restaurantId);
+      
       if (!restaurantId) {
         throw new Error('Restaurant ID bulunamadı');
       }
@@ -27,15 +51,15 @@ const customersService = {
         }
       });
 
-      console.log('Servis - Backend yanıtı:', response.data);
+      console.log('Müşteri Servisi - Backend yanıtı:', response.data);
 
       if (!response.data?.success) {
         throw new Error('API yanıtı başarısız');
       }
 
-      return response.data.data;
+      return response.data;
     } catch (error: any) {
-      console.error('Servis - Müşteri listesi hatası:', error);
+      console.error('Müşteri Servisi - Hata:', error);
       throw new Error(error.response?.data?.message || 'Müşteri listesi alınırken bir hata oluştu');
     }
   },

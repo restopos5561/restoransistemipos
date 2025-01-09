@@ -13,7 +13,8 @@ import {
     TableRestaurant as TableIcon,
     Inventory as InventoryIcon,
     People as PeopleIcon,
-    LocalShipping as SupplierIcon
+    LocalShipping as SupplierIcon,
+    AccountBalance as AccountIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -31,8 +32,9 @@ const menuItems = [
     { text: 'Ürünler', icon: <RestaurantIcon />, path: '/products' },
     { text: 'Kategoriler', icon: <RestaurantIcon />, path: '/categories' },
     { text: 'Stok', icon: <InventoryIcon />, path: '/stocks' },
-    { text: 'Cariler', icon: <PeopleIcon />, path: '/customers' },
+    { text: 'Müşteriler', icon: <PeopleIcon />, path: '/customers' },
     { text: 'Tedarikçiler', icon: <SupplierIcon />, path: '/suppliers' },
+    { text: 'Cari Hesaplar', icon: <AccountIcon />, path: '/accounts' },
     { text: 'Ayarlar', icon: <SettingsIcon />, path: '/settings', role: ['ADMIN'] }
 ];
 

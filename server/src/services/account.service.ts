@@ -93,9 +93,12 @@ export class AccountService {
     });
   }
 
-  async getAccountById(id: number): Promise<Account | null> {
-    return prisma.account.findUnique({
-      where: { id },
+  async getAccountById(id: number, restaurantId: number): Promise<Account | null> {
+    return prisma.account.findFirst({
+      where: { 
+        id,
+        restaurantId
+      },
       include: {
         supplier: true,
         customer: true,
@@ -103,21 +106,31 @@ export class AccountService {
           orderBy: {
             date: 'desc',
           },
-          take: 10, // Son 10 işlemm
+          take: 10, // Son 10 işlem
         },
       },
     });
   }
 
   async updateAccount(id: number, data: UpdateAccountInput): Promise<Account> {
-    const account = await this.getAccountById(id);
+    // Önce hesabı bul ve restaurantId'yi al
+    const existingAccount = await prisma.account.findUnique({
+      where: { id },
+      select: { restaurantId: true }
+    });
+
+    if (!existingAccount) {
+      throw new BadRequestError('Hesap bulunamadı');
+    }
+
+    const account = await this.getAccountById(id, existingAccount.restaurantId);
     if (!account) {
       throw new BadRequestError('Hesap bulunamadı');
     }
 
     // İsim değişiyorsa, aynı isimde başka hesap var mı kontrol et
     if (data.accountName && data.accountName !== account.accountName) {
-      const existingAccount = await prisma.account.findFirst({
+      const existingNameAccount = await prisma.account.findFirst({
         where: {
           restaurantId: account.restaurantId,
           accountName: data.accountName,
@@ -125,7 +138,7 @@ export class AccountService {
         },
       });
 
-      if (existingAccount) {
+      if (existingNameAccount) {
         throw new BadRequestError('Bu isimde bir hesap zaten mevcut');
       }
     }
@@ -141,7 +154,17 @@ export class AccountService {
   }
 
   async deleteAccount(id: number): Promise<void> {
-    const account = await this.getAccountById(id);
+    // Önce hesabı bul ve restaurantId'yi al
+    const existingAccount = await prisma.account.findUnique({
+      where: { id },
+      select: { restaurantId: true }
+    });
+
+    if (!existingAccount) {
+      throw new BadRequestError('Hesap bulunamadı');
+    }
+
+    const account = await this.getAccountById(id, existingAccount.restaurantId);
     if (!account) {
       throw new BadRequestError('Hesap bulunamadı');
     }

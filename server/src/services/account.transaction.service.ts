@@ -1,4 +1,4 @@
-import { PrismaClient, TransactionType } from '@prisma/client';
+import { PrismaClient, TransactionType, AccountTransaction } from '@prisma/client';
 import { BadRequestError } from '../errors/bad-request-error';
 
 const prisma = new PrismaClient();
@@ -83,11 +83,15 @@ export class AccountTransactionService {
   }
 
   // Hesaba göre işlemleri getir
-  async getTransactionsByAccountId(accountId: number) {
+  async getTransactionsByAccountId(accountId: number): Promise<AccountTransaction[]> {
     return prisma.accountTransaction.findMany({
       where: { accountId },
-      orderBy: { date: 'desc' },
-      include: { account: true },
+      orderBy: {
+        date: 'desc'
+      },
+      include: {
+        account: true
+      }
     });
   }
 }
