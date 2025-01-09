@@ -9,7 +9,7 @@ const controller = new BranchesController();
 
 router.get('/current', requireAuth, controller.getCurrentBranch);
 
-router.get('/restaurant/:restaurantId', requireAuth, controller.getBranches);
+router.get('/', requireAuth, controller.getBranches);
 router.get('/:id', requireAuth, controller.getBranchById);
 router.post(
   '/restaurant/:restaurantId',

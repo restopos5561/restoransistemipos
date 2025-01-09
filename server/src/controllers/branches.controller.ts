@@ -27,11 +27,20 @@ export class BranchesController {
   };
 
   getBranches = async (req: Request, res: Response) => {
-    const { restaurantId } = req.params;
+    const { restaurantId } = req.query;
+    
+    if (!restaurantId) {
+      throw new BadRequestError('Restaurant ID gereklidir');
+    }
+
     const branches = await this.branchesService.getBranches(Number(restaurantId));
+    
     res.status(200).json({
       success: true,
-      data: branches,
+      data: {
+        branches,
+        total: branches.length
+      }
     });
   };
 

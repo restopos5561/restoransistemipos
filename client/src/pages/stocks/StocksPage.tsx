@@ -25,60 +25,76 @@ import {
   SwapHoriz as SwapHorizIcon,
 } from '@mui/icons-material';
 import stockService from '@/services/stock.service';
-import { Stock, UpdateStockQuantityInput } from '@/types/stock.types';
+import { Stock, UpdateStockQuantityInput, TransferStockInput } from '@/types/stock.types';
 import { formatDate } from '@/lib/utils';
 import { useSnackbar } from 'notistack';
 import UpdateStockDialog from '@/components/stocks/UpdateStockDialog';
+import TransferStockDialog from '@/components/stocks/TransferStockDialog';
 
-const StocksPage: React.FC = () => {
-  const [stocks, setStocks] = useState<Stock[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState({
-    totalStock: 0,
-    lowStock: 0,
-    expiringStock: 0,
-  });
+const StocksPage = () => {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
-  const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [stocks, setStocks] = useState<Stock[]>([]);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
+  const [currentBranchId, setCurrentBranchId] = useState<number>(0);
+
+  useEffect(() => {
+    const branchId = localStorage.getItem('branchId');
+    console.log('localStorage branchId:', branchId);
+    
+    if (!branchId) {
+      setError('Geçerli şube bilgisi bulunamadı. Lütfen şube seçin.');
+      return;
+    }
+
+    const parsedBranchId = Number(branchId);
+    if (isNaN(parsedBranchId) || parsedBranchId <= 0) {
+      setError('Geçersiz şube bilgisi. Lütfen şube seçin.');
+      return;
+    }
+
+    setCurrentBranchId(parsedBranchId);
+  }, []);
 
   const fetchStocks = async () => {
     try {
+      if (!currentBranchId) {
+        setError('Geçerli şube bilgisi bulunamadı');
+        return;
+      }
+
       setLoading(true);
       setError(null);
-      const response = await stockService.getStocks();
-      setStocks(response.data.stocks);
-
-      // İstatistikleri hesapla
-      const lowStockCount = response.data.stocks.filter(
-        (stock) => stock.lowStockThreshold && stock.quantity <= stock.lowStockThreshold
-      ).length;
-
-      const expiringStockResponse = await stockService.getExpiringStock(30);
-      
-      setStats({
-        totalStock: response.data.total,
-        lowStock: lowStockCount,
-        expiringStock: expiringStockResponse.data.total,
+      const response = await stockService.getStocks({
+        branchId: currentBranchId,
       });
+      setStocks(response.data.stocks);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Stoklar yüklenirken bir hata oluştu';
       setError(message);
-      enqueueSnackbar(message, { variant: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStocks();
-  }, []);
+    if (currentBranchId) {
+      fetchStocks();
+    }
+  }, [currentBranchId]);
 
   const handleUpdateQuantity = (stock: Stock) => {
     setSelectedStock(stock);
     setUpdateDialogOpen(true);
+  };
+
+  const handleTransferClick = (stock: Stock) => {
+    setSelectedStock(stock);
+    setTransferDialogOpen(true);
   };
 
   const handleUpdateStock = async (id: number, data: UpdateStockQuantityInput) => {
@@ -92,9 +108,15 @@ const StocksPage: React.FC = () => {
     }
   };
 
-  const handleEdit = (stock: Stock) => {
-    // TODO: Implement edit dialog
-    console.log('Edit stock:', stock);
+  const handleTransferStock = async (data: TransferStockInput) => {
+    try {
+      await stockService.transferStock(data);
+      enqueueSnackbar('Stok transferi başarıyla gerçekleşti', { variant: 'success' });
+      fetchStocks();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Stok transferi sırasında bir hata oluştu';
+      enqueueSnackbar(message, { variant: 'error' });
+    }
   };
 
   if (loading) {
@@ -115,7 +137,6 @@ const StocksPage: React.FC = () => {
 
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ 
           display: 'flex', 
@@ -130,31 +151,14 @@ const StocksPage: React.FC = () => {
           }
         }}>
           <Box>
-            <Typography 
-              variant="h4" 
-              sx={{ 
-                mb: 1,
-                color: theme.palette.text.primary,
-                fontWeight: theme.typography.fontWeightBold
-              }}
-            >
+            <Typography variant="h4" sx={{ mb: 1, color: theme.palette.text.primary, fontWeight: theme.typography.fontWeightBold }}>
               Stok Yönetimi
             </Typography>
-            <Typography 
-              variant="body1" 
-              sx={{ color: theme.palette.text.secondary }}
-            >
+            <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
               Stok durumunuzu görüntüleyin ve yönetin.
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<SwapHorizIcon />}
-              onClick={() => console.log('Transfer')}
-            >
-              Transfer
-            </Button>
             <Button
               variant="outlined"
               startIcon={<DescriptionIcon />}
@@ -171,31 +175,8 @@ const StocksPage: React.FC = () => {
             </Button>
           </Box>
         </Box>
-
-        {/* Stats */}
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="subtitle2" color="text.secondary">Toplam Stok</Typography>
-              <Typography variant="h4">{stats.totalStock}</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="subtitle2" color="text.secondary">Düşük Stok</Typography>
-              <Typography variant="h4" color="error.main">{stats.lowStock}</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="subtitle2" color="text.secondary">S.K.T. Yaklaşan</Typography>
-              <Typography variant="h4" color="warning.main">{stats.expiringStock}</Typography>
-            </Paper>
-          </Grid>
-        </Grid>
       </Box>
 
-      {/* Stock List */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -203,50 +184,34 @@ const StocksPage: React.FC = () => {
               <TableCell>Ürün Adı</TableCell>
               <TableCell>Miktar</TableCell>
               <TableCell>Birim</TableCell>
-              <TableCell>Alt Limit</TableCell>
-              <TableCell>Son Güncelleme</TableCell>
-              <TableCell>Son Kullanma</TableCell>
-              <TableCell align="right">İşlemler</TableCell>
+              <TableCell>İşlemler</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {stocks.map((stock) => (
               <TableRow key={stock.id}>
                 <TableCell>{stock.product.name}</TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <span>{stock.quantity}</span>
-                    {stock.lowStockThreshold && stock.quantity <= stock.lowStockThreshold && (
-                      <Chip
-                        label="Düşük Stok"
-                        color="error"
-                        size="small"
-                        variant="outlined"
-                      />
-                    )}
-                  </Box>
-                </TableCell>
+                <TableCell>{stock.quantity}</TableCell>
                 <TableCell>{stock.product.unit}</TableCell>
-                <TableCell>{stock.lowStockThreshold || '-'}</TableCell>
-                <TableCell>{formatDate(stock.lastStockUpdate)}</TableCell>
                 <TableCell>
-                  {stock.expirationDate ? formatDate(stock.expirationDate) : '-'}
-                </TableCell>
-                <TableCell align="right">
-                  <IconButton
-                    size="small"
-                    onClick={() => handleUpdateQuantity(stock)}
-                    title="Stok Ekle/Çıkar"
-                  >
-                    <AddIcon />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleEdit(stock)}
-                    title="Düzenle"
-                  >
-                    <EditIcon />
-                  </IconButton>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<EditIcon />}
+                      onClick={() => handleUpdateQuantity(stock)}
+                    >
+                      Güncelle
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<SwapHorizIcon />}
+                      onClick={() => handleTransferClick(stock)}
+                    >
+                      Transfer
+                    </Button>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}
@@ -256,9 +221,23 @@ const StocksPage: React.FC = () => {
 
       <UpdateStockDialog
         open={updateDialogOpen}
-        onClose={() => setUpdateDialogOpen(false)}
+        onClose={() => {
+          setUpdateDialogOpen(false);
+          setSelectedStock(null);
+        }}
         stock={selectedStock}
         onUpdate={handleUpdateStock}
+      />
+
+      <TransferStockDialog
+        open={transferDialogOpen}
+        onClose={() => {
+          setTransferDialogOpen(false);
+          setSelectedStock(null);
+        }}
+        onTransfer={handleTransferStock}
+        currentBranchId={currentBranchId}
+        productId={selectedStock?.productId || 0}
       />
     </Box>
   );

@@ -1,4 +1,5 @@
 import api from './api';
+import { API_ENDPOINTS } from '../config/api.endpoints';
 
 // Types
 export interface GetTablesParams {
@@ -15,6 +16,23 @@ export interface GetProductsParams {
   branchId?: string;
   categoryId?: string;
   search?: string;
+}
+
+interface Branch {
+  id: number;
+  name: string;
+  address: string;
+  phone?: string;
+  email?: string;
+  isActive: boolean;
+}
+
+interface BranchListResponse {
+  success: boolean;
+  data: {
+    branches: Branch[];
+    total: number;
+  };
 }
 
 const branchService = {
@@ -69,6 +87,15 @@ const branchService = {
   // Şube ayarlarını güncelle
   updateBranchSettings: async (branchId: string, data: any) => {
     const response = await api.put(`/branches/${branchId}/settings`, data);
+    return response.data;
+  },
+
+  getBranches: async () => {
+    const response = await api.get<BranchListResponse>(API_ENDPOINTS.BRANCHES.LIST, {
+      params: {
+        restaurantId: localStorage.getItem('restaurantId'),
+      },
+    });
     return response.data;
   }
 };

@@ -417,6 +417,8 @@ export class StockService {
   }
 
   async transferStock(data: TransferStockInput) {
+    console.log('Transfer isteği alındı:', data);
+
     return prisma.$transaction(async (tx) => {
       const sourceStock = await tx.stock.findFirst({
         where: {
@@ -424,6 +426,8 @@ export class StockService {
         },
         include: { product: true },
       });
+
+      console.log('Kaynak stok:', sourceStock);
 
       if (!sourceStock) throw new BadRequestError('Kaynak stok bulunamadı');
       if (sourceStock.quantity < data.quantity) throw new BadRequestError('Yetersiz stok');
@@ -434,6 +438,8 @@ export class StockService {
           AND: [{ productId: data.productId }, { branchId: data.toBranchId }],
         },
       });
+
+      console.log('Mevcut hedef stok:', existingTargetStock);
 
       // Varsa güncelle, yoksa oluştur
       const targetStock = existingTargetStock

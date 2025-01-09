@@ -30,4 +30,12 @@ export const API_ENDPOINTS = {
     COUNT: '/stocks/count',
     LOW: '/stocks/low',
   },
+  BRANCHES: {
+    LIST: '/branches',
+    DETAIL: (id: string) => `/branches/${id}`,
+    CREATE: '/branches',
+    UPDATE: (id: string) => `/branches/${id}`,
+    DELETE: (id: string) => `/branches/${id}`,
+    SETTINGS: (id: string) => `/branches/${id}/settings`,
+  },
 }; 

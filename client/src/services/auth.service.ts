@@ -39,7 +39,30 @@ export const authService = {
                 return response.data;
             }
 
-            // Token kontrolü
+            if (response.data.data?.accessToken && response.data.data?.refreshToken) {
+                const success = tokenService.setTokens(
+                    response.data.data.accessToken,
+                    response.data.data.refreshToken
+                );
+                if (!success) {
+                    throw new Error('Token kaydetme işlemi başarısız oldu');
+                }
+            }
+
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.data) {
+                throw new Error(error.response.data.error);
+            }
+            throw error;
+        }
+    },
+
+    loginWithBranch: async (data: { email: string; branchId: number }): Promise<LoginResponse> => {
+        try {
+            const response = await api.post(API_ENDPOINTS.AUTH.LOGIN_WITH_BRANCH, data);
+            console.log('Branch login response:', response.data);
+            
             if (response.data.data?.accessToken && response.data.data?.refreshToken) {
                 const success = tokenService.setTokens(
                     response.data.data.accessToken,
@@ -49,16 +72,14 @@ export const authService = {
                     throw new Error('Token kaydetme işlemi başarısız oldu');
                 }
 
-                // RestaurantId'yi kaydet
-                if (response.data.data.user?.restaurantId) {
-                    localStorage.setItem('restaurantId', response.data.data.user.restaurantId.toString());
-                }
+                // Şube ID'sini localStorage'a kaydet
+                localStorage.setItem('branchId', data.branchId.toString());
             }
-
             return response.data;
-        } catch (error) {
-            console.error('Login error:', error);
-            tokenService.clearTokens();
+        } catch (error: any) {
+            if (error.response?.data) {
+                throw new Error(error.response.data.error);
+            }
             throw error;
         }
     },
@@ -98,9 +119,12 @@ export const authService = {
                 throw new Error('Invalid profile response');
             }
 
-            // RestaurantId'yi güncelle
+            // RestaurantId ve BranchId'yi güncelle
             if (response.data.data.restaurantId) {
                 localStorage.setItem('restaurantId', response.data.data.restaurantId.toString());
+            }
+            if (response.data.data.branchId) {
+                localStorage.setItem('branchId', response.data.data.branchId.toString());
             }
 
             return response.data.data;

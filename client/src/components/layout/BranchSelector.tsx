@@ -42,12 +42,11 @@ const BranchSelector = () => {
   // Şube değiştirme mutation'ı
   const switchBranchMutation = useMutation({
     mutationFn: async (branchId: number) => {
-      const credentials = {
+      const branchLoginData = {
         email: profile?.email || '',
-        password: '', // Şube değişiminde şifre gerekmez
         branchId,
       };
-      return authService.login(credentials);
+      return authService.loginWithBranch(branchLoginData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
