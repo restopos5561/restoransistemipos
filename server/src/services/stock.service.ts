@@ -20,8 +20,9 @@ export class StockService {
     lowStock?: boolean;
     page?: number;
     limit?: number;
+    search?: string;
   }) {
-    const where = {
+    const where: any = {
       ...(filters.productId && { productId: filters.productId }),
       ...(filters.lowStock && {
         AND: [
@@ -34,6 +35,14 @@ export class StockService {
         ],
       }),
       ...(filters.branchId && { branchId: filters.branchId }),
+      ...(filters.search && {
+        product: {
+          name: {
+            contains: filters.search,
+            mode: 'insensitive' as const,
+          },
+        },
+      }),
     };
 
     const [stocks, total] = await Promise.all([
@@ -492,7 +501,16 @@ export class StockService {
           countedBy: data.countedBy,
           countedDate: new Date(data.countedDate),
         },
+        include: {
+          branch: true
+        }
       });
+
+      let totalItems = 0;
+      let itemsWithDifference = 0;
+      let totalPositiveDifference = 0;
+      let totalNegativeDifference = 0;
+      const details = [];
 
       // Her ürün için sayım detayı ve stok hareketi oluştur
       for (const item of data.products) {
@@ -505,6 +523,8 @@ export class StockService {
           throw new BadRequestError(`Stock not found: ${item.countedStockId}`);
         }
 
+        const difference = item.countedQuantity - stock.quantity;
+
         // Sayım detayı oluştur
         await tx.stockCountItem.create({
           data: {
@@ -513,7 +533,7 @@ export class StockService {
             stockId: item.countedStockId,
             systemQuantity: stock.quantity,
             countedQuantity: item.countedQuantity,
-            difference: item.countedQuantity - stock.quantity,
+            difference,
           },
         });
 
@@ -528,15 +548,44 @@ export class StockService {
           data: {
             stockId: item.countedStockId,
             productId: item.productId,
-            quantity: Math.abs(item.countedQuantity - stock.quantity),
-            type: item.countedQuantity > stock.quantity ? 'ADJUSTMENT' : 'ADJUSTMENT',
+            quantity: Math.abs(difference),
+            type: 'ADJUSTMENT',
             notes: `Stok sayımı düzeltmesi (${stockCount.id})`,
             restaurantId: stock.product.restaurantId,
           },
         });
+
+        // Rapor verilerini güncelle
+        totalItems++;
+        if (difference !== 0) {
+          itemsWithDifference++;
+          if (difference > 0) {
+            totalPositiveDifference += difference;
+          } else {
+            totalNegativeDifference += Math.abs(difference);
+          }
+        }
+
+        details.push({
+          productName: stock.product.name,
+          systemQuantity: stock.quantity,
+          countedQuantity: item.countedQuantity,
+          difference,
+          unit: stock.product.unit,
+        });
       }
 
-      return stockCount;
+      // Rapor verisini döndür
+      return {
+        countId: stockCount.id,
+        branchName: stockCount.branch.name,
+        countDate: stockCount.countedDate,
+        totalItems,
+        itemsWithDifference,
+        totalPositiveDifference,
+        totalNegativeDifference,
+        details,
+      };
     });
   }
 
@@ -593,6 +642,56 @@ export class StockService {
       limit: filters.limit || 10,
       totalPages: Math.ceil(total / (filters.limit || 10)),
     };
+  }
+
+  async getStockCountReport(stockCountId: number) {
+    const stockCount = await prisma.stockCount.findUnique({
+      where: { id: stockCountId },
+      include: {
+        items: {
+          include: {
+            product: true,
+            stock: true,
+          },
+        },
+        branch: true,
+      },
+    });
+
+    if (!stockCount) {
+      throw new BadRequestError('Sayım kaydı bulunamadı');
+    }
+
+    const summary = {
+      countId: stockCount.id,
+      branchName: stockCount.branch.name,
+      countDate: stockCount.countedDate,
+      totalItems: stockCount.items.length,
+      itemsWithDifference: 0,
+      totalPositiveDifference: 0,
+      totalNegativeDifference: 0,
+      details: stockCount.items.map(item => ({
+        productName: item.product.name,
+        systemQuantity: item.systemQuantity,
+        countedQuantity: item.countedQuantity,
+        difference: item.difference,
+        unit: item.product.unit,
+      })),
+    };
+
+    // İstatistikleri hesapla
+    stockCount.items.forEach(item => {
+      if (item.difference !== 0) {
+        summary.itemsWithDifference++;
+        if (item.difference > 0) {
+          summary.totalPositiveDifference += item.difference;
+        } else {
+          summary.totalNegativeDifference += Math.abs(item.difference);
+        }
+      }
+    });
+
+    return summary;
   }
 
   // Diğer metodlar (threshold alerts, expiring stock, movements vb.)

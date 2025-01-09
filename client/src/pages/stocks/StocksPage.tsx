@@ -25,12 +25,13 @@ import {
   SwapHoriz as SwapHorizIcon,
 } from '@mui/icons-material';
 import stockService from '@/services/stock.service';
-import { Stock, UpdateStockQuantityInput, TransferStockInput, StockCountInput } from '@/types/stock.types';
+import { Stock, UpdateStockQuantityInput, TransferStockInput, StockCountInput, StockFilters } from '@/types/stock.types';
 import { formatDate } from '@/lib/utils';
 import { useSnackbar } from 'notistack';
 import UpdateStockDialog from '@/components/stocks/UpdateStockDialog';
 import TransferStockDialog from '@/components/stocks/TransferStockDialog';
 import StockCountDialog from '@/components/stocks/StockCountDialog';
+import StockFiltersComponent from '@/components/stocks/StockFilters';
 
 const StocksPage = () => {
   const theme = useTheme();
@@ -43,6 +44,11 @@ const StocksPage = () => {
   const [countDialogOpen, setCountDialogOpen] = useState(false);
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const [currentBranchId, setCurrentBranchId] = useState<number>(0);
+  const [filters, setFilters] = useState<StockFilters>({
+    branchId: 0,
+    page: 1,
+    limit: 10,
+  });
 
   useEffect(() => {
     const branchId = localStorage.getItem('branchId');
@@ -60,6 +66,7 @@ const StocksPage = () => {
     }
 
     setCurrentBranchId(parsedBranchId);
+    setFilters(prev => ({ ...prev, branchId: parsedBranchId }));
   }, []);
 
   const fetchStocks = async () => {
@@ -71,9 +78,7 @@ const StocksPage = () => {
 
       setLoading(true);
       setError(null);
-      const response = await stockService.getStocks({
-        branchId: currentBranchId,
-      });
+      const response = await stockService.getStocks(filters);
       setStocks(response.data.stocks);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Stoklar yüklenirken bir hata oluştu';
@@ -87,7 +92,15 @@ const StocksPage = () => {
     if (currentBranchId) {
       fetchStocks();
     }
-  }, [currentBranchId]);
+  }, [currentBranchId, filters]);
+
+  const handleFiltersChange = (newFilters: StockFilters) => {
+    setFilters(prev => ({
+      ...prev,
+      ...newFilters,
+      page: 1, // Filtreler değiştiğinde sayfa numarasını sıfırla
+    }));
+  };
 
   const handleUpdateQuantity = (stock: Stock) => {
     setSelectedStock(stock);
@@ -123,12 +136,17 @@ const StocksPage = () => {
 
   const handleStockCount = async (data: StockCountInput) => {
     try {
-      await stockService.createStockCount(data);
-      enqueueSnackbar('Stok sayımı başarıyla kaydedildi', { variant: 'success' });
-      fetchStocks();
+      const result = await stockService.createStockCount(data);
+      
+      if (!result?.success) {
+        throw new Error('Sayım işlemi başarısız oldu');
+      }
+
+      return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Stok sayımı sırasında bir hata oluştu';
       enqueueSnackbar(message, { variant: 'error' });
+      throw err;
     }
   };
 
@@ -188,6 +206,11 @@ const StocksPage = () => {
             </Button>
           </Box>
         </Box>
+
+        <StockFiltersComponent
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+        />
       </Box>
 
       <TableContainer component={Paper}>
@@ -253,13 +276,16 @@ const StocksPage = () => {
         productId={selectedStock?.productId || 0}
       />
 
-      <StockCountDialog
-        open={countDialogOpen}
-        onClose={() => setCountDialogOpen(false)}
-        onSubmit={handleStockCount}
-        stocks={stocks}
-        currentBranchId={currentBranchId}
-      />
+      {countDialogOpen && (
+        <StockCountDialog
+          open={countDialogOpen}
+          onClose={() => setCountDialogOpen(false)}
+          onSubmit={handleStockCount}
+          stocks={stocks}
+          currentBranchId={currentBranchId}
+          fetchStocks={fetchStocks}
+        />
+      )}
     </Box>
   );
 };

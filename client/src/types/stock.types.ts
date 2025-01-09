@@ -61,6 +61,7 @@ export interface StockFilters {
   lowStock?: boolean;
   page?: number;
   limit?: number;
+  search?: string;
 }
 
 export interface StockMovementFilters {

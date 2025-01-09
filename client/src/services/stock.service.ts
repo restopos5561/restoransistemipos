@@ -75,11 +75,35 @@ const stockService = {
 
   // Stok sayımı oluştur
   createStockCount: async (data: StockCountInput) => {
-    const response = await api.post(API_ENDPOINTS.STOCKS.COUNT, {
-      ...data,
-      restaurantId: localStorage.getItem('restaurantId'),
-    });
-    return response.data;
+    try {
+      const response = await api.post(API_ENDPOINTS.STOCKS.COUNT, {
+        ...data,
+        restaurantId: localStorage.getItem('restaurantId'),
+      });
+
+      // API yanıtını kontrol et
+      if (!response.data) {
+        throw new Error('API yanıtı boş');
+      }
+
+      // Başarı durumunu kontrol et
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Sayım işlemi başarısız oldu');
+      }
+
+      // Rapor verilerini kontrol et
+      if (!response.data.data) {
+        throw new Error('Rapor verileri alınamadı');
+      }
+
+      return {
+        success: true,
+        data: response.data.data
+      };
+    } catch (error) {
+      console.error('Stok sayımı hatası:', error);
+      throw error;
+    }
   },
 
   // Düşük stokları getir

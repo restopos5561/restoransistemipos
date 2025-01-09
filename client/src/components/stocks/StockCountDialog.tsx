@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -20,13 +20,15 @@ import {
 } from '@mui/material';
 import { Stock, StockCountInput } from '@/types/stock.types';
 import { useAuth } from '@/hooks/useAuth';
+import { useSnackbar } from 'notistack';
 
 interface StockCountDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: StockCountInput) => void;
+  onSubmit: (data: StockCountInput) => Promise<any>;
   stocks: Stock[];
   currentBranchId: number;
+  fetchStocks: () => void;
 }
 
 const StockCountDialog: React.FC<StockCountDialogProps> = ({
@@ -35,96 +37,196 @@ const StockCountDialog: React.FC<StockCountDialogProps> = ({
   onSubmit,
   stocks,
   currentBranchId,
+  fetchStocks,
 }) => {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [countedStocks, setCountedStocks] = useState<Record<number, string>>({});
-
-  useEffect(() => {
-    if (open) {
-      setCountedStocks({});
-      setError(null);
-    }
-  }, [open]);
+  const [showReport, setShowReport] = useState(false);
+  const [reportData, setReportData] = useState<any>(null);
+  const { enqueueSnackbar } = useSnackbar();
 
   const handleQuantityChange = (stockId: number, value: string) => {
-    setCountedStocks((prev) => ({
+    setCountedStocks(prev => ({
       ...prev,
       [stockId]: value,
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (!profile?.id) {
-      setError('Oturum bilgisi bulunamadı');
-      return;
-    }
-
-    if (!currentBranchId) {
-      setError('Şube bilgisi bulunamadı');
-      return;
-    }
-
-    const products = Object.entries(countedStocks).map(([stockId, quantity]) => {
-      const stock = stocks.find((s) => s.id === Number(stockId));
-      if (!stock) throw new Error('Stok bulunamadı');
-
-      const countedQuantity = Number(quantity);
-      if (isNaN(countedQuantity) || countedQuantity < 0) {
-        throw new Error(`${stock.product.name} için geçerli bir miktar girin`);
-      }
-
-      return {
-        productId: stock.productId,
-        countedQuantity,
-        countedStockId: stock.id,
-      };
-    });
-
-    if (products.length === 0) {
-      setError('En az bir ürün için sayım yapmalısınız');
-      return;
-    }
+    setLoading(true);
 
     try {
-      const stockCountData: StockCountInput = {
+      const products = Object.entries(countedStocks).map(([stockId, quantity]) => {
+        const stock = stocks.find(s => s.id === Number(stockId));
+        if (!stock) throw new Error('Stok bulunamadı');
+
+        const countedQuantity = Number(quantity);
+        if (isNaN(countedQuantity) || countedQuantity < 0) {
+          throw new Error(`${stock.product.name} için geçerli bir miktar girin`);
+        }
+
+        return {
+          productId: stock.productId,
+          countedQuantity,
+          countedStockId: stock.id,
+        };
+      });
+
+      if (products.length === 0) {
+        throw new Error('En az bir ürün için sayım yapmalısınız');
+      }
+
+      const data = {
         branchId: currentBranchId,
-        countedBy: profile.id,
+        countedBy: profile!.id,
         countedDate: new Date().toISOString(),
         products,
       };
 
-      onSubmit(stockCountData);
-      onClose();
+      console.log('Sayım gönderiliyor:', data);
+      const result = await onSubmit(data);
+      console.log('API yanıtı:', result);
+
+      if (!result || !result.success || !result.data) {
+        throw new Error('Sayım raporu alınamadı');
+      }
+
+      console.log('Rapor verisi:', result.data);
+      
+      // API yanıtını kontrol et
+      if (!Array.isArray(result.data.details)) {
+        throw new Error('Rapor detayları alınamadı');
+      }
+
+      // State güncellemelerini sıralı yapıyoruz
+      await Promise.all([
+        new Promise<void>(resolve => {
+          setReportData(result.data);
+          resolve();
+        }),
+        new Promise<void>(resolve => {
+          setShowReport(true);
+          resolve();
+        })
+      ]);
+
+      // Sadece başarı mesajı göster
+      enqueueSnackbar('Stok sayımı başarıyla kaydedildi', { variant: 'success' });
     } catch (err) {
+      console.error('Sayım hatası:', err);
       setError(err instanceof Error ? err.message : 'Bir hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!loading) {
+      // Önce stokları güncelle
+      fetchStocks();
+      
+      // Sonra state'leri temizle
+      setCountedStocks({});
+      setError(null);
+      setShowReport(false);
+      setReportData(null);
+      
+      // En son dialog'u kapat
+      onClose();
     }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <form onSubmit={handleSubmit}>
-        <DialogTitle>Stok Sayımı</DialogTitle>
-        <DialogContent>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-              <CircularProgress />
-            </Box>
-          ) : error ? (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          ) : (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Lütfen her ürün için sayım sonucunda bulunan miktarı girin.
-                Boş bırakılan ürünler sayıma dahil edilmeyecektir.
+    <Dialog 
+      open={open} 
+      onClose={handleClose} 
+      maxWidth="md" 
+      fullWidth
+      disableEscapeKeyDown={loading || showReport}
+    >
+      {showReport && reportData ? (
+        <>
+          <DialogTitle>Sayım Raporu</DialogTitle>
+          <DialogContent>
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Toplam {reportData.totalItems} ürün sayıldı
               </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {reportData.itemsWithDifference} üründe fark tespit edildi
+              </Typography>
+              {reportData.totalPositiveDifference > 0 && (
+                <Typography variant="body2" color="success.main" gutterBottom>
+                  Toplam {reportData.totalPositiveDifference} adet fazla
+                </Typography>
+              )}
+              {reportData.totalNegativeDifference > 0 && (
+                <Typography variant="body2" color="error.main" gutterBottom>
+                  Toplam {reportData.totalNegativeDifference} adet eksik
+                </Typography>
+              )}
+            </Box>
 
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Ürün</TableCell>
+                    <TableCell align="right">Sistem</TableCell>
+                    <TableCell align="right">Sayım</TableCell>
+                    <TableCell align="right">Fark</TableCell>
+                    <TableCell>Birim</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {reportData.details.map((item: any, index: number) => (
+                    <TableRow key={`stock-count-${index}`}>
+                      <TableCell>{item.productName}</TableCell>
+                      <TableCell align="right">{item.systemQuantity}</TableCell>
+                      <TableCell align="right">{item.countedQuantity}</TableCell>
+                      <TableCell 
+                        align="right"
+                        sx={{ 
+                          color: item.difference > 0 
+                            ? 'success.main' 
+                            : item.difference < 0 
+                            ? 'error.main' 
+                            : 'text.primary'
+                        }}
+                      >
+                        {item.difference > 0 ? '+' : ''}{item.difference}
+                      </TableCell>
+                      <TableCell>{item.unit}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClose}>Kapat</Button>
+          </DialogActions>
+        </>
+      ) : (
+        <>
+          <DialogTitle>Stok Sayımı</DialogTitle>
+          <DialogContent>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Lütfen her ürün için sayım sonucunda bulunan miktarı girin.
+              Boş bırakılan ürünler sayıma dahil edilmeyecektir.
+            </Typography>
+
+            <form id="stockCountForm" onSubmit={handleSubmit}>
               <TableContainer component={Paper}>
                 <Table>
                   <TableHead>
@@ -156,16 +258,23 @@ const StockCountDialog: React.FC<StockCountDialogProps> = ({
                   </TableBody>
                 </Table>
               </TableContainer>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose}>İptal</Button>
-          <Button type="submit" variant="contained" disabled={loading}>
-            Sayımı Kaydet
-          </Button>
-        </DialogActions>
-      </form>
+            </form>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClose} disabled={loading}>
+              İptal
+            </Button>
+            <Button 
+              form="stockCountForm"
+              type="submit"
+              variant="contained" 
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Sayımı Kaydet'}
+            </Button>
+          </DialogActions>
+        </>
+      )}
     </Dialog>
   );
 };

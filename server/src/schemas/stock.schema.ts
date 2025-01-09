@@ -28,6 +28,7 @@ export const StockSchema = {
         .string()
         .optional()
         .transform((val) => (val ? Number(val) : 10)),
+      search: z.string().optional(),
     }),
   }),
 
