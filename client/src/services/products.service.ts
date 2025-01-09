@@ -75,6 +75,30 @@ const productsService = {
   getProductPriceHistory: async (id: number) => {
     const response = await api.get(API_ENDPOINTS.PRODUCTS.PRICE_HISTORY(id.toString()));
     return response.data;
+  },
+
+  // Get product variants
+  getProductVariants: async (id: number) => {
+    const response = await api.get(API_ENDPOINTS.PRODUCTS.VARIANTS(id.toString()));
+    return response.data;
+  },
+
+  // Add product variant
+  addProductVariant: async (productId: number, data: any) => {
+    const response = await api.post(API_ENDPOINTS.PRODUCTS.ADD_VARIANT(productId.toString()), data);
+    return response.data;
+  },
+
+  // Update product variant
+  updateProductVariant: async (productId: number, variantId: number, data: any) => {
+    const response = await api.put(API_ENDPOINTS.PRODUCTS.UPDATE_VARIANT(productId.toString(), variantId.toString()), data);
+    return response.data;
+  },
+
+  // Delete product variant
+  deleteProductVariant: async (productId: number, variantId: number) => {
+    const response = await api.delete(API_ENDPOINTS.PRODUCTS.DELETE_VARIANT(productId.toString(), variantId.toString()));
+    return response.data;
   }
 };
 

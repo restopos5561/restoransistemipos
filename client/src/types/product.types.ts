@@ -79,4 +79,15 @@ export interface PriceHistory {
 export interface PriceHistoryResponse {
   success: boolean;
   data: PriceHistory[];
+}
+
+export interface ProductVariantResponse {
+  success: boolean;
+  data: ProductVariant[];
+}
+
+export interface ProductVariantInput {
+  name: string;
+  value: string;
+  priceAdjustment?: number;
 } 

@@ -28,6 +28,10 @@ export const API_ENDPOINTS = {
     STOCK: (id: string) => `/products/${id}/stock`,
     OPTIONS: (id: string) => `/products/${id}/options`,
     PRICE_HISTORY: (id: string) => `/products/${id}/price-history`,
+    VARIANTS: (id: string) => `/products/${id}/variants`,
+    ADD_VARIANT: (id: string) => `/products/${id}/variants`,
+    UPDATE_VARIANT: (id: string, variantId: string) => `/products/${id}/variants/${variantId}`,
+    DELETE_VARIANT: (id: string, variantId: string) => `/products/${id}/variants/${variantId}`,
   },
   ORDERS: {
     LIST: '/orders',

@@ -334,32 +334,47 @@ export class ProductsService {
   async getProductVariants(productId: number) {
     await this.getProductById(productId);
 
-    return prisma.productVariant.findMany({
+    const variants = await prisma.productVariant.findMany({
       where: { productId },
     });
+
+    return {
+      success: true,
+      data: variants
+    };
   }
 
   async addProductVariant(productId: number, data: ProductVariantInput) {
     await this.getProductById(productId);
 
-    return prisma.productVariant.create({
+    const variant = await prisma.productVariant.create({
       data: {
         ...data,
         productId,
       },
     });
+
+    return {
+      success: true,
+      data: variant
+    };
   }
 
   async updateProductVariant(productId: number, variantId: number, data: ProductVariantInput) {
     await this.getProductById(productId);
 
-    return prisma.productVariant.update({
+    const variant = await prisma.productVariant.update({
       where: {
         id: variantId,
         productId,
       },
       data,
     });
+
+    return {
+      success: true,
+      data: variant
+    };
   }
 
   async deleteProductVariant(productId: number, variantId: number) {
@@ -371,6 +386,11 @@ export class ProductsService {
         productId,
       },
     });
+
+    return {
+      success: true,
+      data: null
+    };
   }
 
   // Seçenek grupları ve seçenekler metodları
