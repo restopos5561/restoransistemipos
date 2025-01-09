@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
     STATUS: (id: string) => `/products/${id}/status`,
     STOCK: (id: string) => `/products/${id}/stock`,
     OPTIONS: (id: string) => `/products/${id}/options`,
+    PRICE_HISTORY: (id: string) => `/products/${id}/price-history`,
   },
   ORDERS: {
     LIST: '/orders',

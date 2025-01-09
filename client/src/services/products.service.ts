@@ -69,6 +69,12 @@ const productsService = {
   getProductOptions: async (id: number) => {
     const response = await api.get(API_ENDPOINTS.PRODUCTS.OPTIONS(id.toString()));
     return response.data;
+  },
+
+  // Get product price history
+  getProductPriceHistory: async (id: number) => {
+    const response = await api.get(API_ENDPOINTS.PRODUCTS.PRICE_HISTORY(id.toString()));
+    return response.data;
   }
 };
 

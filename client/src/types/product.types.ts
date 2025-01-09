@@ -66,4 +66,17 @@ export interface ProductListFilters {
   isActive?: boolean;
   page?: number;
   limit?: number;
+}
+
+export interface PriceHistory {
+  id: number;
+  productId: number;
+  oldPrice: number;
+  newPrice: number;
+  startDate: string;
+}
+
+export interface PriceHistoryResponse {
+  success: boolean;
+  data: PriceHistory[];
 } 

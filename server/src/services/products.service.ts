@@ -197,8 +197,32 @@ export class ProductsService {
       }
     }
 
+    // Fiyat değişikliği varsa önce fiyat geçmişi kaydı oluştur
+    if (data.price !== undefined && data.price !== product.price) {
+      await prisma.priceHistory.create({
+        data: {
+          productId: id,
+          oldPrice: product.price,
+          newPrice: data.price,
+          startDate: new Date(),
+        },
+      });
+    }
+
     const updateData: any = {
-      ...data,
+      name: data.name,
+      description: data.description,
+      price: data.price,
+      preparationTime: data.preparationTime,
+      isActive: data.isActive,
+      stockTracking: data.stockTracking,
+      ...(data.categoryId && {
+        category: {
+          connect: {
+            id: data.categoryId
+          }
+        }
+      })
     };
 
     // Stok güncelleme işlemi
@@ -211,8 +235,9 @@ export class ProductsService {
 
         // Her şube için stok kaydı oluştur
         updateData.stocks = {
+          deleteMany: {},
           create: branches.map((branch) => ({
-            quantity: 0,
+            quantity: data.stockQuantity || 0,
             branchId: branch.id,
           })),
         };
@@ -222,6 +247,14 @@ export class ProductsService {
           deleteMany: {},
         };
       }
+    } else if (data.stockQuantity !== undefined && product.stockTracking) {
+      // Sadece stok miktarı güncelleniyorsa
+      updateData.stocks = {
+        updateMany: {
+          where: { productId: id },
+          data: { quantity: data.stockQuantity }
+        }
+      };
     }
 
     return prisma.product.update({
@@ -275,14 +308,26 @@ export class ProductsService {
   }
 
   async getProductPriceHistory(id: number) {
-    const product = await this.getProductById(id);
+    await this.getProductById(id);
 
-    return prisma.priceHistory.findMany({
+    const priceHistory = await prisma.priceHistory.findMany({
       where: { productId: id },
       orderBy: {
         startDate: 'desc',
       },
+      select: {
+        id: true,
+        productId: true,
+        oldPrice: true,
+        newPrice: true,
+        startDate: true,
+      }
     });
+
+    return {
+      success: true,
+      data: priceHistory
+    };
   }
 
   // Varyant metodları

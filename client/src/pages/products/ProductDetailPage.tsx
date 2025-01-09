@@ -19,6 +19,7 @@ import { formatCurrency } from '../../utils/format';
 import Loading from '../../components/common/Loading/Loading';
 import { ProductResponse } from '../../types/product.types';
 import ProductForm from '../../components/products/ProductForm';
+import PriceHistory from '../../components/products/PriceHistory';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -163,7 +164,9 @@ const ProductDetailPage: React.FC = () => {
 
               <Grid item xs={12} md={4}>
                 <Stack spacing={3}>
-                  {/* Buraya ek bilgiler eklenebilir */}
+                  <Card sx={{ p: 3 }}>
+                    <PriceHistory productId={product.id} />
+                  </Card>
                 </Stack>
               </Grid>
             </>
