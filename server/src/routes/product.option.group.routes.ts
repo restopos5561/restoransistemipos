@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { ProductOptionGroupController } from '../controllers/product.option.group.controller';
 import { validateRequest } from '../middleware/validate-request';
 import { requireAuth } from '../middleware/auth.middleware';
-import { OptionGroupSchema } from '../schemas/option.group.schema';
+import { OptionGroupSchema } from '../schemas/option.group.validation';
 
 const router = Router();
 const controller = new ProductOptionGroupController();
@@ -14,22 +14,12 @@ router.get('/', requireAuth, controller.getOptionGroups);
 router.get('/product/:productId', requireAuth, controller.getOptionGroupsByProductId);
 
 // POST /option-groups - Yeni seçenek grubu oluştur
-router.post(
-  '/',
-  requireAuth,
-  validateRequest(OptionGroupSchema.create),
-  controller.createOptionGroup
-);
+router.post('/', requireAuth, validateRequest(OptionGroupSchema.create), controller.createOptionGroup);
 
 // Dinamik parametreli route'lar
 router.get('/:id', requireAuth, controller.getOptionGroupById);
 
-router.put(
-  '/:id',
-  requireAuth,
-  validateRequest(OptionGroupSchema.update),
-  controller.updateOptionGroup
-);
+router.put('/:id', requireAuth, validateRequest(OptionGroupSchema.update), controller.updateOptionGroup);
 
 router.delete('/:id', requireAuth, controller.deleteOptionGroup);
 

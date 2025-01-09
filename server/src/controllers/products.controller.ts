@@ -153,13 +153,19 @@ export class ProductsController {
   getProductOptions = async (req: Request, res: Response) => {
     const { id } = req.params;
     const options = await this.productsService.getProductOptions(Number(id));
-    res.json(options);
+    res.json({
+      success: true,
+      data: options
+    });
   };
 
   addProductOptionGroup = async (req: Request, res: Response) => {
     const { id } = req.params;
     const optionGroup = await this.productsService.addProductOptionGroup(Number(id), req.body);
-    res.status(201).json(optionGroup);
+    res.status(201).json({
+      success: true,
+      data: optionGroup
+    });
   };
 
   addProductOption = async (req: Request, res: Response) => {

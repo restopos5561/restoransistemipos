@@ -397,23 +397,43 @@ export class ProductsService {
   async getProductOptions(productId: number) {
     await this.getProductById(productId);
 
-    return prisma.productOptionGroup.findMany({
+    const optionGroups = await prisma.productOptionGroup.findMany({
       where: { productId },
       include: {
-        options: true,
+        options: {
+          orderBy: {
+            name: 'asc'
+          }
+        },
       },
+      orderBy: {
+        name: 'asc'
+      }
     });
+
+    return {
+      success: true,
+      data: optionGroups
+    };
   }
 
   async addProductOptionGroup(productId: number, data: ProductOptionGroupInput) {
     await this.getProductById(productId);
 
-    return prisma.productOptionGroup.create({
+    const optionGroup = await prisma.productOptionGroup.create({
       data: {
         ...data,
         productId,
       },
+      include: {
+        options: true
+      }
     });
+
+    return {
+      success: true,
+      data: optionGroup
+    };
   }
 
   async addProductOption(productId: number, data: ProductOptionInput) {

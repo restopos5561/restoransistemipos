@@ -37,6 +37,7 @@ import { priceHistoryRouter } from './routes/price.history.routes';
 import { purchaseOrderItemsRouter } from './routes/purchase.order.items.routes';
 import { productSupplierRouter } from './routes/product.supplier.routes';
 import { settingsRouter } from './routes/settings.routes';
+import optionsRouter from './routes/options.routes';
 
 // Initialize logger
 const logger = pino({
@@ -154,6 +155,8 @@ app.use('/api/price-history', priceHistoryRouter);
 app.use('/api/purchase-order-items', purchaseOrderItemsRouter);
 app.use('/api/product-suppliers', productSupplierRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api', ordersRouter);
+app.use('/api', optionsRouter);
 
 // Error handling
 app.use(errorHandler);

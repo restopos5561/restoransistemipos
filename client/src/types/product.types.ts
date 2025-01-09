@@ -29,7 +29,6 @@ export interface ProductVariant {
 
 export interface ProductOptionGroup {
   id: number;
-  productId: number;
   name: string;
   isRequired: boolean;
   minQuantity: number;
@@ -39,7 +38,6 @@ export interface ProductOptionGroup {
 
 export interface ProductOption {
   id: number;
-  optionGroupId: number;
   name: string;
   priceAdjustment: number;
 }
@@ -90,4 +88,22 @@ export interface ProductVariantInput {
   name: string;
   value: string;
   priceAdjustment?: number;
+}
+
+export interface ProductOptionGroupResponse {
+  success: boolean;
+  data: ProductOptionGroup[];
+}
+
+export interface ProductOptionGroupInput {
+  name: string;
+  isRequired: boolean;
+  minQuantity: number;
+  maxQuantity: number;
+}
+
+export interface ProductOptionInput {
+  optionGroupId: number;
+  name: string;
+  priceAdjustment: number;
 } 

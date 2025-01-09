@@ -99,6 +99,43 @@ const productsService = {
   deleteProductVariant: async (productId: number, variantId: number) => {
     const response = await api.delete(API_ENDPOINTS.PRODUCTS.DELETE_VARIANT(productId.toString(), variantId.toString()));
     return response.data;
+  },
+
+  // Add option group
+  addProductOptionGroup: async (productId: number, data: any) => {
+    const response = await api.post(API_ENDPOINTS.PRODUCTS.ADD_OPTION_GROUP(productId.toString()), data);
+    return response.data;
+  },
+
+  // Add option
+  addProductOption: async (productId: number, data: any) => {
+    const response = await api.post(API_ENDPOINTS.PRODUCTS.ADD_OPTION(productId.toString()), data);
+    return response.data;
+  },
+
+  // Update option
+  updateProductOption: async (productId: number, optionId: number, data: any) => {
+    const response = await api.put(
+      API_ENDPOINTS.PRODUCTS.UPDATE_OPTION(productId.toString(), optionId.toString()),
+      data
+    );
+    return response.data;
+  },
+
+  // Delete option
+  deleteProductOption: async (productId: number, optionId: number) => {
+    const response = await api.delete(
+      API_ENDPOINTS.PRODUCTS.DELETE_OPTION(productId.toString(), optionId.toString())
+    );
+    return response.data;
+  },
+
+  // Delete option group
+  deleteProductOptionGroup: async (productId: number, groupId: number) => {
+    const response = await api.delete(
+      API_ENDPOINTS.PRODUCTS.DELETE_OPTION_GROUP(productId.toString(), groupId.toString())
+    );
+    return response.data;
   }
 };
 

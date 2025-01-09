@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { ProductOptionController } from '../controllers/product.option.controller';
 import { validateRequest } from '../middleware/validate-request';
 import { requireAuth } from '../middleware/auth.middleware';
-import { OptionSchema } from '../schemas/option.schema';
+import { OptionSchema } from '../schemas/option.validation';
 
 const router = Router();
 const controller = new ProductOptionController();

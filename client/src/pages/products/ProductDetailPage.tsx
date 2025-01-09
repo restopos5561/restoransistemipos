@@ -21,6 +21,7 @@ import { ProductResponse } from '../../types/product.types';
 import ProductForm from '../../components/products/ProductForm';
 import PriceHistory from '../../components/products/PriceHistory';
 import ProductVariants from '../../components/products/ProductVariants';
+import ProductOptions from '../../components/products/ProductOptions';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -170,6 +171,9 @@ const ProductDetailPage: React.FC = () => {
                   </Card>
                   <Card sx={{ p: 3 }}>
                     <ProductVariants productId={product.id} />
+                  </Card>
+                  <Card sx={{ p: 3 }}>
+                    <ProductOptions productId={product.id} />
                   </Card>
                 </Stack>
               </Grid>
