@@ -227,8 +227,12 @@ const StocksPage = () => {
             {stocks.map((stock) => (
               <TableRow key={stock.id}>
                 <TableCell>{stock.product.name}</TableCell>
-                <TableCell>{stock.quantity}</TableCell>
-                <TableCell>{stock.product.unit}</TableCell>
+                <TableCell>
+                  <Typography>
+                    {stock.quantity}
+                  </Typography>
+                </TableCell>
+                <TableCell>{stock.product?.unit || "-"}</TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button

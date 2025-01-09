@@ -72,10 +72,19 @@ export class ProductsService {
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          stocks: true,
+        },
         skip: ((filters.page || 1) - 1) * (filters.limit || 10),
         take: filters.limit || 10,
-        include: {
-          category: true,
+        orderBy: {
+          name: 'asc',
         },
       }),
       prisma.product.count({ where }),
@@ -315,7 +324,33 @@ export class ProductsService {
       await uploadService.deleteImage(product.image);
     }
 
-    await prisma.product.delete({ where: { id } });
+    // İlişkili kayıtları sil
+    await prisma.$transaction([
+      // Stokları sil
+      prisma.stock.deleteMany({
+        where: { productId: id }
+      }),
+      // Seçenekleri sil
+      prisma.productOption.deleteMany({
+        where: { productId: id }
+      }),
+      // Seçenek gruplarını sil
+      prisma.productOptionGroup.deleteMany({
+        where: { productId: id }
+      }),
+      // Varyantları sil
+      prisma.productVariant.deleteMany({
+        where: { productId: id }
+      }),
+      // Fiyat geçmişini sil
+      prisma.priceHistory.deleteMany({
+        where: { productId: id }
+      }),
+      // Ürünü sil
+      prisma.product.delete({
+        where: { id }
+      })
+    ]);
   }
 
   async updateProductPrice(id: number, newPrice: number): Promise<Product> {

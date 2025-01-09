@@ -117,9 +117,16 @@ export class ProductsController {
   };
 
   deleteProduct = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    await this.productsService.deleteProduct(Number(id));
-    res.status(204).send();
+    try {
+      const { id } = req.params;
+      await this.productsService.deleteProduct(Number(id));
+      res.status(204).send();
+    } catch (error) {
+      if (error instanceof BadRequestError) {
+        throw error;
+      }
+      throw new BadRequestError(error instanceof Error ? error.message : 'Ürün silinirken bir hata oluştu');
+    }
   };
 
   getProductVariants = async (req: Request, res: Response) => {

@@ -13,6 +13,10 @@ export const ProductSchema = {
       preparationTime: z.number().int().min(0).optional(),
       stockTracking: z.boolean().optional(),
       stockQuantity: z.number().int().min(0).optional(),
+      unit: z.string({
+        required_error: 'Birim alanı zorunludur',
+        invalid_type_error: 'Birim alanı metin olmalıdır',
+      }),
     }),
   }),
 
@@ -27,6 +31,7 @@ export const ProductSchema = {
       preparationTime: z.number().int().min(0).optional(),
       stockTracking: z.boolean().optional(),
       stockQuantity: z.number().int().min(0).optional(),
+      unit: z.string().optional(),
     }),
   }),
 

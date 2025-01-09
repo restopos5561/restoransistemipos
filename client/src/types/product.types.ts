@@ -18,6 +18,7 @@ export interface Product {
   isActive: boolean;
   preparationTime?: number;
   stockTracking: boolean;
+  unit?: string;
 }
 
 export interface ProductVariant {

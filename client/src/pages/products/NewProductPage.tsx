@@ -49,6 +49,7 @@ const NewProductPage: React.FC = () => {
     stockQuantity: '',
     isActive: true,
     image: '',
+    unit: '',
   });
 
   const { data: categories, isLoading: categoriesLoading } = useQuery<CategoryResponse>({
@@ -242,6 +243,23 @@ const NewProductPage: React.FC = () => {
                   onChange={handleChange('price')}
                   inputProps={{ min: 0, step: 0.01 }}
                 />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Birim"
+                  name="unit"
+                  value={formData.unit}
+                  onChange={handleChange('unit')}
+                >
+                  {["Adet", "Kg", "Gr", "Lt", "Ml", "Porsiyon"].map((unit) => (
+                    <MenuItem key={unit} value={unit}>
+                      {unit}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
 
               <Grid item xs={12} md={6}>

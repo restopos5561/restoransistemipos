@@ -10,6 +10,10 @@ import {
   Alert,
   IconButton,
   Avatar,
+  FormControl,
+  FormLabel,
+  Input,
+  Select,
 } from '@mui/material';
 import { PhotoCamera, Delete as DeleteIcon } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
@@ -30,6 +34,7 @@ interface FormData {
   stockQuantity: string;
   isActive: boolean;
   image: string | null;
+  unit: string;
 }
 
 interface ProductFormProps {
@@ -53,6 +58,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
     stockQuantity: initialData?.stocks?.[0]?.quantity?.toString() || '',
     isActive: initialData?.isActive ?? true,
     image: initialData?.image || null,
+    unit: initialData?.unit || '',
   });
 
   const { data: categories, isLoading: categoriesLoading } = useQuery({
@@ -115,8 +121,23 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         categoryId: parseInt(formData.categoryId),
         preparationTime: formData.preparationTime ? parseInt(formData.preparationTime) : undefined,
         stockQuantity: formData.stockQuantity ? parseInt(formData.stockQuantity) : undefined,
-        image: formData.image || null,
       };
+
+      // Resim işleme
+      if (formData.image) {
+        if (formData.image.startsWith('data:')) {
+          // Yeni yüklenen base64 resim
+          productData.image = formData.image;
+        } else if (formData.image.startsWith('/uploads/')) {
+          // Mevcut resim, değişiklik yok
+          productData.image = formData.image;
+        } else {
+          // Resim yok
+          productData.image = null;
+        }
+      } else {
+        productData.image = null;
+      }
 
       await onSubmit(productData);
     } catch (error: any) {
@@ -127,6 +148,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
       setLoading(false);
     }
   };
+
+  const units = ["Adet", "Kg", "Gr", "Lt", "Ml", "Porsiyon"];
 
   if (categoriesLoading) {
     return <Loading />;
@@ -236,11 +259,29 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
         <Grid item xs={12} md={6}>
           <TextField
+            select
             fullWidth
             required
-            type="number"
+            label="Birim"
+            name="unit"
+            value={formData.unit}
+            onChange={handleChange('unit')}
+          >
+            {units.map((unit) => (
+              <MenuItem key={unit} value={unit}>
+                {unit}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            required
             label="Fiyat"
             name="price"
+            type="number"
             value={formData.price}
             onChange={handleChange('price')}
             inputProps={{ min: 0, step: 0.01 }}
