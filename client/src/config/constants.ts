@@ -38,6 +38,17 @@ export const API_ENDPOINTS = {
     DELETE_OPTION: (id: string, optionId: string) => `/products/${id}/options/${optionId}`,
     DELETE_OPTION_GROUP: (productId: string, groupId: string) => `/products/${productId}/options/groups/${groupId}`,
   },
+  STOCKS: {
+    LIST: '/stocks',
+    DETAIL: (id: string) => `/stocks/${id}`,
+    HISTORY: (id: string) => `/stocks/${id}/history`,
+    UPDATE_QUANTITY: (id: string) => `/stocks/${id}/quantity`,
+    MOVEMENTS: '/stocks/movements',
+    EXPIRING: '/stocks/expiring',
+    TRANSFER: '/stocks/transfer',
+    COUNT: '/stocks/count',
+    LOW: '/stocks/low',
+  },
   ORDERS: {
     LIST: '/orders',
     DETAIL: (id: string) => `/orders/${id}`,

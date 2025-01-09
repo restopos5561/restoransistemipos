@@ -19,4 +19,15 @@ export const API_ENDPOINTS = {
     VARIANTS: (id: string) => `/products/${id}/variants`,
     STOCK: (id: string) => `/products/${id}/stock`,
   },
+  STOCKS: {
+    LIST: '/stocks',
+    DETAIL: (id: string) => `/stocks/${id}`,
+    HISTORY: (id: string) => `/stocks/${id}/history`,
+    UPDATE_QUANTITY: (id: string) => `/stocks/${id}/quantity`,
+    MOVEMENTS: '/stocks/movements',
+    EXPIRING: '/stocks/expiring',
+    TRANSFER: '/stocks/transfer',
+    COUNT: '/stocks/count',
+    LOW: '/stocks/low',
+  },
 }; 

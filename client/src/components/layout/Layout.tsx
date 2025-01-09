@@ -10,7 +10,8 @@ import {
     Kitchen as KitchenIcon,
     LocalBar as BarIcon,
     ChevronRight,
-    TableRestaurant as TableIcon
+    TableRestaurant as TableIcon,
+    Inventory as InventoryIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -26,6 +27,7 @@ const menuItems = [
     { text: 'Bar', icon: <BarIcon />, path: '/bar', role: ['ADMIN', 'BAR'] },
     { text: 'Masalar', icon: <TableIcon />, path: '/tables', role: ['ADMIN', 'WAITER'] },
     { text: 'Ürünler', icon: <RestaurantIcon />, path: '/products' },
+    { text: 'Stok', icon: <InventoryIcon />, path: '/stocks' },
     { text: 'Ayarlar', icon: <SettingsIcon />, path: '/settings', role: ['ADMIN'] }
 ];
 

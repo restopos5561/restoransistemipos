@@ -13,6 +13,7 @@ import EditOrderPage from '../pages/orders/EditOrderPage';
 import PaymentPage from '../pages/orders/PaymentPage';
 import KitchenPage from '../pages/kitchen/KitchenPage';
 import BarPage from '../pages/bar/BarPage';
+import StocksPage from '../pages/stocks/StocksPage';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -38,6 +39,9 @@ const AppRoutes: React.FC = () => {
           {/* Kitchen & Bar Routes */}
           <Route path="/kitchen" element={<KitchenPage />} />
           <Route path="/bar" element={<BarPage />} />
+
+          {/* Stock Routes */}
+          <Route path="/stocks" element={<StocksPage />} />
         </Route>
       </Route>
 
