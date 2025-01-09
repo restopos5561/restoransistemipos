@@ -50,11 +50,16 @@ const NewProductPage: React.FC = () => {
     isActive: true,
     image: '',
     unit: '',
+    taxRate: '',
   });
 
   const { data: categories, isLoading: categoriesLoading } = useQuery<CategoryResponse>({
     queryKey: ['categories'],
     queryFn: () => categoriesService.getCategories(),
+    select: (data) => ({
+      success: true,
+      data: Array.isArray(data) ? data : data?.data || []
+    })
   });
 
   const handleChange = (field: string) => (
@@ -105,6 +110,7 @@ const NewProductPage: React.FC = () => {
         categoryId: parseInt(formData.categoryId),
         preparationTime: formData.preparationTime ? parseInt(formData.preparationTime) : undefined,
         stockQuantity: formData.stockQuantity ? parseInt(formData.stockQuantity) : undefined,
+        taxRate: formData.taxRate ? parseFloat(formData.taxRate) : undefined,
       };
 
       await productsService.createProduct(productData);
@@ -224,11 +230,11 @@ const NewProductPage: React.FC = () => {
                   value={formData.categoryId}
                   onChange={handleChange('categoryId')}
                 >
-                  {categories?.data.map((category) => (
+                  {categories?.data?.map((category) => (
                     <MenuItem key={category.id} value={category.id}>
                       {category.name}
                     </MenuItem>
-                  ))}
+                  )) || []}
                 </TextField>
               </Grid>
 
@@ -323,6 +329,18 @@ const NewProductPage: React.FC = () => {
                     />
                   }
                   label="Aktif"
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Vergi Oranı (%)"
+                  name="taxRate"
+                  value={formData.taxRate}
+                  onChange={handleChange('taxRate')}
+                  inputProps={{ min: 0, max: 100, step: 0.01 }}
                 />
               </Grid>
 

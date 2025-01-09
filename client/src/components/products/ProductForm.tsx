@@ -14,6 +14,7 @@ import {
   FormLabel,
   Input,
   Select,
+  InputAdornment,
 } from '@mui/material';
 import { PhotoCamera, Delete as DeleteIcon } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
@@ -35,6 +36,7 @@ interface FormData {
   isActive: boolean;
   image: string | null;
   unit: string;
+  taxRate: string;
 }
 
 interface ProductFormProps {
@@ -59,6 +61,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
     isActive: initialData?.isActive ?? true,
     image: initialData?.image || null,
     unit: initialData?.unit || '',
+    taxRate: initialData?.taxRate?.toString() || '',
   });
 
   const { data: categories, isLoading: categoriesLoading } = useQuery({
@@ -121,6 +124,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         categoryId: parseInt(formData.categoryId),
         preparationTime: formData.preparationTime ? parseInt(formData.preparationTime) : undefined,
         stockQuantity: formData.stockQuantity ? parseInt(formData.stockQuantity) : undefined,
+        taxRate: formData.taxRate ? parseFloat(formData.taxRate) : undefined,
       };
 
       // Resim işleme
@@ -248,12 +252,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
             name="categoryId"
             value={formData.categoryId}
             onChange={handleChange('categoryId')}
+            disabled={categoriesLoading}
           >
-            {categories?.data.map((category: { id: number; name: string }) => (
+            <MenuItem value="">Seçiniz</MenuItem>
+            {categories?.data?.map((category: { id: number; name: string }) => (
               <MenuItem key={category.id} value={category.id}>
                 {category.name}
               </MenuItem>
-            ))}
+            )) || []}
           </TextField>
         </Grid>
 
@@ -284,7 +290,23 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
             type="number"
             value={formData.price}
             onChange={handleChange('price')}
-            inputProps={{ min: 0, step: 0.01 }}
+            InputProps={{
+              startAdornment: <InputAdornment position="start">₺</InputAdornment>,
+            }}
+          />
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            label="Vergi Oranı (%)"
+            name="taxRate"
+            type="number"
+            value={formData.taxRate}
+            onChange={handleChange('taxRate')}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">%</InputAdornment>,
+            }}
           />
         </Grid>
 

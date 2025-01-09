@@ -19,6 +19,7 @@ export interface Product {
   preparationTime?: number;
   stockTracking: boolean;
   unit?: string;
+  taxRate?: number;
 }
 
 export interface ProductVariant {
