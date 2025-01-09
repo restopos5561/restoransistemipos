@@ -42,7 +42,7 @@ const SuppliersPage: React.FC = () => {
   // Tedarikçi silme işlemi
   const handleDelete = async (id: number) => {
     try {
-      const confirmed = await confirm.show({
+      const confirmed = await confirm({
         title: 'Tedarikçi Sil',
         message: 'Bu tedarikçiyi silmek istediğinizden emin misiniz?',
         confirmText: 'Sil',
@@ -52,7 +52,7 @@ const SuppliersPage: React.FC = () => {
       if (confirmed) {
         await suppliersService.deleteSupplier(id);
         toast.success('Tedarikçi başarıyla silindi');
-        queryClient.invalidateQueries(['suppliers']);
+        queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       }
     } catch (error: any) {
       toast.error(error.message || 'Tedarikçi silinirken bir hata oluştu');
@@ -117,7 +117,15 @@ const SuppliersPage: React.FC = () => {
                 <TableBody>
                   {data?.suppliers.map((supplier) => (
                     <TableRow key={supplier.id}>
-                      <TableCell>{supplier.name}</TableCell>
+                      <TableCell>
+                        <Button
+                          color="inherit"
+                          onClick={() => navigate(`/suppliers/${supplier.id}`)}
+                          sx={{ p: 0, textAlign: 'left' }}
+                        >
+                          {supplier.name}
+                        </Button>
+                      </TableCell>
                       <TableCell>{supplier.contactName || '-'}</TableCell>
                       <TableCell>{supplier.phone || '-'}</TableCell>
                       <TableCell>{supplier.email || '-'}</TableCell>

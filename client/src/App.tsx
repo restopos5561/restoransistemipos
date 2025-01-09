@@ -39,6 +39,9 @@ import NewCustomerPage from './pages/customers/NewCustomerPage';
 import CustomerDetailPage from './pages/customers/CustomerDetailPage';
 import EditCustomerPage from './pages/customers/EditCustomerPage';
 import SuppliersPage from './pages/suppliers/SuppliersPage';
+import NewSupplierPage from './pages/suppliers/NewSupplierPage';
+import EditSupplierPage from './pages/suppliers/EditSupplierPage';
+import SupplierDetailPage from './pages/suppliers/SupplierDetailPage';
 
 const queryClient = new QueryClient();
 
@@ -89,6 +92,9 @@ const App: React.FC = () => {
 
                                         {/* Suppliers Route */}
                                         <Route path="/suppliers" element={<SuppliersPage />} />
+                                        <Route path="/suppliers/new" element={<NewSupplierPage />} />
+                                        <Route path="/suppliers/:id" element={<SupplierDetailPage />} />
+                                        <Route path="/suppliers/:id/edit" element={<EditSupplierPage />} />
 
                                         {/* Stock Routes */}
                                         <Route path="/stocks" element={<StocksPage />} />
