@@ -25,11 +25,12 @@ import {
   SwapHoriz as SwapHorizIcon,
 } from '@mui/icons-material';
 import stockService from '@/services/stock.service';
-import { Stock, UpdateStockQuantityInput, TransferStockInput } from '@/types/stock.types';
+import { Stock, UpdateStockQuantityInput, TransferStockInput, StockCountInput } from '@/types/stock.types';
 import { formatDate } from '@/lib/utils';
 import { useSnackbar } from 'notistack';
 import UpdateStockDialog from '@/components/stocks/UpdateStockDialog';
 import TransferStockDialog from '@/components/stocks/TransferStockDialog';
+import StockCountDialog from '@/components/stocks/StockCountDialog';
 
 const StocksPage = () => {
   const theme = useTheme();
@@ -39,6 +40,7 @@ const StocksPage = () => {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [countDialogOpen, setCountDialogOpen] = useState(false);
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const [currentBranchId, setCurrentBranchId] = useState<number>(0);
 
@@ -119,6 +121,17 @@ const StocksPage = () => {
     }
   };
 
+  const handleStockCount = async (data: StockCountInput) => {
+    try {
+      await stockService.createStockCount(data);
+      enqueueSnackbar('Stok sayımı başarıyla kaydedildi', { variant: 'success' });
+      fetchStocks();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Stok sayımı sırasında bir hata oluştu';
+      enqueueSnackbar(message, { variant: 'error' });
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
@@ -162,7 +175,7 @@ const StocksPage = () => {
             <Button
               variant="outlined"
               startIcon={<DescriptionIcon />}
-              onClick={() => console.log('Sayım')}
+              onClick={() => setCountDialogOpen(true)}
             >
               Sayım
             </Button>
@@ -238,6 +251,14 @@ const StocksPage = () => {
         onTransfer={handleTransferStock}
         currentBranchId={currentBranchId}
         productId={selectedStock?.productId || 0}
+      />
+
+      <StockCountDialog
+        open={countDialogOpen}
+        onClose={() => setCountDialogOpen(false)}
+        onSubmit={handleStockCount}
+        stocks={stocks}
+        currentBranchId={currentBranchId}
       />
     </Box>
   );
