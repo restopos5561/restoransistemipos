@@ -17,6 +17,7 @@ interface CreateProductInput {
   preparationTime?: number;
   stockTracking?: boolean;
   stockQuantity?: number;
+  unit: string;
 }
 
 interface UpdateProductInput {
@@ -29,6 +30,7 @@ interface UpdateProductInput {
   preparationTime?: number;
   stockTracking?: boolean;
   stockQuantity?: number;
+  unit?: string;
 }
 
 interface ProductVariantInput {
@@ -162,6 +164,7 @@ export class ProductsService {
       categoryId: data.categoryId,
       preparationTime: data.preparationTime,
       stockTracking: data.stockTracking,
+      unit: data.unit,
     };
 
     // Eğer stok takibi isteniyorsa stock objesi ekle
@@ -265,6 +268,7 @@ export class ProductsService {
       ...(data.preparationTime !== undefined && { preparationTime: data.preparationTime }),
       ...(data.isActive !== undefined && { isActive: data.isActive }),
       ...(data.stockTracking !== undefined && { stockTracking: data.stockTracking }),
+      ...(data.unit !== undefined && { unit: data.unit }),
       ...(data.categoryId && {
         category: {
           connect: {
