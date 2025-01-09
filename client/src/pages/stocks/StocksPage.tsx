@@ -13,10 +13,10 @@ import {
   TableRow,
   IconButton,
   Chip,
-  useTheme,
-  alpha,
   CircularProgress,
   Alert,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -25,9 +25,10 @@ import {
   SwapHoriz as SwapHorizIcon,
 } from '@mui/icons-material';
 import stockService from '@/services/stock.service';
-import { Stock } from '@/types/stock.types';
+import { Stock, UpdateStockQuantityInput } from '@/types/stock.types';
 import { formatDate } from '@/lib/utils';
 import { useSnackbar } from 'notistack';
+import UpdateStockDialog from '@/components/stocks/UpdateStockDialog';
 
 const StocksPage: React.FC = () => {
   const [stocks, setStocks] = useState<Stock[]>([]);
@@ -40,6 +41,8 @@ const StocksPage: React.FC = () => {
   });
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
+  const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
 
   const fetchStocks = async () => {
     try {
@@ -74,8 +77,19 @@ const StocksPage: React.FC = () => {
   }, []);
 
   const handleUpdateQuantity = (stock: Stock) => {
-    // TODO: Implement quantity update dialog
-    console.log('Update quantity:', stock);
+    setSelectedStock(stock);
+    setUpdateDialogOpen(true);
+  };
+
+  const handleUpdateStock = async (id: number, data: UpdateStockQuantityInput) => {
+    try {
+      await stockService.updateStockQuantity(id, data);
+      enqueueSnackbar('Stok başarıyla güncellendi', { variant: 'success' });
+      fetchStocks();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Stok güncellenirken bir hata oluştu';
+      enqueueSnackbar(message, { variant: 'error' });
+    }
   };
 
   const handleEdit = (stock: Stock) => {
@@ -103,10 +117,33 @@ const StocksPage: React.FC = () => {
     <Box>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          mb: 2,
+          '& .MuiButton-root': {
+            transition: theme.transitions.create(['background-color', 'box-shadow']),
+            '&:hover': {
+              backgroundColor: alpha(theme.palette.primary.main, 0.08),
+            }
+          }
+        }}>
           <Box>
-            <Typography variant="h4" sx={{ mb: 1 }}>Stok Yönetimi</Typography>
-            <Typography variant="body1" color="text.secondary">
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                mb: 1,
+                color: theme.palette.text.primary,
+                fontWeight: theme.typography.fontWeightBold
+              }}
+            >
+              Stok Yönetimi
+            </Typography>
+            <Typography 
+              variant="body1" 
+              sx={{ color: theme.palette.text.secondary }}
+            >
               Stok durumunuzu görüntüleyin ve yönetin.
             </Typography>
           </Box>
@@ -216,6 +253,13 @@ const StocksPage: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <UpdateStockDialog
+        open={updateDialogOpen}
+        onClose={() => setUpdateDialogOpen(false)}
+        stock={selectedStock}
+        onUpdate={handleUpdateStock}
+      />
     </Box>
   );
 };
