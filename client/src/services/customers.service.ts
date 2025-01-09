@@ -81,11 +81,56 @@ const customersService = {
 
   // Update a customer
   updateCustomer: async (id: number, data: any) => {
-    const response = await api.put(API_ENDPOINTS.CUSTOMERS.UPDATE(id.toString()), {
-      ...data,
-      restaurantId: data.restaurantId || localStorage.getItem('restaurantId')
-    });
-    return response.data;
+    try {
+      console.log('Cari güncelleme isteği gönderiliyor:', { id, data });
+
+      const restaurantId = data.restaurantId || localStorage.getItem('restaurantId');
+      if (!restaurantId) {
+        throw new Error('Restaurant ID bulunamadı');
+      }
+
+      // Veriyi temizle ve hazırla
+      const updateData = {
+        name: data.name?.trim(),
+        email: data.email?.trim() || null,
+        phoneNumber: data.phoneNumber?.trim() || null,
+        address: data.address?.trim() || null,
+        restaurantId: Number(restaurantId)
+      };
+
+      console.log('Backend\'e gönderilecek veri:', updateData);
+
+      const response = await api.put(
+        API_ENDPOINTS.CUSTOMERS.UPDATE(id.toString()), 
+        updateData
+      );
+
+      console.log('Backend yanıtı:', response.data);
+
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || 'Güncelleme başarısız');
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Cari güncelleme hatası:', error);
+      
+      if (error.response?.status === 404) {
+        throw new Error('Cari bulunamadı');
+      }
+      if (error.response?.status === 400) {
+        throw new Error(error.response.data?.message || 'Geçersiz güncelleme verisi');
+      }
+      if (error.response?.status === 403) {
+        throw new Error('Bu işlem için yetkiniz yok');
+      }
+
+      throw new Error(
+        error.response?.data?.message || 
+        error.message || 
+        'Cari güncellenirken bir hata oluştu'
+      );
+    }
   },
 
   // Delete a customer
