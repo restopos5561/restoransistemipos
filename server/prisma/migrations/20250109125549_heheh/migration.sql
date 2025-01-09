@@ -40,6 +40,9 @@ CREATE TYPE "DiscountType" AS ENUM ('PERCENTAGE', 'FIXED_AMOUNT', 'BUY_X_GET_Y_F
 -- CreateEnum
 CREATE TYPE "PrinterType" AS ENUM ('KITCHEN', 'CASHIER', 'LABEL', 'OTHER');
 
+-- CreateEnum
+CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PARTIALLY_PAID', 'PAID', 'REFUNDED', 'CANCELLED');
+
 -- CreateTable
 CREATE TABLE "Restaurant" (
     "id" SERIAL NOT NULL,
@@ -87,6 +90,8 @@ CREATE TABLE "Table" (
     "location" TEXT,
     "status" "TableStatus" NOT NULL DEFAULT 'IDLE',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "positionX" INTEGER,
+    "positionY" INTEGER,
 
     CONSTRAINT "Table_pkey" PRIMARY KEY ("id")
 );
@@ -145,6 +150,7 @@ CREATE TABLE "Product" (
     "name" TEXT NOT NULL,
     "description" TEXT,
     "price" DOUBLE PRECISION NOT NULL,
+    "image" TEXT,
     "categoryId" INTEGER,
     "barcode" TEXT,
     "cost" DOUBLE PRECISION,
@@ -233,7 +239,7 @@ CREATE TABLE "Order" (
     "completedAt" TIMESTAMP(3),
     "discountAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "discountType" TEXT,
-    "paymentStatus" TEXT NOT NULL DEFAULT 'PENDING',
+    "paymentStatus" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT "Order_pkey" PRIMARY KEY ("id")
 );
