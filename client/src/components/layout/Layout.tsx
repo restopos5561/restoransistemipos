@@ -12,7 +12,8 @@ import {
     ChevronRight,
     TableRestaurant as TableIcon,
     Inventory as InventoryIcon,
-    People as PeopleIcon
+    People as PeopleIcon,
+    LocalShipping as SupplierIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -31,6 +32,7 @@ const menuItems = [
     { text: 'Kategoriler', icon: <RestaurantIcon />, path: '/categories' },
     { text: 'Stok', icon: <InventoryIcon />, path: '/stocks' },
     { text: 'Cariler', icon: <PeopleIcon />, path: '/customers' },
+    { text: 'Tedarikçiler', icon: <SupplierIcon />, path: '/suppliers' },
     { text: 'Ayarlar', icon: <SettingsIcon />, path: '/settings', role: ['ADMIN'] }
 ];
 

@@ -99,4 +99,14 @@ export const API_ENDPOINTS = {
     BULK_UPDATE_INGREDIENTS: (id: string) => `/recipes/${id}/ingredients`,
     COMPARE: '/recipes/compare',
   },
+  SUPPLIERS: {
+    LIST: '/suppliers',
+    DETAIL: (id: string) => `/suppliers/${id}`,
+    CREATE: '/suppliers',
+    UPDATE: (id: string) => `/suppliers/${id}`,
+    DELETE: (id: string) => `/suppliers/${id}`,
+    PRODUCTS: (id: string) => `/suppliers/${id}/products`,
+    ADD_PRODUCT: (id: string) => `/suppliers/${id}/products`,
+    BY_PRODUCT: (productId: string) => `/products/${productId}/suppliers`,
+  },
 } as const;
