@@ -34,6 +34,10 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { tr } from 'date-fns/locale';
 import theme from './theme/theme';
 import { useConfirm } from './hooks/useConfirm';
+import CustomersPage from './pages/customers/CustomersPage';
+import NewCustomerPage from './pages/customers/NewCustomerPage';
+import CustomerDetailPage from './pages/customers/CustomerDetailPage';
+import EditCustomerPage from './pages/customers/EditCustomerPage';
 
 const queryClient = new QueryClient();
 
@@ -84,6 +88,12 @@ const App: React.FC = () => {
 
                                         {/* Stock Routes */}
                                         <Route path="/stocks" element={<StocksPage />} />
+
+                                        {/* Customers Route */}
+                                        <Route path="/customers" element={<CustomersPage />} />
+                                        <Route path="/customers/new" element={<NewCustomerPage />} />
+                                        <Route path="/customers/:id" element={<CustomerDetailPage />} />
+                                        <Route path="/customers/:id/edit" element={<EditCustomerPage />} />
                                     </Route>
                                 </Route>
 

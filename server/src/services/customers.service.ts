@@ -13,6 +13,8 @@ export class CustomersService {
     restaurantId: number;
   }) {
     const { search, phoneNumber, email, page, limit, restaurantId } = params;
+    console.log('Getting customers with params:', params);
+    
     const skip = (page - 1) * limit;
 
     const where: Prisma.CustomerWhereInput = {
@@ -28,6 +30,8 @@ export class CustomersService {
       ...(email && { email }),
     };
 
+    console.log('Prisma where clause:', where);
+
     const [customers, total] = await Promise.all([
       prisma.customer.findMany({
         where,
@@ -38,12 +42,18 @@ export class CustomersService {
       prisma.customer.count({ where }),
     ]);
 
+    console.log('Found customers:', customers);
+    console.log('Total count:', total);
+
     return {
-      customers,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      success: true,
+      data: {
+        customers,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      }
     };
   }
 

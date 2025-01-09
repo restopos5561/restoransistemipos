@@ -349,11 +349,14 @@ model Customer {
   restaurantId Int
   restaurant   Restaurant    @relation(fields: [restaurantId], references: [id])
   name         String
-  phoneNumber  String?
   email        String?
-  orders       Order[] // Müşterinin verdiği siparişler
-  reservations Reservation[] // Müşterinin yaptığı rezervasyonlar
+  phoneNumber  String?
+  address      String?
+  orders       Order[]
+  reservations Reservation[]
   accounts     Account[]     @relation("CustomerAccounts")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 // Ödeme Modeli
