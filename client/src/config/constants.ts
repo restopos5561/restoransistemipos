@@ -86,4 +86,17 @@ export const API_ENDPOINTS = {
     UPDATE: (id: string) => `/categories/${id}`,
     DELETE: (id: string) => `/categories/${id}`,
   },
+  RECIPES: {
+    LIST: '/recipes',
+    DETAIL: (id: string) => `/recipes/${id}`,
+    CREATE: '/recipes',
+    UPDATE: (id: string) => `/recipes/${id}`,
+    DELETE: (id: string) => `/recipes/${id}`,
+    BY_PRODUCT: (productId: string) => `/recipes/product/${productId}`,
+    CALCULATE_COST: (id: string) => `/recipes/${id}/cost`,
+    VERSIONS: (id: string) => `/recipes/${id}/versions`,
+    DUPLICATE: (id: string) => `/recipes/${id}/duplicate`,
+    BULK_UPDATE_INGREDIENTS: (id: string) => `/recipes/${id}/ingredients`,
+    COMPARE: '/recipes/compare',
+  },
 } as const;

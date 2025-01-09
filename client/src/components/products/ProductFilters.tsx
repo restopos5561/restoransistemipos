@@ -107,7 +107,7 @@ const ProductFilters: React.FC = () => {
             onChange={handleFilterChange('categoryId')}
           >
             <MenuItem value="">Tümü</MenuItem>
-            {categories?.data.map((category) => (
+            {(categories?.data || []).map((category) => (
               <MenuItem key={category.id} value={category.id}>
                 {category.name}
               </MenuItem>

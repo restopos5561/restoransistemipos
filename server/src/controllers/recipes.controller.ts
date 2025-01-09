@@ -176,11 +176,10 @@ export class RecipesController {
       },
     });
 
-    if (!recipe) {
-      throw new BadRequestError('Reçete bulunamadı');
-    }
-
-    res.json({ success: true, data: recipe });
+    res.json({ 
+      success: true, 
+      data: recipe || null 
+    });
   }
 
   async duplicateRecipe(req: Request, res: Response) {
