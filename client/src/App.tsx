@@ -22,6 +22,7 @@ import ProductsPage from './pages/products/ProductsPage';
 import ProductDetailPage from './pages/products/ProductDetailPage';
 import NewProductPage from './pages/products/NewProductPage';
 import StocksPage from './pages/stocks/StocksPage';
+import CategoriesPage from './pages/products/CategoriesPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Loading from './components/common/Loading/Loading';
@@ -79,6 +80,7 @@ const App: React.FC = () => {
                                         <Route path="/products" element={<ProductsPage />} />
                                         <Route path="/products/new" element={<NewProductPage />} />
                                         <Route path="/products/:id" element={<ProductDetailPage />} />
+                                        <Route path="/categories" element={<CategoriesPage />} />
 
                                         {/* Stock Routes */}
                                         <Route path="/stocks" element={<StocksPage />} />

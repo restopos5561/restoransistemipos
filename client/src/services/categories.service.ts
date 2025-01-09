@@ -8,6 +8,13 @@ interface CategoryListParams {
   limit?: number;
 }
 
+interface CategoryCreateData {
+  name: string;
+  description?: string;
+  isActive: boolean;
+  restaurantId?: number | string;
+}
+
 const categoriesService = {
   getCategories: async (params: CategoryListParams = {}) => {
     const response = await api.get(API_ENDPOINTS.CATEGORIES.LIST, {
@@ -16,7 +23,7 @@ const categoriesService = {
         restaurantId: params.restaurantId || localStorage.getItem('restaurantId'),
       },
     });
-    return response.data;
+    return Array.isArray(response.data) ? response.data : response.data.data || [];
   },
 
   getCategoryById: async (id: number) => {
@@ -24,10 +31,11 @@ const categoriesService = {
     return response.data;
   },
 
-  createCategory: async (data: any) => {
+  createCategory: async (data: CategoryCreateData) => {
+    const restaurantId = Number(data.restaurantId || localStorage.getItem('restaurantId'));
     const response = await api.post(API_ENDPOINTS.CATEGORIES.CREATE, {
       ...data,
-      restaurantId: data.restaurantId || localStorage.getItem('restaurantId'),
+      restaurantId,
     });
     return response.data;
   },
@@ -38,8 +46,22 @@ const categoriesService = {
   },
 
   deleteCategory: async (id: number) => {
-    const response = await api.delete(API_ENDPOINTS.CATEGORIES.DELETE(id.toString()));
-    return response.data;
+    try {
+      const response = await api.delete(API_ENDPOINTS.CATEGORIES.DELETE(id.toString()));
+      if (response.status === 204) {
+        return true;
+      }
+      return response.data;
+    } catch (error: any) {
+      console.error('Delete category error:', error);
+      if (error.response?.status === 400) {
+        throw new Error(error.response.data.message || 'Kategori silinirken bir hata oluştu');
+      }
+      if (error.response?.status === 404) {
+        throw new Error('Kategori bulunamadı');
+      }
+      throw new Error('Kategori silinirken bir hata oluştu');
+    }
   },
 };
 

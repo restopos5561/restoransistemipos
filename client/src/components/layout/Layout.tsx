@@ -27,6 +27,7 @@ const menuItems = [
     { text: 'Bar', icon: <BarIcon />, path: '/bar', role: ['ADMIN', 'BAR'] },
     { text: 'Masalar', icon: <TableIcon />, path: '/tables', role: ['ADMIN', 'WAITER'] },
     { text: 'Ürünler', icon: <RestaurantIcon />, path: '/products' },
+    { text: 'Kategoriler', icon: <RestaurantIcon />, path: '/categories' },
     { text: 'Stok', icon: <InventoryIcon />, path: '/stocks' },
     { text: 'Ayarlar', icon: <SettingsIcon />, path: '/settings', role: ['ADMIN'] }
 ];
