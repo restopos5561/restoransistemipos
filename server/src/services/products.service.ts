@@ -93,6 +93,7 @@ export class ProductsService {
       where: { id },
       include: {
         category: true,
+        stocks: true,
       },
     });
 
