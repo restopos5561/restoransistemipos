@@ -7,20 +7,19 @@ import { OptionGroupSchema } from '../schemas/option.group.validation';
 const router = Router();
 const controller = new ProductOptionGroupController();
 
-// GET /option-groups - Tüm seçenek gruplarını listele
-router.get('/', requireAuth, controller.getOptionGroups);
+// GET /products/:productId/options/groups - Ürüne ait seçenek gruplarını listele
+router.get('/products/:productId/options/groups', requireAuth, controller.getOptionGroupsByProductId);
 
-// Özel route'ları öne al
-router.get('/product/:productId', requireAuth, controller.getOptionGroupsByProductId);
+// POST /products/:productId/options/groups - Yeni seçenek grubu oluştur
+router.post('/products/:productId/options/groups', requireAuth, validateRequest(OptionGroupSchema.create), controller.createOptionGroup);
 
-// POST /option-groups - Yeni seçenek grubu oluştur
-router.post('/', requireAuth, validateRequest(OptionGroupSchema.create), controller.createOptionGroup);
+// GET /products/:productId/options/groups/:groupId - Tekil seçenek grubunu getir
+router.get('/products/:productId/options/groups/:groupId', requireAuth, controller.getOptionGroupById);
 
-// Dinamik parametreli route'lar
-router.get('/:id', requireAuth, controller.getOptionGroupById);
+// PUT /products/:productId/options/groups/:groupId - Seçenek grubunu güncelle
+router.put('/products/:productId/options/groups/:groupId', requireAuth, validateRequest(OptionGroupSchema.update), controller.updateOptionGroup);
 
-router.put('/:id', requireAuth, validateRequest(OptionGroupSchema.update), controller.updateOptionGroup);
-
-router.delete('/:id', requireAuth, controller.deleteOptionGroup);
+// DELETE /products/:productId/options/groups/:groupId - Seçenek grubunu sil
+router.delete('/products/:productId/options/groups/:groupId', requireAuth, controller.deleteOptionGroup);
 
 export { router as optionGroupRouter };

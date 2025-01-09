@@ -13,6 +13,10 @@ export const API_ENDPOINTS = {
     ADD_OPTION: (id: string) => `/products/${id}/options`,
     UPDATE_OPTION: (id: string, optionId: string) => `/products/${id}/options/${optionId}`,
     DELETE_OPTION: (id: string, optionId: string) => `/products/${id}/options/${optionId}`,
-    DELETE_OPTION_GROUP: (id: string, groupId: string) => `/option-groups/${groupId}`,
+    DELETE_OPTION_GROUP: (productId: string, groupId: string) => `/products/${productId}/options/groups/${groupId}`,
+    OPTIONS: (id: string) => `/products/${id}/options`,
+    PRICE_HISTORY: (id: string) => `/products/${id}/price-history`,
+    VARIANTS: (id: string) => `/products/${id}/variants`,
+    STOCK: (id: string) => `/products/${id}/stock`,
   },
 }; 

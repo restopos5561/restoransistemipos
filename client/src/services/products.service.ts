@@ -1,5 +1,5 @@
 import api from './api';
-import { API_ENDPOINTS } from '../config/constants';
+import { API_ENDPOINTS } from '../config/api.endpoints';
 
 interface ProductListParams {
   branchId?: number;

@@ -73,7 +73,10 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({ productId }) => {
     queryFn: () => productsService.getProductOptions(productId),
     select: (response) => {
       console.log('API Response:', response);
-      return Array.isArray(response?.data?.data) ? response.data.data : [];
+      if (response?.data?.data) {
+        return response.data.data;
+      }
+      return [];
     }
   });
 
@@ -84,6 +87,7 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({ productId }) => {
       productsService.addProductOptionGroup(productId, data),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['product-options', productId] });
+      queryClient.refetchQueries({ queryKey: ['product-options', productId] });
       toast.success('Seçenek grubu başarıyla eklendi');
       handleCloseGroupDialog();
     },
@@ -130,12 +134,13 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({ productId }) => {
 
   const deleteGroupMutation = useMutation({
     mutationFn: (groupId: number) => productsService.deleteProductOptionGroup(productId, groupId),
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-options', productId] });
       toast.success('Seçenek grubu başarıyla silindi');
     },
-    onError: () => {
-      toast.error('Seçenek grubu silinirken bir hata oluştu');
+    onError: (error: any) => {
+      console.error('Seçenek grubu silme hatası:', error);
+      toast.error(error?.response?.data?.message || 'Seçenek grubu silinirken bir hata oluştu');
     },
   });
 
@@ -219,13 +224,16 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({ productId }) => {
 
   const handleDeleteGroup = (groupId: number) => {
     if (window.confirm('Bu seçenek grubunu silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve gruptaki tüm seçenekler silinecektir.')) {
-      deleteGroupMutation.mutate(groupId);
+      try {
+        deleteGroupMutation.mutate(groupId);
+      } catch (error) {
+        console.error('Seçenek grubu silme işlemi başlatılırken hata:', error);
+        toast.error('Seçenek grubu silme işlemi başlatılamadı');
+      }
     }
   };
 
   if (isLoading) return <Loading />;
-
-  const optionGroups = optionsData || [];
 
   return (
     <Box>
@@ -241,12 +249,12 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({ productId }) => {
         </Button>
       </Box>
 
-      {optionGroups.length === 0 ? (
+      {!optionsData || optionsData.length === 0 ? (
         <Typography color="text.secondary" align="center">
           Henüz seçenek grubu eklenmemiş.
         </Typography>
       ) : (
-        optionGroups.map((group: IProductOptionGroup) => (
+        optionsData.map((group: IProductOptionGroup) => (
           <Accordion key={group.id}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>

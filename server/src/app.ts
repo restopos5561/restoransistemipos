@@ -130,6 +130,7 @@ app.use('/api/branches', branchesRouter);
 app.use('/api/tables', tablesRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/products', productsRouter);
+app.use('/api', optionGroupRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/bar', barRoutes);
@@ -147,7 +148,6 @@ app.use('/api', permissionsRouter);
 app.use('/api/recipes', recipesRouter);
 app.use('/api/discounts', discountsRouter);
 app.use('/api/card-payments', cardPaymentsRouter);
-app.use('/api/option-groups', optionGroupRouter);
 app.use('/api/options', optionRouter);
 app.use('/api/order-items', orderItemRouter);
 app.use('/api/recipe-ingredients', recipeIngredientsRouter);
@@ -155,7 +155,6 @@ app.use('/api/price-history', priceHistoryRouter);
 app.use('/api/purchase-order-items', purchaseOrderItemsRouter);
 app.use('/api/product-suppliers', productSupplierRouter);
 app.use('/api/settings', settingsRouter);
-app.use('/api', ordersRouter);
 app.use('/api', optionsRouter);
 
 // Error handling

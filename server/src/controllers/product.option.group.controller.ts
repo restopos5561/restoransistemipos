@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProductOptionGroupService } from '../services/product.option.group.service';
 import { BadRequestError } from '../errors/bad-request-error';
+import { PrismaClient } from '@prisma/client';
 
 const optionGroupService = new ProductOptionGroupService();
+const prisma = new PrismaClient();
 
 export class ProductOptionGroupController {
   // Tüm seçenek gruplarını listele
@@ -30,12 +32,20 @@ export class ProductOptionGroupController {
   // Tekil seçenek grubu getir
   async getOptionGroupById(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
+      const groupId = parseInt(req.params.groupId);
+      const productId = parseInt(req.params.productId);
+
+      if (isNaN(groupId) || isNaN(productId)) {
         throw new BadRequestError('Geçersiz ID formatı');
       }
 
-      const optionGroup = await optionGroupService.getOptionGroupById(id);
+      const optionGroup = await optionGroupService.getOptionGroupById(groupId);
+      
+      // Grup bu ürüne ait mi kontrol et
+      if (optionGroup.productId !== productId) {
+        throw new BadRequestError('Seçenek grubu bu ürüne ait değil');
+      }
+
       res.json({
         success: true,
         data: optionGroup,
@@ -61,12 +71,26 @@ export class ProductOptionGroupController {
   // Seçenek grubunu güncelle
   async updateOptionGroup(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
+      const groupId = parseInt(req.params.groupId);
+      const productId = parseInt(req.params.productId);
+
+      if (isNaN(groupId) || isNaN(productId)) {
         throw new BadRequestError('Geçersiz ID formatı');
       }
 
-      const optionGroup = await optionGroupService.updateOptionGroup(id, req.body);
+      // Önce bu grubun belirtilen ürüne ait olduğunu kontrol et
+      const existingGroup = await prisma.productOptionGroup.findFirst({
+        where: {
+          id: groupId,
+          productId
+        }
+      });
+
+      if (!existingGroup) {
+        throw new BadRequestError('Seçenek grubu bulunamadı veya bu ürüne ait değil');
+      }
+
+      const optionGroup = await optionGroupService.updateOptionGroup(groupId, req.body);
       res.json({
         success: true,
         data: optionGroup,
@@ -79,12 +103,26 @@ export class ProductOptionGroupController {
   // Seçenek grubunu sil
   async deleteOptionGroup(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
+      const groupId = parseInt(req.params.groupId);
+      const productId = parseInt(req.params.productId);
+
+      if (isNaN(groupId) || isNaN(productId)) {
         throw new BadRequestError('Geçersiz ID formatı');
       }
 
-      await optionGroupService.deleteOptionGroup(id);
+      // Önce bu grubun belirtilen ürüne ait olduğunu kontrol et
+      const optionGroup = await prisma.productOptionGroup.findFirst({
+        where: {
+          id: groupId,
+          productId
+        }
+      });
+
+      if (!optionGroup) {
+        throw new BadRequestError('Seçenek grubu bulunamadı veya bu ürüne ait değil');
+      }
+
+      await optionGroupService.deleteOptionGroup(groupId);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -102,7 +140,7 @@ export class ProductOptionGroupController {
       const optionGroups = await optionGroupService.getOptionGroupsByProductId(productId);
       res.json({
         success: true,
-        data: optionGroups,
+        data: optionGroups
       });
     } catch (error) {
       next(error);

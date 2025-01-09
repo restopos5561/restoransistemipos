@@ -36,6 +36,7 @@ export const API_ENDPOINTS = {
     ADD_OPTION: (id: string) => `/products/${id}/options`,
     UPDATE_OPTION: (id: string, optionId: string) => `/products/${id}/options/${optionId}`,
     DELETE_OPTION: (id: string, optionId: string) => `/products/${id}/options/${optionId}`,
+    DELETE_OPTION_GROUP: (productId: string, groupId: string) => `/products/${productId}/options/groups/${groupId}`,
   },
   ORDERS: {
     LIST: '/orders',

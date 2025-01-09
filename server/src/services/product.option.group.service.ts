@@ -149,19 +149,33 @@ export class ProductOptionGroupService {
 
   // Seçenek grubunu sil
   async deleteOptionGroup(id: number) {
-    const optionGroup = await this.getOptionGroupById(id);
+    try {
+      const optionGroup = await this.getOptionGroupById(id);
 
-    // Önce seçenekleri sil, sonra grubu sil
-    await prisma.$transaction([
-      prisma.productOption.deleteMany({
+      if (!optionGroup) {
+        throw new BadRequestError('Seçenek grubu bulunamadı');
+      }
+
+      // Önce seçenekleri sil
+      await prisma.productOption.deleteMany({
         where: { optionGroupId: id },
-      }),
-      prisma.productOptionGroup.delete({
-        where: { id },
-      }),
-    ]);
+      });
 
-    return true;
+      // Sonra grubu sil
+      await prisma.productOptionGroup.delete({
+        where: { id },
+      });
+
+      return {
+        success: true,
+        message: 'Seçenek grubu başarıyla silindi'
+      };
+    } catch (error) {
+      if (error instanceof BadRequestError) {
+        throw error;
+      }
+      throw new BadRequestError('Seçenek grubu silinirken bir hata oluştu');
+    }
   }
 
   // Ürüne ait seçenek gruplarını getir
