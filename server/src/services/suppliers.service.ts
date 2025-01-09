@@ -92,7 +92,16 @@ export class SuppliersService {
   }
 
   async deleteSupplier(id: number): Promise<void> {
-    // Önce tedarikçiye ait ürün ilişkilerini sil
+    // Önce tedarikçinin varlığını kontrol et
+    const supplier = await prisma.supplier.findUnique({
+      where: { id },
+    });
+
+    if (!supplier) {
+      throw new BadRequestError('Tedarikçi bulunamadı');
+    }
+
+    // Tedarikçiye ait ilişkili kayıtları transaction içinde sil
     await prisma.$transaction(async (tx) => {
       // Tedarikçiye ait satın alma siparişi ürünlerini sil
       await tx.purchaseOrderItem.deleteMany({

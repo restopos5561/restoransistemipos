@@ -42,6 +42,8 @@ const SuppliersPage: React.FC = () => {
   // Tedarikçi silme işlemi
   const handleDelete = async (id: number) => {
     try {
+      console.log('Silme butonu tıklandı - ID:', id);
+      
       const confirmed = await confirm({
         title: 'Tedarikçi Sil',
         message: 'Bu tedarikçiyi silmek istediğinizden emin misiniz?',
@@ -49,12 +51,25 @@ const SuppliersPage: React.FC = () => {
         cancelText: 'İptal',
       });
 
-      if (confirmed) {
-        await suppliersService.deleteSupplier(id);
+      if (!confirmed) {
+        console.log('Silme işlemi kullanıcı tarafından iptal edildi');
+        return;
+      }
+
+      console.log('Silme isteği gönderiliyor...');
+      const result = await suppliersService.deleteSupplier(id);
+      console.log('Silme işlemi sonucu:', result);
+      
+      if (result) {
         toast.success('Tedarikçi başarıyla silindi');
-        queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+        console.log('Liste yenileniyor...');
+        await queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+        console.log('Liste yenilendi');
+      } else {
+        throw new Error('Silme işlemi başarısız oldu');
       }
     } catch (error: any) {
+      console.error('Silme hatası:', error);
       toast.error(error.message || 'Tedarikçi silinirken bir hata oluştu');
     }
   };
@@ -159,20 +174,19 @@ const SuppliersPage: React.FC = () => {
               component="div"
               count={data?.total || 0}
               page={page}
-              onPageChange={(_, newPage) => setPage(newPage)}
+              onPageChange={(e, newPage) => setPage(newPage)}
               rowsPerPage={limit}
               onRowsPerPageChange={(e) => {
                 setLimit(parseInt(e.target.value, 10));
                 setPage(0);
               }}
-              labelDisplayedRows={({ from, to, count }) => 
-                `${from}-${to} / ${count}`
-              }
               labelRowsPerPage="Sayfa başına satır:"
             />
           </Stack>
         </Card>
       </Stack>
+
+      <confirm.ConfirmationDialog />
     </Container>
   );
 };
