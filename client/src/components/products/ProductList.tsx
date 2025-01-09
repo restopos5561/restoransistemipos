@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box,
   Card,
   Table,
   TableBody,
@@ -13,6 +12,7 @@ import {
   IconButton,
   Tooltip,
   Typography,
+  Avatar,
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
@@ -28,13 +28,12 @@ const ProductList: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const confirm = useConfirm();
 
-  const { data, isLoading, error, refetch } = useQuery<ProductListResponse>({
+  const { data, error, refetch } = useQuery<ProductListResponse>({
     queryKey: ['products', page, rowsPerPage],
     queryFn: () => productsService.getProducts({ page: page + 1, limit: rowsPerPage }),
-    keepPreviousData: true,
   });
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
 
@@ -72,6 +71,7 @@ const ProductList: React.FC = () => {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Resim</TableCell>
               <TableCell>Ürün Adı</TableCell>
               <TableCell>Kategori</TableCell>
               <TableCell align="right">Fiyat</TableCell>
@@ -83,6 +83,16 @@ const ProductList: React.FC = () => {
           <TableBody>
             {data?.data.products.map((product: Product) => (
               <TableRow key={product.id}>
+                <TableCell>
+                  <Avatar
+                    src={product.image ? `http://localhost:3002${product.image}` : undefined}
+                    alt={product.name}
+                    variant="rounded"
+                    sx={{ width: 40, height: 40 }}
+                  >
+                    {!product.image && product.name.charAt(0)}
+                  </Avatar>
+                </TableCell>
                 <TableCell>
                   <Typography
                     component="a"

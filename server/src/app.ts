@@ -38,6 +38,7 @@ import { purchaseOrderItemsRouter } from './routes/purchase.order.items.routes';
 import { productSupplierRouter } from './routes/product.supplier.routes';
 import { settingsRouter } from './routes/settings.routes';
 import optionsRouter from './routes/options.routes';
+import path from 'path';
 
 // Initialize logger
 const logger = pino({
@@ -77,8 +78,8 @@ app.use((req, res, next) => {
 });
 
 app.use(compression());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request logging middleware
 app.use((req: Request, res: Response, next) => {
@@ -121,6 +122,9 @@ app.get('/api/test-db', async (req: Request, res: Response) => {
     await prisma.$disconnect();
   }
 });
+
+// Statik dosyaları sun
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Routes
 app.use('/api/auth', authRouter);

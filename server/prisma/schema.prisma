@@ -162,6 +162,7 @@ model Product {
   name               String
   description        String?
   price              Float
+  image              String?              // Ürün resmi URL'i
   categoryId         Int?
   category           Category?            @relation(fields: [categoryId], references: [id])
   stocks             Stock[] // One-to-many ilişki

@@ -12,12 +12,16 @@ import {
   Switch,
   Button,
   Alert,
+  IconButton,
+  Avatar,
 } from '@mui/material';
+import { PhotoCamera, Delete as DeleteIcon } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import categoriesService from '../../services/categories.service';
 import productsService from '../../services/products.service';
 import Loading from '../../components/common/Loading/Loading';
+import { compressImage } from '../../utils/imageUtils';
 
 interface Category {
   id: number;
@@ -33,6 +37,7 @@ const NewProductPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -43,6 +48,7 @@ const NewProductPage: React.FC = () => {
     stockTracking: false,
     stockQuantity: '',
     isActive: true,
+    image: '',
   });
 
   const { data: categories, isLoading: categoriesLoading } = useQuery<CategoryResponse>({
@@ -58,6 +64,32 @@ const NewProductPage: React.FC = () => {
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Dosya tipi kontrolü
+    if (!file.type.startsWith('image/')) {
+      toast.error('Lütfen geçerli bir resim dosyası seçin');
+      return;
+    }
+
+    try {
+      // Resmi optimize et
+      const base64String = await compressImage(file);
+      setImagePreview(base64String);
+      setFormData(prev => ({ ...prev, image: base64String }));
+    } catch (error) {
+      console.error('Resim yükleme hatası:', error);
+      toast.error('Resim yüklenirken bir hata oluştu');
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setFormData(prev => ({ ...prev, image: '' }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -106,6 +138,70 @@ const NewProductPage: React.FC = () => {
 
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  {imagePreview ? (
+                    <Box sx={{ position: 'relative' }}>
+                      <Avatar
+                        src={imagePreview}
+                        alt="Ürün resmi"
+                        sx={{ width: 100, height: 100 }}
+                        variant="rounded"
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={handleRemoveImage}
+                        sx={{
+                          position: 'absolute',
+                          top: -8,
+                          right: -8,
+                          bgcolor: 'background.paper',
+                          '&:hover': { bgcolor: 'background.paper' },
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  ) : (
+                    <Box
+                      sx={{
+                        width: 100,
+                        height: 100,
+                        border: '2px dashed',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <input
+                        accept="image/*"
+                        type="file"
+                        id="image-upload"
+                        onChange={handleImageChange}
+                        style={{ display: 'none' }}
+                      />
+                      <label htmlFor="image-upload">
+                        <IconButton component="span" color="primary">
+                          <PhotoCamera />
+                        </IconButton>
+                      </label>
+                    </Box>
+                  )}
+                  <Box>
+                    <Button
+                      component="label"
+                      htmlFor="image-upload"
+                      variant="outlined"
+                      startIcon={<PhotoCamera />}
+                    >
+                      {imagePreview ? 'Resmi Değiştir' : 'Resim Yükle'}
+                    </Button>
+                  </Box>
+                </Box>
+              </Grid>
+
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth

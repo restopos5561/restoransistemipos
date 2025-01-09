@@ -1,8 +1,10 @@
 import { PrismaClient, Product } from '@prisma/client';
 import { BadRequestError } from '../errors/bad-request-error';
 import { ProductNotFoundError } from '../errors/product-errors';
+import { UploadService } from './upload.service';
 
 const prisma = new PrismaClient();
+const uploadService = new UploadService();
 
 interface CreateProductInput {
   restaurantId: number;
@@ -22,7 +24,7 @@ interface UpdateProductInput {
   name?: string;
   description?: string;
   price?: number;
-  image?: string;
+  image?: string | null;
   isActive?: boolean;
   preparationTime?: number;
   stockTracking?: boolean;
@@ -129,11 +131,24 @@ export class ProductsService {
       throw new BadRequestError('Geçersiz kategori');
     }
 
+    let imageUrl: string | undefined;
+    if (data.image) {
+      try {
+        imageUrl = await uploadService.uploadBase64Image(data.image);
+      } catch (error) {
+        if (error instanceof BadRequestError) {
+          throw error;
+        }
+        throw new BadRequestError('Resim yüklenirken bir hata oluştu');
+      }
+    }
+
     // Stok takibi isteniyorsa stock objesi oluştur
     const productData: any = {
       name: data.name,
       description: data.description,
       price: data.price,
+      image: imageUrl,
       restaurantId: data.restaurantId,
       categoryId: data.categoryId,
       preparationTime: data.preparationTime,
@@ -197,6 +212,30 @@ export class ProductsService {
       }
     }
 
+    let imageUrl: string | undefined = undefined;
+    if (data.image === null) {
+      // Resim siliniyorsa
+      if (product.image) {
+        await uploadService.deleteImage(product.image);
+      }
+      imageUrl = undefined;
+    } else if (data.image) {
+      try {
+        // Eski resmi sil
+        if (product.image) {
+          await uploadService.deleteImage(product.image);
+        }
+        // Yeni resmi yükle
+        const uploadedImage = await uploadService.uploadBase64Image(data.image);
+        imageUrl = uploadedImage || undefined;
+      } catch (error) {
+        if (error instanceof BadRequestError) {
+          throw error;
+        }
+        throw new BadRequestError('Resim yüklenirken bir hata oluştu');
+      }
+    }
+
     // Fiyat değişikliği varsa önce fiyat geçmişi kaydı oluştur
     if (data.price !== undefined && data.price !== product.price) {
       await prisma.priceHistory.create({
@@ -210,12 +249,13 @@ export class ProductsService {
     }
 
     const updateData: any = {
-      name: data.name,
-      description: data.description,
-      price: data.price,
-      preparationTime: data.preparationTime,
-      isActive: data.isActive,
-      stockTracking: data.stockTracking,
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.price !== undefined && { price: data.price }),
+      ...(imageUrl !== undefined && { image: imageUrl }),
+      ...(data.preparationTime !== undefined && { preparationTime: data.preparationTime }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
+      ...(data.stockTracking !== undefined && { stockTracking: data.stockTracking }),
       ...(data.categoryId && {
         category: {
           connect: {
@@ -270,8 +310,10 @@ export class ProductsService {
   async deleteProduct(id: number): Promise<void> {
     const product = await this.getProductById(id);
 
-    // Aktif siparişlerde bu ürün var mı kontrol edilebilir
-    // Bu kontrol sipariş modeli oluşturulduğunda eklenecek
+    // Resmi sil
+    if (product.image) {
+      await uploadService.deleteImage(product.image);
+    }
 
     await prisma.product.delete({ where: { id } });
   }
