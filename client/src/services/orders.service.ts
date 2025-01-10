@@ -72,8 +72,27 @@ const ordersService = {
 
   // Get order by ID
   getOrderById: async (id: number) => {
-    const response = await api.get(API_ENDPOINTS.ORDERS.DETAIL(id.toString()));
-    return response.data;
+    try {
+      console.log('[Orders] Sipariş detayı isteği:', {
+        endpoint: API_ENDPOINTS.ORDERS.DETAIL(id.toString())
+      });
+      
+      const response = await api.get(API_ENDPOINTS.ORDERS.DETAIL(id.toString()));
+      
+      console.log('[Orders] Sipariş detayı alındı:', {
+        status: response.status,
+        data: response.data
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('[Orders] Sipariş detayı alınırken hata:', {
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message,
+        data: error.response?.data
+      });
+      throw error;
+    }
   },
 
   // Get orders by table ID

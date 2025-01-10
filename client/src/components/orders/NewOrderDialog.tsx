@@ -16,6 +16,7 @@ import {
   Box,
   Autocomplete,
   CircularProgress,
+  Alert,
 } from '@mui/material';
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import { OrderSource } from '../../types/enums';
@@ -55,18 +56,16 @@ interface Table {
 const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderCreated }) => {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [orderSource, setOrderSource] = useState<OrderSource>(OrderSource.IN_STORE);
   const [tableId, setTableId] = useState<number | null>(null);
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [customerCount, setCustomerCount] = useState<number>(1);
-  const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<OrderItem[]>([{ productId: 0, quantity: 1 }]);
-  
-  // Data lists
+  const [notes, setNotes] = useState<string>('');
+  const [items, setItems] = useState<OrderItem[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
 
   // Fetch necessary data
   useEffect(() => {
@@ -78,7 +77,7 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
       }
 
       try {
-        setLoadingData(true);
+        setLoading(true);
         const [tablesRes, productsRes, customersRes] = await Promise.all([
           tablesService.getTables({ 
             branchId: userProfile.branchId,
@@ -141,7 +140,7 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
         console.error('Error fetching data:', error);
         toast.error('Veriler yüklenirken bir hata oluştu');
       } finally {
-        setLoadingData(false);
+        setLoading(false);
       }
     };
 
@@ -174,78 +173,47 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
 
   const handleSubmit = async () => {
     try {
-      const userProfile = profile as User | undefined;
-      if (!userProfile?.branchId || !userProfile?.restaurantId) {
-        toast.error('Şube veya restoran bilgisi bulunamadı');
-        return;
-      }
-
-      // Debug için items'ları kontrol et
-      console.log('Ham items:', items);
-
-      // Validate items - productId kontrolünü düzeltelim
-      const validItems = items.filter(item => {
-        console.log('Item kontrol:', item);
-        return item.productId && item.productId > 0 && item.quantity > 0;
-      });
-
-      console.log('Geçerli items:', validItems);
-
-      if (validItems.length === 0) {
-        toast.error('En az bir ürün eklemelisiniz ve ürün seçimi yapmalısınız');
-        return;
-      }
-
-      // Validate table selection for in-store orders
-      if (orderSource === OrderSource.IN_STORE && !tableId) {
-        toast.error('Lütfen bir masa seçin');
-        return;
-      }
-
       setLoading(true);
+      setError(null);
 
-      // Zorunlu alanları kontrol et
-      if (!orderSource) {
-        toast.error('Sipariş kaynağı seçilmedi');
+      if (!profile?.branchId) {
+        setError('Şube bilgisi bulunamadı.');
+        return;
+      }
+
+      if (items.length === 0) {
+        setError('Lütfen en az bir ürün ekleyin.');
         return;
       }
 
       const orderData = {
-        branchId: Number(userProfile.branchId),
-        restaurantId: Number(userProfile.restaurantId),
+        restaurantId: Number(profile.restaurantId),
+        branchId: Number(profile.branchId),
         orderSource,
-        tableId: orderSource === OrderSource.IN_STORE ? Number(tableId) : null,
-        customerId: customerId ? Number(customerId) : null,
-        customerCount: Number(customerCount),
-        notes: notes.trim() || '',
-        items: validItems.map(item => ({
+        tableId: orderSource === OrderSource.IN_STORE ? tableId : null,
+        customerId: orderSource !== OrderSource.IN_STORE ? customerId : null,
+        customerCount: orderSource === OrderSource.IN_STORE ? Number(customerCount) : 1,
+        notes,
+        items: items.map(item => ({
           productId: Number(item.productId),
           quantity: Number(item.quantity),
-          notes: item.notes?.trim() || ''
+          notes: item.notes || ''
         }))
       };
 
-      console.log('Gönderilen sipariş verisi:', JSON.stringify(orderData, null, 2));
-      const response = await ordersService.createOrder(orderData);
-
-      if (response.success) {
-        toast.success('Sipariş başarıyla oluşturuldu');
-        onOrderCreated();
-        onClose();
-      } else {
-        throw new Error(response.error || 'Sipariş oluşturulamadı');
-      }
+      await ordersService.createOrder(orderData);
+      onOrderCreated?.();
+      onClose();
+      toast.success('Sipariş başarıyla oluşturuldu');
     } catch (error: any) {
-      console.error('Sipariş oluşturma hatası:', error);
-      console.error('Hata detayı:', error.response?.data);
-      const errorMessage = error.response?.data?.error?.details || error.message || 'Sipariş oluşturulurken bir hata oluştu';
-      toast.error(errorMessage);
+      console.error('Sipariş oluşturulurken hata:', error);
+      setError(error.response?.data?.message || 'Sipariş oluşturulurken bir hata oluştu');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loadingData) {
+  if (loading) {
     return (
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogContent>
@@ -308,7 +276,7 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
                   helperText={customers.length === 0 ? 'Müşteri listesi yüklenemedi' : ''}
                 />
               )}
-              onChange={(_, newValue) => setCustomerId(newValue?.id || null)}
+              onChange={(_, newValue) => setCustomerId(newValue?.id ? Number(newValue.id) : null)}
               renderOption={(props, customer) => {
                 const { key, ...otherProps } = props;
                 return (
@@ -326,7 +294,7 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
               }}
               fullWidth
               noOptionsText="Müşteri bulunamadı"
-              loading={loadingData}
+              loading={loading}
               loadingText="Yükleniyor..."
             />
           </Grid>

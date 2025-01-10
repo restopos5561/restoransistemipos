@@ -25,6 +25,7 @@ import {
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { OrderSource } from '../../types/enums';
 
 // Services
 import ordersService from '../../services/orders.service';
@@ -70,7 +71,7 @@ const NewOrderPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   // Form state
-  const [orderSource, setOrderSource] = useState<'IN_STORE' | 'PACKAGE' | 'ONLINE'>('IN_STORE');
+  const [orderSource, setOrderSource] = useState<OrderSource>(OrderSource.IN_STORE);
   const [selectedTable, setSelectedTable] = useState<string>('');
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
   const [customerCount, setCustomerCount] = useState<number>(1);
@@ -169,16 +170,17 @@ const NewOrderPage: React.FC = () => {
       }
 
       const orderData = {
-        branchId: profile.branchId.toString(),
+        restaurantId: Number(profile.restaurantId),
+        branchId: Number(profile.branchId),
         orderSource,
-        tableId: orderSource === 'IN_STORE' ? selectedTable : undefined,
-        customerId: orderSource !== 'IN_STORE' ? selectedCustomer : undefined,
-        customerCount: orderSource === 'IN_STORE' ? customerCount : undefined,
+        tableId: orderSource === OrderSource.IN_STORE ? Number(selectedTable) : null,
+        customerId: orderSource !== OrderSource.IN_STORE ? Number(selectedCustomer) : null,
+        customerCount: orderSource === OrderSource.IN_STORE ? Number(customerCount) : 1,
         notes,
         items: selectedProducts.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          notes: item.notes
+          productId: Number(item.productId),
+          quantity: Number(item.quantity),
+          notes: item.notes || ''
         }))
       };
 

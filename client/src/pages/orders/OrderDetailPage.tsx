@@ -38,11 +38,11 @@ import {
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import BackButton from '../../components/common/BackButton/BackButton';
+import { toast } from 'react-hot-toast';
 
 // Services
 import ordersService from '../../services/orders.service';
 import productsService from '../../services/products.service';
-import api from '../../services/api';
 
 // Types
 import { OrderStatus } from '../../types/enums';
@@ -104,7 +104,7 @@ const OrderDetailPage: React.FC = () => {
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<OrderStatus>(OrderStatus.PENDING);
   const [products, setProducts] = useState<Array<{ id: number; name: string; price: number }>>([]);
-  const [selectedProduct, setSelectedProduct] = useState<string>('');
+  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [itemNotes, setItemNotes] = useState<string>('');
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
@@ -194,19 +194,54 @@ const OrderDetailPage: React.FC = () => {
       setLoading(true);
       setError(null);
       const response = await ordersService.getOrderById(Number(id));
+      console.log('[OrderDetail] API Response:', response);
+
       if (response.success && response.data) {
+        console.log('[OrderDetail] Raw Order Data:', response.data);
+        
         // API yanıtını frontend tipine dönüştür
         const orderData: OrderDetail = {
-          ...response.data,
+          id: response.data.id,
+          orderNumber: response.data.orderNumber,
+          branchId: response.data.branchId,
+          restaurantId: response.data.restaurantId,
+          orderSource: response.data.orderSource,
+          status: response.data.status,
+          table: response.data.table,
+          customer: response.data.customer,
+          customerCount: response.data.customerCount,
+          notes: response.data.notes || '',
+          orderItems: Array.isArray(response.data.items) ? response.data.items.map((item: {
+            id: number;
+            productId: number;
+            product: { id: number; name: string; price: number };
+            quantity: number;
+            notes?: string;
+            totalPrice?: number;
+            status: OrderStatus;
+          }) => ({
+            id: item.id,
+            productId: item.productId,
+            product: item.product,
+            quantity: item.quantity,
+            notes: item.notes || '',
+            totalPrice: item.totalPrice || (item.quantity * item.product.price),
+            status: item.status || OrderStatus.PENDING
+          })) : [],
+          totalAmount: response.data.totalAmount || 0,
           createdAt: response.data.orderTime || response.data.openingTime,
-          type: response.data.orderSource === 'IN_STORE' ? 'DINE_IN' : 'TAKEAWAY'
+          payment: response.data.payment,
+          type: response.data.orderSource === 'IN_STORE' ? 'DINE_IN' : 'TAKEAWAY',
+          waiter: response.data.waiter
         };
+
+        console.log('[OrderDetail] Processed Order Data:', orderData);
         setOrder(orderData);
       } else {
         throw new Error(typeof response.error === 'object' ? response.error.message : response.error || 'Sipariş detayları alınamadı');
       }
     } catch (error: any) {
-      console.error('Sipariş detayları yüklenirken hata oluştu:', error);
+      console.error('[OrderDetail] Hata:', error);
       setError(error.message || 'Sipariş detayları yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setLoading(false);
@@ -239,31 +274,35 @@ const OrderDetailPage: React.FC = () => {
 
   // Ürün ekleme
   const handleAddItem = async () => {
+    if (!selectedProduct) {
+      toast.error('Lütfen bir ürün seçin');
+      return;
+    }
+
+    const product = products.find(p => p.id === selectedProduct);
+    if (!product) {
+      toast.error('Seçilen ürün bulunamadı');
+      return;
+    }
+
     try {
       setLoading(true);
-      setError(null);
-      
-      if (!selectedProduct) {
-        throw new Error('Lütfen bir ürün seçin');
-      }
-
-      const response = await ordersService.addOrderItems(Number(id), [{
-        productId: parseInt(selectedProduct),
-        quantity,
-        notes: itemNotes
+      await ordersService.addOrderItems(Number(id), [{
+        productId: selectedProduct,
+        quantity: Number(quantity),
+        notes: itemNotes || ''
       }]);
-
-      if (response.success) {
-        await fetchOrderDetails();
-        setAddItemDialogOpen(false);
-        setSelectedProduct('');
-        setQuantity(1);
-        setItemNotes('');
-      } else {
-        throw new Error(response.error || 'Ürün eklenirken bir hata oluştu');
-      }
+      
+      // Siparişi yeniden yükle
+      await fetchOrderDetails();
+      setAddItemDialogOpen(false);
+      setSelectedProduct(null);
+      setQuantity(1);
+      setItemNotes('');
+      toast.success('Ürün başarıyla eklendi');
     } catch (error: any) {
-      setError(error.message || 'Ürün eklenirken bir hata oluştu');
+      console.error('Ürün eklenirken hata:', error);
+      toast.error(error.response?.data?.message || 'Ürün eklenirken bir hata oluştu');
     } finally {
       setLoading(false);
     }
@@ -444,12 +483,6 @@ const OrderDetailPage: React.FC = () => {
                   <Typography variant="h6">
                     Ürünler
                   </Typography>
-                  <Button
-                    variant="contained"
-                    onClick={() => setAddItemDialogOpen(true)}
-                  >
-                    Ürün Ekle
-                  </Button>
                 </Stack>
 
                 <TableContainer>
@@ -460,62 +493,29 @@ const OrderDetailPage: React.FC = () => {
                         <TableCell align="right">Adet</TableCell>
                         <TableCell align="right">Birim Fiyat</TableCell>
                         <TableCell align="right">Toplam</TableCell>
-                        <TableCell align="center">Durum</TableCell>
-                        <TableCell align="right">İşlemler</TableCell>
+                        <TableCell align="right">Durum</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {order?.orderItems?.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            {item.product.name}
-                            {item.notes && (
-                              <Typography variant="caption" display="block" color="text.secondary">
-                                Not: {item.notes}
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell align="right">{item.quantity}</TableCell>
-                          <TableCell align="right">{item.product.price.toFixed(2)} ₺</TableCell>
-                          <TableCell align="right">{(item.quantity * item.product.price).toFixed(2)} ₺</TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={getStatusText(item.status)}
-                              color={getStatusColor(item.status) as any}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            <Stack direction="row" spacing={1} justifyContent="flex-end">
-                              <Button
+                      {order.orderItems && order.orderItems.length > 0 ? (
+                        order.orderItems.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>{item.product.name}</TableCell>
+                            <TableCell align="right">{item.quantity}</TableCell>
+                            <TableCell align="right">{item.product.price.toFixed(2)} ₺</TableCell>
+                            <TableCell align="right">{(item.quantity * item.product.price).toFixed(2)} ₺</TableCell>
+                            <TableCell align="right">
+                              <Chip 
+                                label={getStatusText(item.status)} 
+                                color={getStatusColor(item.status)}
                                 size="small"
-                                sx={{ minWidth: 'auto', p: 0.5 }}
-                                onClick={() => navigate(`/orders/${order.id}/items/${item.id}`)}
-                              >
-                                <VisibilityIcon fontSize="small" />
-                              </Button>
-                              <Button
-                                size="small"
-                                sx={{ minWidth: 'auto', p: 0.5 }}
-                                onClick={() => navigate(`/orders/${order.id}/items/${item.id}/edit`)}
-                              >
-                                <EditIcon fontSize="small" />
-                              </Button>
-                              <Button
-                                size="small"
-                                sx={{ minWidth: 'auto', p: 0.5 }}
-                                color="error"
-                                onClick={() => {/* Silme işlemi */}}
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </Button>
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {(!order?.orderItems || order.orderItems.length === 0) && (
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
                         <TableRow>
-                          <TableCell colSpan={6} align="center">
+                          <TableCell colSpan={5} align="center">
                             Henüz ürün eklenmedi
                           </TableCell>
                         </TableRow>
@@ -530,7 +530,7 @@ const OrderDetailPage: React.FC = () => {
                   <Stack direction="row" justifyContent="space-between">
                     <Typography>Ara Toplam</Typography>
                     <Typography>
-                      {order?.orderItems?.reduce((sum, item) => sum + (item.quantity * item.product.price), 0).toFixed(2)} ₺
+                      {order.totalAmount.toFixed(2)} ₺
                     </Typography>
                   </Stack>
 
@@ -560,7 +560,7 @@ const OrderDetailPage: React.FC = () => {
                   <Stack direction="row" justifyContent="space-between">
                     <Typography variant="h6">Toplam</Typography>
                     <Typography variant="h6">
-                      {order?.orderItems?.reduce((sum, item) => sum + (item.quantity * item.product.price), 0).toFixed(2)} ₺
+                      {order.totalAmount.toFixed(2)} ₺
                     </Typography>
                   </Stack>
                 </Stack>
@@ -603,9 +603,9 @@ const OrderDetailPage: React.FC = () => {
               <FormControl fullWidth sx={{ mt: 2 }}>
                 <InputLabel>Ürün</InputLabel>
                 <Select
-                  value={selectedProduct}
+                  value={selectedProduct || ''}
                   label="Ürün"
-                  onChange={(e) => setSelectedProduct(e.target.value)}
+                  onChange={(e) => setSelectedProduct(Number(e.target.value))}
                 >
                   {Array.isArray(products) && products.length > 0 ? (
                     products.map((product) => (
