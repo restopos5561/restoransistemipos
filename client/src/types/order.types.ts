@@ -1,4 +1,4 @@
-import { OrderStatus, OrderSource, PaymentStatus } from '../types/enums';
+import { OrderStatus, PaymentStatus, OrderSource } from './enums';
 
 export interface OrderListParams {
   page?: number;
@@ -91,6 +91,8 @@ export interface OrderDetail {
   discountType?: string | null;
   paymentStatus: PaymentStatus;
   priority: boolean;
+  preparationStartTime?: string;
+  preparationEndTime?: string;
 }
 
 export interface OrderListResponse {
@@ -100,17 +102,6 @@ export interface OrderListResponse {
   limit: number;
   totalPages: number;
   error?: string;
-}
-
-export enum OrderStatus {
-  PENDING = 'PENDING',
-  PREPARING = 'PREPARING',
-  READY = 'READY',
-  DELIVERED = 'DELIVERED',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
-  ITEM_ISSUE = 'ITEM_ISSUE',
-  PARTIALLY_PAID = 'PARTIALLY_PAID'
 }
 
 export interface Product {
@@ -141,14 +132,49 @@ export interface Table {
 
 export interface Order {
   id: number;
-  tableId?: number;
-  table?: Table;
-  orderItems: OrderItem[];
-  totalAmount: number;
+  orderNumber: string;
+  branchId: number;
+  restaurantId: number;
+  orderSource: OrderSource;
   status: OrderStatus;
+  table?: {
+    id: number;
+    number: string;
+  };
+  customer?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
+  customerCount?: number;
+  notes: string;
+  items: Array<{
+    id: number;
+    productId: number;
+    product: {
+      id: number;
+      name: string;
+      price: number;
+    };
+    quantity: number;
+    notes: string;
+    totalPrice: number;
+    status: OrderStatus;
+  }>;
+  totalAmount: number;
+  totalPriceBeforeDiscounts: number;
   orderTime: string;
-  priority?: boolean;
+  openingTime: string;
+  closingTime?: string;
+  completedAt?: string;
+  tableId?: number;
+  customerId?: number;
+  waiterId?: number;
+  orderNotes: string;
+  discountAmount: number;
+  discountType?: string | null;
+  paymentStatus: PaymentStatus;
+  priority: boolean;
   preparationStartTime?: string;
   preparationEndTime?: string;
-  orderNotes?: string;
 } 

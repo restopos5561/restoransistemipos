@@ -19,6 +19,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 
 import { tablesService } from '../../services/tables.service';
+import ordersService from '../../services/orders.service';
 import { authService } from '../../services/auth.service';
 import { TableStatus, TableFilters as TableFiltersType, Table } from '../../types/table.types';
 import {
@@ -89,6 +90,16 @@ const TablesPage: React.FC = () => {
     },
     refetchInterval: 30000,
     enabled: filters.branchId > 0
+  });
+
+  // Masa siparişlerini getir
+  const { data: tableOrders } = useQuery({
+    queryKey: ['table-orders', selectedTable?.id],
+    queryFn: () => {
+      if (!selectedTable?.id) return null;
+      return ordersService.getOrdersByTable(selectedTable.id);
+    },
+    enabled: !!selectedTable?.id,
   });
 
   // İstatistikler için şube bilgisi
@@ -193,6 +204,11 @@ const TablesPage: React.FC = () => {
   };
 
   const handleDetailClick = (table: Table) => {
+    setSelectedTable(table);
+    setIsDetailDialogOpen(true);
+  };
+
+  const handleOrdersClick = (table: Table) => {
     setSelectedTable(table);
     setIsDetailDialogOpen(true);
   };
@@ -323,6 +339,7 @@ const TablesPage: React.FC = () => {
               onMergeClick={handleMergeClick}
               onDeleteClick={handleDeleteClick}
               onDetailClick={handleDetailClick}
+              onOrdersClick={handleOrdersClick}
             />
           ) : viewMode === 'grid' ? (
             <TableGrid
@@ -333,6 +350,7 @@ const TablesPage: React.FC = () => {
               onDeleteClick={handleDeleteClick}
               onDetailClick={handleDetailClick}
               onStatusChange={handleStatusChange}
+              onOrdersClick={handleOrdersClick}
             />
           ) : (
             <TableLayout
@@ -399,6 +417,7 @@ const TablesPage: React.FC = () => {
         }}
         table={selectedTable}
         onUpdateNotes={handleUpdateNotes}
+        onOrdersClick={handleOrdersClick}
       />
 
       {/* Onay Dialog'u */}

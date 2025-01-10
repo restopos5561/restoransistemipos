@@ -57,10 +57,12 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/orders/${id}`,
     CANCEL: (id: string) => `/orders/${id}/cancel`,
     STATUS: (id: string) => `/orders/${id}/status`,
+    NOTES: (id: string) => `/orders/${id}/notes`,
+    PRINT: '/orders/print',
     BULK_DELETE: '/orders/bulk-delete',
     BULK_STATUS: '/orders/bulk-status',
-    PRINT: '/orders/print',
     ADD_ITEMS: (id: string) => `/orders/${id}/items`,
+    BY_TABLE: (tableId: string) => `/orders/table/${tableId}`,
   },
   TABLES: {
     LIST: '/tables',

@@ -15,7 +15,7 @@ import OrderCard from '../../components/orders/OrderCard';
 import KitchenFilters from '../../components/kitchen/KitchenFilters';
 import KitchenStats from '../../components/kitchen/KitchenStats';
 import { kitchenService } from '../../services/kitchen.service';
-import { OrderStatus } from '../../types/order.types';
+import { OrderStatus } from '../../types/enums';
 import { KitchenOrdersFilters } from '../../types/kitchen.types';
 import { toast } from 'react-toastify';
 

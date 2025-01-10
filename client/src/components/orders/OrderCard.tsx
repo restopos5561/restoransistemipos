@@ -16,7 +16,8 @@ import {
   Cancel as CancelIcon,
   PriorityHigh as PriorityIcon,
 } from '@mui/icons-material';
-import { Order, OrderStatus } from '../../types/order.types';
+import { Order } from '../../types/order.types';
+import { OrderStatus } from '../../types/enums';
 import { formatDate } from '../../utils/date';
 
 interface OrderCardProps {
@@ -25,14 +26,14 @@ interface OrderCardProps {
 }
 
 const statusColors = {
-  PENDING: 'warning',
-  PREPARING: 'info',
-  READY: 'success',
-  DELIVERED: 'success',
-  COMPLETED: 'success',
-  CANCELLED: 'error',
-  ITEM_ISSUE: 'error',
-  PARTIALLY_PAID: 'warning',
+  [OrderStatus.PENDING]: 'warning',
+  [OrderStatus.PREPARING]: 'info',
+  [OrderStatus.READY]: 'success',
+  [OrderStatus.DELIVERED]: 'success',
+  [OrderStatus.COMPLETED]: 'success',
+  [OrderStatus.CANCELLED]: 'error',
+  [OrderStatus.ITEM_ISSUE]: 'error',
+  [OrderStatus.PARTIALLY_PAID]: 'warning',
 } as const;
 
 const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
@@ -70,7 +71,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
         <Stack spacing={2}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="h6">
-              Masa {order.table?.tableNumber}
+              Masa {order.table?.number}
             </Typography>
             <Chip
               label={order.status}
@@ -80,10 +81,10 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
           </Stack>
 
           <Box>
-            {order.orderItems.map((item) => (
+            {order.items?.map((item) => (
               <Typography key={item.id} variant="body2" color="text.secondary">
                 {item.quantity}x {item.product.name}
-                {item.note && <em> ({item.note})</em>}
+                {item.notes && <em> ({item.notes})</em>}
               </Typography>
             ))}
           </Box>
@@ -100,28 +101,28 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
           </Stack>
 
           <Stack direction="row" spacing={1} justifyContent="flex-end">
-            {order.status === 'PENDING' && (
+            {order.status === OrderStatus.PENDING && (
               <IconButton
                 size="small"
-                onClick={() => handleStatusChange('PREPARING')}
+                onClick={() => handleStatusChange(OrderStatus.PREPARING)}
                 sx={{ color: theme.palette.info.main }}
               >
                 <PreparingIcon />
               </IconButton>
             )}
-            {order.status === 'PREPARING' && (
+            {order.status === OrderStatus.PREPARING && (
               <IconButton
                 size="small"
-                onClick={() => handleStatusChange('READY')}
+                onClick={() => handleStatusChange(OrderStatus.READY)}
                 sx={{ color: theme.palette.success.main }}
               >
                 <ReadyIcon />
               </IconButton>
             )}
-            {(order.status === 'PENDING' || order.status === 'PREPARING') && (
+            {(order.status === OrderStatus.PENDING || order.status === OrderStatus.PREPARING) && (
               <IconButton
                 size="small"
-                onClick={() => handleStatusChange('CANCELLED')}
+                onClick={() => handleStatusChange(OrderStatus.CANCELLED)}
                 sx={{ color: theme.palette.error.main }}
               >
                 <CancelIcon />

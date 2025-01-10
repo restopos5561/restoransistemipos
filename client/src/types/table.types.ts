@@ -1,3 +1,5 @@
+import { OrderStatus } from './enums';
+
 export enum TableStatus {
   IDLE = 'IDLE',
   OCCUPIED = 'OCCUPIED',
@@ -7,8 +9,22 @@ export enum TableStatus {
 export interface Order {
   id: number;
   orderNumber: string;
-  status: 'PENDING' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
+  status: OrderStatus;
   totalAmount: number;
+  items: Array<{
+    id: number;
+    productId: number;
+    product: {
+      id: number;
+      name: string;
+      price: number;
+    };
+    quantity: number;
+    notes: string;
+    totalPrice: number;
+    status: OrderStatus;
+  }>;
+  openingTime: string;
   createdAt: string;
 }
 

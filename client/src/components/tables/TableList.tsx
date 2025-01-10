@@ -22,6 +22,7 @@ import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import CallMergeIcon from '@mui/icons-material/CallMerge';
 import InfoIcon from '@mui/icons-material/Info';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 
 import { Table as TableType, TableStatus } from '../../types/table.types';
 
@@ -35,6 +36,7 @@ interface TableListProps {
   onMergeClick: (table: TableType) => void;
   onDeleteClick: (table: TableType) => void;
   onDetailClick: (table: TableType) => void;
+  onOrdersClick: (table: TableType) => void;
 }
 
 const getStatusColor = (status: TableStatus) => {
@@ -73,6 +75,7 @@ const TableList: React.FC<TableListProps> = ({
   onMergeClick,
   onDeleteClick,
   onDetailClick,
+  onOrdersClick,
 }) => {
   if (!tables.length) {
     return (
@@ -165,6 +168,18 @@ const TableList: React.FC<TableListProps> = ({
                       >
                         <InfoIcon fontSize="small" />
                       </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title="Adisyonlar">
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => onOrdersClick(table)}
+                          disabled={!table.activeOrders || table.activeOrders.length === 0}
+                        >
+                          <ReceiptIcon fontSize="small" />
+                        </IconButton>
+                      </span>
                     </Tooltip>
 
                     <Tooltip title="Düzenle">

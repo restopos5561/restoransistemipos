@@ -5,7 +5,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { barService } from '../../services/bar.service';
-import { OrderStatus } from '../../types/order.types';
+import { OrderStatus } from '../../types/enums';
 import { BarOrdersFilters } from '../../types/bar.types';
 import OrderCard from '../../components/orders/OrderCard';
 import BarStats from '../../components/bar/BarStats';

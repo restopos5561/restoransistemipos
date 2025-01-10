@@ -1,4 +1,5 @@
-import { Order, OrderStatus } from './order.types';
+import { Order } from './order.types';
+import { OrderStatus } from './enums';
 
 export interface KitchenOrdersFilters {
   status?: OrderStatus[];

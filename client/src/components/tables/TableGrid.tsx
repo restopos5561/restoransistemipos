@@ -23,6 +23,7 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import EventSeatIcon from '@mui/icons-material/EventSeat';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DoNotDisturbIcon from '@mui/icons-material/DoNotDisturb';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 
 import { Table as TableType, TableStatus } from '../../types/table.types';
 
@@ -34,6 +35,7 @@ interface TableGridProps {
   onDeleteClick: (table: TableType) => void;
   onDetailClick: (table: TableType) => void;
   onStatusChange: (table: TableType, newStatus: TableStatus) => void;
+  onOrdersClick: (table: TableType) => void;
 }
 
 const getStatusColor = (status: TableStatus) => {
@@ -83,6 +85,7 @@ const TableCard: React.FC<{
   onDeleteClick: (table: TableType) => void;
   onDetailClick: (table: TableType) => void;
   onStatusChange: (table: TableType, newStatus: TableStatus) => void;
+  onOrdersClick: (table: TableType) => void;
 }> = ({
   table,
   onEditClick,
@@ -91,6 +94,7 @@ const TableCard: React.FC<{
   onDeleteClick,
   onDetailClick,
   onStatusChange,
+  onOrdersClick,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [statusAnchorEl, setStatusAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -182,9 +186,18 @@ const TableCard: React.FC<{
               }
             }}
           />
-          <IconButton size="small" onClick={() => onDetailClick(table)}>
-            <InfoIcon fontSize="small" />
-          </IconButton>
+          <Stack direction="row" spacing={1}>
+            <IconButton 
+              size="small" 
+              onClick={() => onOrdersClick(table)}
+              disabled={!table.activeOrders || table.activeOrders.length === 0}
+            >
+              <ReceiptIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small" onClick={() => onDetailClick(table)}>
+              <InfoIcon fontSize="small" />
+            </IconButton>
+          </Stack>
         </Stack>
 
         {/* Hızlı Durum Değiştirme Butonları */}
@@ -252,6 +265,15 @@ const TableCard: React.FC<{
         open={Boolean(anchorEl)}
         onClose={handleClose}
       >
+        <MenuItem onClick={() => { handleClose(); onDetailClick(table); }}>
+          <InfoIcon fontSize="small" sx={{ mr: 1 }} /> Detaylar
+        </MenuItem>
+        <MenuItem 
+          onClick={() => { handleClose(); onOrdersClick(table); }}
+          disabled={!table.activeOrders || table.activeOrders.length === 0}
+        >
+          <ReceiptIcon fontSize="small" sx={{ mr: 1 }} /> Adisyonlar
+        </MenuItem>
         <MenuItem onClick={() => { handleClose(); onEditClick(table); }}>
           <EditIcon fontSize="small" sx={{ mr: 1 }} /> Düzenle
         </MenuItem>
@@ -308,6 +330,7 @@ const TableGrid: React.FC<TableGridProps> = ({
   onDeleteClick,
   onDetailClick,
   onStatusChange,
+  onOrdersClick,
 }) => {
   if (!tables.length) {
     return (
@@ -331,6 +354,7 @@ const TableGrid: React.FC<TableGridProps> = ({
             onDeleteClick={onDeleteClick}
             onDetailClick={onDetailClick}
             onStatusChange={onStatusChange}
+            onOrdersClick={onOrdersClick}
           />
         </Grid>
       ))}

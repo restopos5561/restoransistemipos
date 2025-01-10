@@ -28,6 +28,7 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CallMergeIcon from '@mui/icons-material/CallMerge';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import { Table as TableType, TableStatus, Order, TableHistory } from '../../types/table.types';
 
 interface TableDetailDialogProps {
@@ -35,6 +36,7 @@ interface TableDetailDialogProps {
   onClose: () => void;
   table?: TableType;
   onUpdateNotes?: (tableId: number, notes: string) => void;
+  onOrdersClick?: (table: TableType) => void;
 }
 
 const getStatusColor = (status: TableStatus) => {
@@ -132,10 +134,11 @@ const TableDetailDialog: React.FC<TableDetailDialogProps> = ({
   onClose,
   table,
   onUpdateNotes,
+  onOrdersClick,
 }) => {
+  const [activeTab, setActiveTab] = useState(0);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notes, setNotes] = useState('');
-  const [activeTab, setActiveTab] = useState(0);
 
   React.useEffect(() => {
     if (table) {
@@ -157,14 +160,12 @@ const TableDetailDialog: React.FC<TableDetailDialogProps> = ({
   if (!table) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-        >
-          <Typography variant="h6">Masa Detayları</Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6">
+            Masa Detayları - {table?.tableNumber}
+          </Typography>
           <IconButton onClick={onClose} size="small">
             <CloseIcon />
           </IconButton>
@@ -172,13 +173,19 @@ const TableDetailDialog: React.FC<TableDetailDialogProps> = ({
       </DialogTitle>
       <DialogContent>
         <Stack spacing={2}>
-          {/* Üst Bilgiler */}
           <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="h4">{table.tableNumber}</Typography>
             <Chip
               label={getStatusText(table.status)}
               color={getStatusColor(table.status) as any}
             />
+            {table.activeOrders && table.activeOrders.length > 0 && (
+              <Chip
+                icon={<ReceiptIcon />}
+                label={`${table.activeOrders.length} Aktif Adisyon`}
+                color="info"
+                onClick={() => onOrdersClick?.(table)}
+              />
+            )}
           </Stack>
 
           <Divider />
@@ -187,6 +194,7 @@ const TableDetailDialog: React.FC<TableDetailDialogProps> = ({
           <Box>
             <Tabs value={activeTab} onChange={handleTabChange}>
               <Tab label="Detaylar" />
+              <Tab label="Adisyonlar" />
               <Tab label="Geçmiş" />
             </Tabs>
           </Box>
@@ -314,8 +322,80 @@ const TableDetailDialog: React.FC<TableDetailDialogProps> = ({
             </Grid>
           )}
 
-          {/* Geçmiş Sekmesi */}
+          {/* Adisyonlar Sekmesi */}
           {activeTab === 1 && (
+            <Stack spacing={2}>
+              {table.activeOrders && table.activeOrders.length > 0 ? (
+                table.activeOrders.map((order) => (
+                  <Paper key={order.id} variant="outlined" sx={{ p: 2 }}>
+                    <Stack spacing={2}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="subtitle1">
+                          Adisyon #{order.orderNumber}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={getOrderStatusText(order.status)}
+                          color={getOrderStatusColor(order.status)}
+                        />
+                      </Stack>
+                      
+                      <Divider />
+                      
+                      <Stack spacing={1}>
+                        {order.items?.map((item) => (
+                          <Stack
+                            key={item.id}
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="center"
+                          >
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Typography>{item.product.name}</Typography>
+                              <Typography color="text.secondary">
+                                x{item.quantity}
+                              </Typography>
+                            </Stack>
+                            <Typography>
+                              {item.totalPrice.toLocaleString('tr-TR', {
+                                style: 'currency',
+                                currency: 'TRY',
+                              })}
+                            </Typography>
+                          </Stack>
+                        ))}
+                      </Stack>
+                      
+                      <Divider />
+                      
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="subtitle2">Toplam Tutar</Typography>
+                        <Typography variant="subtitle1">
+                          {order.totalAmount.toLocaleString('tr-TR', {
+                            style: 'currency',
+                            currency: 'TRY',
+                          })}
+                        </Typography>
+                      </Stack>
+                      
+                      <Typography variant="caption" color="text.secondary">
+                        Açılış: {new Date(order.openingTime).toLocaleString('tr-TR')}
+                      </Typography>
+                    </Stack>
+                  </Paper>
+                ))
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 3 }}>
+                  <Typography color="text.secondary">
+                    Aktif adisyon bulunmuyor
+                  </Typography>
+                </Box>
+              )}
+            </Stack>
+          )}
+
+          {/* Geçmiş Sekmesi */}
+          {activeTab === 2 && (
             <List>
               {table.history && table.history.length > 0 ? (
                 table.history.map((history) => (

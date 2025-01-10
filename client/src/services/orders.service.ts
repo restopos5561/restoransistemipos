@@ -62,6 +62,12 @@ const ordersService = {
     return response.data;
   },
 
+  // Get orders by table ID
+  getOrdersByTable: async (tableId: number) => {
+    const response = await api.get(API_ENDPOINTS.ORDERS.BY_TABLE(tableId.toString()));
+    return response.data;
+  },
+
   // Update order status
   updateOrderStatus: async (id: number, status: string) => {
     const response = await api.patch(API_ENDPOINTS.ORDERS.STATUS(id.toString()), { status });
