@@ -93,6 +93,7 @@ interface OrderDetail {
     firstName: string;
     lastName: string;
   };
+  priority: boolean;
 }
 
 const OrderDetailPage: React.FC = () => {
@@ -232,7 +233,8 @@ const OrderDetailPage: React.FC = () => {
           createdAt: response.data.orderTime || response.data.openingTime,
           payment: response.data.payment,
           type: response.data.orderSource === 'IN_STORE' ? 'DINE_IN' : 'TAKEAWAY',
-          waiter: response.data.waiter
+          waiter: response.data.waiter,
+          priority: response.data.priority
         };
 
         console.log('[OrderDetail] Processed Order Data:', orderData);
@@ -472,6 +474,36 @@ const OrderDetailPage: React.FC = () => {
                       </Typography>
                     </Box>
                   )}
+
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                      Öncelik Durumu
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip
+                        label={order.priority ? "Öncelikli" : "Normal"}
+                        color={order.priority ? "error" : "default"}
+                        size="small"
+                      />
+                      <Button
+                        size="small"
+                        onClick={async () => {
+                          try {
+                            await ordersService.updateOrder(order.id, {
+                              priority: !order.priority
+                            });
+                            await fetchOrderDetails();
+                            toast.success('Öncelik durumu güncellendi');
+                          } catch (error) {
+                            console.error('Öncelik güncellenirken hata:', error);
+                            toast.error('Öncelik güncellenirken bir hata oluştu');
+                          }
+                        }}
+                      >
+                        {order.priority ? "Önceliği Kaldır" : "Öncelikli Yap"}
+                      </Button>
+                    </Stack>
+                  </Box>
                 </Stack>
               </Paper>
             </Grid>

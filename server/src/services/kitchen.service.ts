@@ -35,7 +35,7 @@ export class KitchenService {
               : [filters.status]
         } 
       }),
-      ...(filters.priority !== undefined && { priority: filters.priority }),
+      ...(filters.priority === true && { priority: true }),
       // Opsiyonel filtre: Sadece yemek siparişleri
       ...(filters.onlyFood && {
         orderItems: {
@@ -68,7 +68,10 @@ export class KitchenService {
             },
           },
         },
-        orderBy: [{ priority: 'desc' }, { orderTime: 'asc' }],
+        orderBy: [
+          { priority: 'desc' },
+          { orderTime: 'asc' }
+        ],
       }),
       prisma.order.count({ where }),
     ]);

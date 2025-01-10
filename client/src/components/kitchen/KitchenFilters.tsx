@@ -25,7 +25,10 @@ const KitchenFilters: React.FC<KitchenFiltersProps> = ({ filters, onFilterChange
   };
 
   const handlePriorityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    onFilterChange({ ...filters, priority: event.target.checked });
+    onFilterChange({ 
+      ...filters, 
+      priority: event.target.checked 
+    });
   };
 
   const handleStartDateChange = (date: Date | null) => {
@@ -52,7 +55,7 @@ const KitchenFilters: React.FC<KitchenFiltersProps> = ({ filters, onFilterChange
         <FormControlLabel
           control={
             <Switch
-              checked={filters.priority || false}
+              checked={!!filters.priority}
               onChange={handlePriorityChange}
               color="warning"
             />

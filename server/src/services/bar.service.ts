@@ -41,12 +41,19 @@ export class BarService {
           table: true,
           orderItems: {
             include: {
-              product: true,
+              product: {
+                include: {
+                  category: true
+                }
+              },
               selectedOptions: true,
             },
           },
         },
-        orderBy: [{ priority: 'desc' }, { orderTime: 'asc' }],
+        orderBy: [
+          { priority: 'desc' },
+          { orderTime: 'asc' }
+        ],
       }),
       prisma.order.count({ where }),
     ]);

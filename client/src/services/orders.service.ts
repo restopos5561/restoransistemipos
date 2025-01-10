@@ -191,23 +191,28 @@ const ordersService = {
   updateOrder: async (id: number, data: any) => {
     try {
       // Ensure data is properly formatted according to backend schema
-      const formattedData = {
-        branchId: Number(data.branchId),
-        orderSource: data.orderSource,
-        tableId: data.tableId ? Number(data.tableId) : null,
-        customerId: data.customerId ? Number(data.customerId) : null,
-        customerCount: Number(data.customerCount),
-        notes: data.notes || '',
-        priority: data.priority || false,
-        discountAmount: Number(data.discountAmount) || 0,
-        discountType: data.discountType || null,
-        paymentStatus: data.paymentStatus || 'PENDING',
-        items: data.items?.map((item: any) => ({
+      const formattedData: any = {};
+
+      // Sadece gönderilen alanları formatlayarak ekle
+      if (data.branchId !== undefined) formattedData.branchId = Number(data.branchId);
+      if (data.orderSource !== undefined) formattedData.orderSource = data.orderSource;
+      if (data.tableId !== undefined) formattedData.tableId = data.tableId ? Number(data.tableId) : null;
+      if (data.customerId !== undefined) formattedData.customerId = data.customerId ? Number(data.customerId) : null;
+      if (data.customerCount !== undefined) formattedData.customerCount = Number(data.customerCount);
+      if (data.notes !== undefined) formattedData.notes = data.notes;
+      if (data.priority !== undefined) formattedData.priority = data.priority;
+      if (data.discountAmount !== undefined) formattedData.discountAmount = Number(data.discountAmount);
+      if (data.discountType !== undefined) formattedData.discountType = data.discountType;
+      if (data.paymentStatus !== undefined) formattedData.paymentStatus = data.paymentStatus;
+      
+      // Items varsa formatla
+      if (data.items) {
+        formattedData.items = data.items.map((item: any) => ({
           productId: Number(item.productId),
           quantity: Number(item.quantity),
           notes: item.notes || ''
-        }))
-      };
+        }));
+      }
 
       console.log('[Orders] Sipariş güncelleme isteği:', {
         orderId: id,

@@ -90,7 +90,8 @@ const KitchenPage: React.FC = () => {
   const [filters, setFilters] = useState<KitchenOrdersFilters>({
     status: [OrderStatus.PENDING, OrderStatus.PREPARING],
     onlyFood: true,
-    branchId: user?.branchId
+    branchId: user?.branchId,
+    priority: false
   });
 
   useEffect(() => {
