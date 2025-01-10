@@ -25,7 +25,23 @@ import useSound from 'use-sound';
 const KitchenPage: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const [playNewOrder] = useSound('/sounds/notification.mp3', { volume: 0.5 });
+  
+  // Ses çalma hook'u
+  const [playSound] = useSound('/sounds/notification.mp3', {
+    volume: 1.0,
+    interrupt: true,
+  });
+
+  // Ses çalma fonksiyonu
+  const playNotification = () => {
+    console.log('[Kitchen] Bildirim sesi çalınıyor');
+    try {
+      playSound();
+    } catch (error) {
+      console.error('[Kitchen] Ses çalma hatası:', error);
+    }
+  };
+
   const [filters, setFilters] = useState<KitchenOrdersFilters>({
     status: [OrderStatus.PENDING, OrderStatus.PREPARING],
     onlyFood: true
@@ -61,6 +77,9 @@ const KitchenPage: React.FC = () => {
         orderId: data.orderId
       });
 
+      // Ses çal
+      playNotification();
+
       // Bildirim göster
       toast.info('Yeni sipariş geldi!', {
         position: 'top-right',
@@ -70,9 +89,6 @@ const KitchenPage: React.FC = () => {
         pauseOnHover: true,
         draggable: true,
       });
-
-      // Ses çal
-      playNewOrder();
 
       // Verileri yenile
       queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
@@ -104,11 +120,14 @@ const KitchenPage: React.FC = () => {
     const handleOrderDeleted = (data: any) => {
       console.log('[Kitchen] Sipariş silindi:', {
         event: SOCKET_EVENTS.ORDER_DELETED,
-        orderId: data.orderId
+        data
       });
 
+      // Ses çal
+      playNotification();
+
       // Bildirim göster
-      toast.info('Sipariş silindi!', {
+      toast.info(data.message || 'Sipariş silindi!', {
         position: 'top-right',
         autoClose: 5000,
         hideProgressBar: false,
@@ -133,7 +152,7 @@ const KitchenPage: React.FC = () => {
       SocketService.off(SOCKET_EVENTS.ORDER_UPDATED, handleOrderUpdated);
       SocketService.off(SOCKET_EVENTS.ORDER_DELETED, handleOrderDeleted);
     };
-  }, [queryClient, playNewOrder]);
+  }, [queryClient, playSound]);
 
   // Sipariş durumu güncelleme
   const updateStatusMutation = useMutation({

@@ -604,6 +604,12 @@ export class OrdersService {
           id
         }
       });
+
+      // Socket.IO event'i gönder
+      SocketService.emit(SOCKET_EVENTS.ORDER_DELETED, {
+        orderId: id,
+        message: 'Sipariş silindi'
+      });
     });
   }
 
@@ -945,11 +951,9 @@ export class OrdersService {
         });
 
         // Socket.IO event'i gönder
-        orderIds.forEach(orderId => {
-          SocketService.emit(SOCKET_EVENTS.ORDER_DELETED, {
-            orderId,
-            message: 'Sipariş silindi'
-          });
+        SocketService.emit(SOCKET_EVENTS.ORDER_DELETED, {
+          orderIds,
+          message: `${orderIds.length} sipariş silindi`
         });
 
         return deleteResult;
