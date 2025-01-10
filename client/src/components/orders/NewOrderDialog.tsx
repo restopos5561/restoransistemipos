@@ -26,6 +26,7 @@ import productsService from '../../services/products.service';
 import customersService from '../../services/customers.service';
 import { toast } from 'react-hot-toast';
 import { User } from '../../types/auth.types';
+import { Customer } from '../../types/customer.types';
 
 interface NewOrderDialogProps {
   open: boolean;
@@ -49,14 +50,6 @@ interface Table {
   id: number;
   tableNumber: string;
   status: string;
-}
-
-interface Customer {
-  id: number;
-  name: string;
-  email?: string;
-  phoneNumber?: string;
-  address?: string;
 }
 
 const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderCreated }) => {
@@ -300,18 +293,21 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
                 />
               )}
               onChange={(_, newValue) => setCustomerId(newValue?.id || null)}
-              renderOption={(props, customer) => (
-                <li {...props}>
-                  <div>
-                    <Typography variant="body1">{customer.name}</Typography>
-                    {customer.phoneNumber && (
-                      <Typography variant="body2" color="textSecondary">
-                        {customer.phoneNumber}
-                      </Typography>
-                    )}
-                  </div>
-                </li>
-              )}
+              renderOption={(props, customer) => {
+                const { key, ...otherProps } = props;
+                return (
+                  <li key={customer.id} {...otherProps}>
+                    <div>
+                      <Typography variant="body1">{customer.name}</Typography>
+                      {customer.phoneNumber && (
+                        <Typography variant="body2" color="textSecondary">
+                          {customer.phoneNumber}
+                        </Typography>
+                      )}
+                    </div>
+                  </li>
+                );
+              }}
               fullWidth
               noOptionsText="Müşteri bulunamadı"
               loading={loadingData}
