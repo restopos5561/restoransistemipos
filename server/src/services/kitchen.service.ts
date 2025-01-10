@@ -237,10 +237,9 @@ export class KitchenService {
 
     return {
       averagePreparationTime: Math.round(avgPrepTime / 60000), // Dakika cinsinden
-      pendingOrders,
-      preparingOrders,
-      readyOrders,
-      completedToday
+      pendingCount: pendingOrders,
+      preparingCount: preparingOrders,
+      completedToday: completedToday
     };
   }
 }
