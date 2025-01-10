@@ -5,8 +5,8 @@ import { tokenService } from '../token.service';
 export class SocketService {
   private static socket: Socket | null = null;
   private static connectionAttempts = 0;
-  private static maxAttempts = 5;
-  private static retryDelay = 1000;
+  private static maxAttempts = 10;
+  private static retryDelay = 2000;
 
   static initialize() {
     if (this.socket) {
@@ -20,20 +20,21 @@ export class SocketService {
     }
 
     try {
-      // URL'yi doğru şekilde oluştur
-      const baseUrl = API_CONFIG.BASE_URL.split('/api')[0]; // http://localhost:3002/api -> http://localhost:3002
-      console.log('[Socket.IO] Connecting to:', baseUrl);
+      console.log('[Socket.IO] Connecting to:', API_CONFIG.SOCKET_URL);
 
-      this.socket = io(baseUrl, {
-        transports: ['websocket'],
+      this.socket = io(API_CONFIG.SOCKET_URL, {
+        transports: ['websocket', 'polling'],
         autoConnect: true,
         withCredentials: true,
         reconnection: true,
         reconnectionDelay: this.retryDelay,
-        reconnectionDelayMax: 5000,
+        reconnectionDelayMax: 10000,
         reconnectionAttempts: this.maxAttempts,
+        timeout: 20000,
+        forceNew: true,
+        path: '/socket.io',
         auth: {
-          token: token
+          token: `Bearer ${token}`
         }
       });
 

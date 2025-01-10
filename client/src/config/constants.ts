@@ -1,5 +1,7 @@
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:3000',
+  BASE_URL: 'http://localhost:3002',
+  CLIENT_URL: 'http://localhost:3000',
+  SOCKET_URL: 'http://localhost:3002',
   TIMEOUT: 60000,
   HEADERS: {
     'Content-Type': 'application/json',

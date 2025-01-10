@@ -13,9 +13,13 @@ export class SocketService {
         credentials: true,
         allowedHeaders: ["Content-Type", "Authorization"]
       },
-      transports: ['websocket'],
-      pingTimeout: 60000,
-      pingInterval: 25000
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
+      pingTimeout: 30000,
+      pingInterval: 10000,
+      connectTimeout: 20000,
+      allowEIO3: true,
+      serveClient: false
     });
 
     // Auth middleware
