@@ -63,9 +63,13 @@ export class OrdersService {
     page?: number;
     limit?: number;
   }) {
+    if (!filters.branchId) {
+      throw new BadRequestError('Şube ID\'si gereklidir.');
+    }
+
     const where = {
+      branchId: Number(filters.branchId),
       ...(filters.restaurantId && { restaurantId: Number(filters.restaurantId) }),
-      ...(filters.branchId && { branchId: Number(filters.branchId) }),
       ...(filters.status && { status: filters.status }),
       ...(filters.tableId && { tableId: Number(filters.tableId) }),
       ...(filters.waiterId && { waiterId: Number(filters.waiterId) }),
@@ -327,7 +331,7 @@ export class OrdersService {
     });
 
     // Socket.IO event'i gönder
-    SocketService.emit(SOCKET_EVENTS.ORDER_CREATED, {
+    SocketService.emitToRoom(`branch_${order.branchId}`, SOCKET_EVENTS.ORDER_CREATED, {
       orderId: order.id,
       order: {
         id: order.id,
@@ -393,7 +397,7 @@ export class OrdersService {
     });
 
     // Socket.IO event'lerini gönder
-    SocketService.emit(SOCKET_EVENTS.ORDER_STATUS_CHANGED, {
+    SocketService.emitToRoom(`branch_${updatedOrder.branchId}`, SOCKET_EVENTS.ORDER_STATUS_CHANGED, {
       orderId: id,
       status,
       order: updatedOrder
@@ -401,7 +405,7 @@ export class OrdersService {
 
     // Eğer masa varsa, masanın durumunu da broadcast et
     if (updatedOrder.table) {
-      SocketService.emit(SOCKET_EVENTS.TABLE_UPDATED, {
+      SocketService.emitToRoom(`branch_${updatedOrder.branchId}`, SOCKET_EVENTS.TABLE_UPDATED, {
         tableId: updatedOrder.table.id,
         order: updatedOrder
       });
@@ -506,7 +510,7 @@ export class OrdersService {
       });
 
       // Socket.IO event'i gönder
-      SocketService.emit(SOCKET_EVENTS.ORDER_UPDATED, {
+      SocketService.emitToRoom(`branch_${updatedOrder.branchId}`, SOCKET_EVENTS.ORDER_UPDATED, {
         orderId: updatedOrder.id,
         order: {
           id: updatedOrder.id,
@@ -549,7 +553,7 @@ export class OrdersService {
     });
 
     // Socket.IO event'i gönder
-    SocketService.emit(SOCKET_EVENTS.ORDER_UPDATED, {
+    SocketService.emitToRoom(`branch_${updatedOrder.branchId}`, SOCKET_EVENTS.ORDER_UPDATED, {
       orderId: updatedOrder.id,
       order: {
         id: updatedOrder.id,
@@ -606,7 +610,7 @@ export class OrdersService {
       });
 
       // Socket.IO event'i gönder
-      SocketService.emit(SOCKET_EVENTS.ORDER_DELETED, {
+      SocketService.emitToRoom(`branch_${id}`, SOCKET_EVENTS.ORDER_DELETED, {
         orderId: id,
         message: 'Sipariş silindi'
       });
@@ -951,7 +955,7 @@ export class OrdersService {
         });
 
         // Socket.IO event'i gönder
-        SocketService.emit(SOCKET_EVENTS.ORDER_DELETED, {
+        SocketService.emitToRoom(`branch_${orderIds[0]}`, SOCKET_EVENTS.ORDER_DELETED, {
           orderIds,
           message: `${orderIds.length} sipariş silindi`
         });

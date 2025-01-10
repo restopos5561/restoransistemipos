@@ -3,17 +3,17 @@ import { API_ENDPOINTS } from '../config/constants';
 
 // Types
 export interface GetTablesParams {
-  branchId?: string;
+  branchId: string;
   status?: 'EMPTY' | 'OCCUPIED' | 'RESERVED' | 'CLEANING';
 }
 
 export interface GetCustomersParams {
-  branchId?: string;
+  branchId: string;
   search?: string;
 }
 
 export interface GetProductsParams {
-  branchId?: string;
+  branchId: string;
   categoryId?: string;
   search?: string;
 }
@@ -37,39 +37,45 @@ interface BranchListResponse {
 
 const branchService = {
   // Masaları getir
-  getTables: async (restaurantId?: number, params = {}) => {
+  getTables: async (restaurantId: number, branchId: number, params: GetTablesParams = { branchId: branchId.toString() }) => {
     if (!restaurantId) {
       throw new Error('Restaurant ID gereklidir');
     }
-    const response = await api.get(API_ENDPOINTS.TABLES.LIST, { 
+    if (!branchId) {
+      throw new Error('Branch ID gereklidir');
+    }
+    const response = await api.get(API_ENDPOINTS.TABLES.BY_BRANCH(branchId.toString()), { 
       params: {
-        ...params,
-        restaurantId
+        restaurantId,
+        branchId
       }
     });
     return response.data;
   },
 
   // Müşterileri getir
-  getCustomers: async (restaurantId?: number, params = {}) => {
+  getCustomers: async (restaurantId: number, branchId: number, params: GetCustomersParams = { branchId: branchId.toString() }) => {
     if (!restaurantId) {
       throw new Error('Restaurant ID gereklidir');
     }
+    if (!branchId) {
+      throw new Error('Branch ID gereklidir');
+    }
     const response = await api.get(API_ENDPOINTS.CUSTOMERS.LIST, {
       params: {
-        ...params,
-        restaurantId
+        restaurantId,
+        branchId
       }
     });
     return response.data;
   },
 
   // Ürünleri getir
-  getProducts: async (restaurantId?: number, params = {}) => {
+  getProducts: async (restaurantId: number, params: GetProductsParams = { branchId: '' }) => {
     if (!restaurantId) {
       throw new Error('Restaurant ID gereklidir');
     }
-    const response = await api.get('/products', {
+    const response = await api.get(API_ENDPOINTS.PRODUCTS.LIST, {
       params: {
         ...params,
         restaurantId
@@ -80,13 +86,13 @@ const branchService = {
 
   // Aktif şube bilgilerini getir
   getCurrentBranch: async () => {
-    const response = await api.get('/branches/current');
+    const response = await api.get(API_ENDPOINTS.BRANCHES.LIST);
     return response.data;
   },
 
   // Şube ayarlarını güncelle
   updateBranchSettings: async (branchId: string, data: any) => {
-    const response = await api.put(`/branches/${branchId}/settings`, data);
+    const response = await api.put(API_ENDPOINTS.BRANCHES.SETTINGS(branchId), data);
     return response.data;
   },
 

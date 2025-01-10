@@ -21,10 +21,12 @@ import { toast } from 'react-toastify';
 import { SocketService } from '../../services/socket/socket.service';
 import { SOCKET_EVENTS } from '../../services/socket/socket.events';
 import useSound from 'use-sound';
+import { useAuth } from '../../hooks/useAuth';
 
 const KitchenPage: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   // Ses çalma hook'u
   const [playSound] = useSound('/sounds/notification.mp3', {
@@ -44,14 +46,33 @@ const KitchenPage: React.FC = () => {
 
   const [filters, setFilters] = useState<KitchenOrdersFilters>({
     status: [OrderStatus.PENDING, OrderStatus.PREPARING],
-    onlyFood: true
+    onlyFood: true,
+    branchId: user?.branchId
   });
+
+  useEffect(() => {
+    if (!user?.branchId) {
+      toast.error('Şube bilgisi bulunamadı. Lütfen tekrar giriş yapın.');
+      return;
+    }
+
+    setFilters(prev => ({
+      ...prev,
+      branchId: user.branchId
+    }));
+  }, [user?.branchId]);
 
   //statistikleri getir
   const { data: statsData } = useQuery({
-    queryKey: ['kitchen-stats'],
-    queryFn: () => kitchenService.getStats(),
+    queryKey: ['kitchen-stats', user?.branchId],
+    queryFn: () => {
+      if (!user?.branchId) {
+        throw new Error('Şube ID\'si bulunamadı');
+      }
+      return kitchenService.getStats(user.branchId);
+    },
     refetchInterval: 30000,
+    enabled: !!user?.branchId
   });
 
   // Siparişleri getir
@@ -59,11 +80,15 @@ const KitchenPage: React.FC = () => {
     queryKey: ['kitchen-orders', filters],
     queryFn: async () => {
       console.log('[Kitchen] Siparişler isteniyor:', filters);
+      if (!user?.branchId) {
+        throw new Error('Şube ID\'si bulunamadı');
+      }
       const data = await kitchenService.getOrders(filters);
       console.log('[Kitchen] Siparişler alındı:', data);
       return data;
     },
     refetchInterval: 30000,
+    enabled: !!user?.branchId
   });
 
   // Socket.IO event dinleyicisi

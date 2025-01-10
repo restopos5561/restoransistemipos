@@ -29,27 +29,29 @@ interface Branch {
 const BranchSelector = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   // Şubeleri getir
   const { data: branchData } = useQuery({
     queryKey: ['userBranches'],
     queryFn: () => authService.getUserBranches(),
-    enabled: !!profile?.id,
+    enabled: !!user?.id,
   });
 
   // Şube değiştirme mutation'ı
   const switchBranchMutation = useMutation({
     mutationFn: async (branchId: number) => {
       const branchLoginData = {
-        email: profile?.email || '',
+        email: user?.email || '',
         branchId,
       };
       return authService.loginWithBranch(branchLoginData);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      await queryClient.fetchQuery({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['user'] });
       queryClient.invalidateQueries({ queryKey: ['tables'] });
       setIsOpen(false);
       toast.success('Şube başarıyla değiştirildi');
@@ -63,7 +65,7 @@ const BranchSelector = () => {
   const handleClose = () => setIsOpen(false);
 
   const handleBranchSelect = (branchId: number) => {
-    if (branchId === profile?.branchId) {
+    if (branchId === user?.branchId) {
       handleClose();
       return;
     }
@@ -71,7 +73,7 @@ const BranchSelector = () => {
   };
 
   const currentBranch = branchData?.data?.branches?.find(
-    (branch: Branch) => branch.id === profile?.branchId
+    (branch: Branch) => branch.id === user?.branchId
   );
 
   const userBranches = branchData?.data?.branches || [];
@@ -111,11 +113,11 @@ const BranchSelector = () => {
                 <ListItem key={branch.id} disablePadding>
                   <ListItemButton
                     onClick={() => handleBranchSelect(branch.id)}
-                    selected={branch.id === profile?.branchId}
+                    selected={branch.id === user?.branchId}
                   >
                     <ListItemText
                       primary={branch.name}
-                      secondary={branch.id === profile?.branchId ? '(Aktif)' : undefined}
+                      secondary={branch.id === user?.branchId ? '(Aktif)' : undefined}
                     />
                   </ListItemButton>
                 </ListItem>

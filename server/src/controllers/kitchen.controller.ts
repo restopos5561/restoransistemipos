@@ -44,7 +44,13 @@ export class KitchenController {
 
   async getQueue(req: Request, res: Response, next: NextFunction) {
     try {
-      const queue = await kitchenService.getQueue();
+      const branchId = req.query.branchId ? parseInt(req.query.branchId as string) : undefined;
+      
+      if (!branchId) {
+        throw new Error('Şube ID\'si gereklidir');
+      }
+
+      const queue = await kitchenService.getQueue(branchId);
 
       res.json({
         success: true,
@@ -58,6 +64,11 @@ export class KitchenController {
   async getStats(req: Request, res: Response, next: NextFunction) {
     try {
       const branchId = req.query.branchId ? parseInt(req.query.branchId as string) : undefined;
+      
+      if (!branchId) {
+        throw new Error('Şube ID\'si gereklidir');
+      }
+
       const stats = await kitchenService.getStats(branchId);
 
       res.json({

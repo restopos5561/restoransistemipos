@@ -54,7 +54,17 @@ class TablesService {
   }
 
   async getTablesByBranch(branchId: number): Promise<TablesResponse> {
-    const response = await api.get(API_ENDPOINTS.TABLES.BY_BRANCH(branchId.toString()));
+    const restaurantId = localStorage.getItem('restaurantId');
+    if (!restaurantId) {
+      throw new Error('Restaurant ID bulunamadı');
+    }
+
+    const response = await api.get(API_ENDPOINTS.TABLES.BY_BRANCH(branchId.toString()), {
+      params: {
+        restaurantId: Number(restaurantId),
+        branchId
+      }
+    });
     return response.data;
   }
 }

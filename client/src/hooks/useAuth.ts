@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authService } from '../services/auth.service';
-import { LoginCredentials, RegisterCredentials, LoginResponse } from '../types/auth.types';
+import { LoginCredentials, RegisterCredentials, LoginResponse, User } from '../types/auth.types';
 import { tokenService } from '../services/token.service';
 import { useNavigate } from 'react-router-dom';
 
@@ -57,7 +57,7 @@ export const useAuth = () => {
     });
 
     // Profile query
-    const profileQuery = useQuery({
+    const profileQuery = useQuery<User>({
         queryKey: ['profile'],
         queryFn: authService.getProfile,
         enabled: tokenService.hasValidTokens(),
@@ -88,7 +88,7 @@ export const useAuth = () => {
         logout: logoutMutation.mutate,
         isLoading: loginMutation.isPending || logoutMutation.isPending || registerMutation.isPending,
         error: loginMutation.error || logoutMutation.error || registerMutation.error,
-        profile: profileQuery.data,
+        user: profileQuery.data,
         isAuthenticated: !!profileQuery.data && tokenService.hasValidTokens(),
         isProfileLoading: profileQuery.isLoading
     };

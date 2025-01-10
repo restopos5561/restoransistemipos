@@ -20,8 +20,12 @@ export class KitchenService {
       params: filters
     });
 
+    if (!filters.branchId) {
+      throw new BadRequestError('Şube ID\'si gereklidir.');
+    }
+
     const where: Prisma.OrderWhereInput = {
-      ...(filters.branchId && { branchId: filters.branchId }),
+      branchId: filters.branchId,
       ...(filters.status && { 
         status: { 
           in: Array.isArray(filters.status) 
@@ -120,104 +124,94 @@ export class KitchenService {
     });
   }
 
-  async getQueue() {
+  async getQueue(branchId: number) {
+    if (!branchId) {
+      throw new BadRequestError('Şube ID\'si gereklidir.');
+    }
+
     return this.getOrders({
       status: ['PENDING', 'PREPARING'],
       limit: 50,
+      branchId
     });
   }
 
-  async getStats(branchId?: number) {
-    console.log('[KitchenService] İstatistikler isteniyor:', {
-      branchId
-    });
+  async getStats(branchId: number) {
+    if (!branchId) {
+      throw new BadRequestError('Şube ID\'si gereklidir.');
+    }
 
     const today = new Date();
-    const whereBase: Prisma.OrderWhereInput = {
-      ...(branchId && { branchId }),
-      orderItems: {
-        some: {
-          product: {
-            NOT: {
-              categoryId: null
-            }
-          }
-        }
-      }
-    };
+    const startOfToday = startOfDay(today);
+    const endOfToday = endOfDay(today);
 
     const [
-      pendingCount,
-      preparingCount,
-      completedToday,
-      averagePreparationTime
+      averagePreparationTime,
+      pendingOrders,
+      preparingOrders,
+      readyOrders,
+      completedToday
     ] = await Promise.all([
-      // Bekleyen sipariş sayısı
-      prisma.order.count({
-        where: {
-          ...whereBase,
-          status: OrderStatus.PENDING,
-        },
-      }),
-
-      // Hazırlanan sipariş sayısı
-      prisma.order.count({
-        where: {
-          ...whereBase,
-          status: OrderStatus.PREPARING,
-        },
-      }),
-
-      // Bugün tamamlanan sipariş sayısı
-      prisma.order.count({
-        where: {
-          ...whereBase,
-          status: OrderStatus.COMPLETED,
-          completedAt: {
-            gte: startOfDay(today),
-            lte: endOfDay(today),
-          },
-        },
-      }),
-
-      // Ortalama hazırlama süresi (dakika)
+      // Ortalama hazırlama süresi
       prisma.order.findMany({
         where: {
-          ...whereBase,
-          status: OrderStatus.COMPLETED,
+          branchId,
           preparationStartTime: { not: null },
-          preparationEndTime: { not: null },
+          preparationEndTime: { not: null }
         },
         select: {
           preparationStartTime: true,
-          preparationEndTime: true,
-        },
-      }).then(orders => {
-        if (orders.length === 0) return 0;
-        
-        const totalMinutes = orders.reduce((acc, order) => {
-          const startTime = order.preparationStartTime as Date;
-          const endTime = order.preparationEndTime as Date;
-          const minutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
-          return acc + minutes;
-        }, 0);
-
-        return Math.round(totalMinutes / orders.length);
+          preparationEndTime: true
+        }
       }),
+      // Bekleyen siparişler
+      prisma.order.count({
+        where: {
+          branchId,
+          status: OrderStatus.PENDING
+        }
+      }),
+      // Hazırlanan siparişler
+      prisma.order.count({
+        where: {
+          branchId,
+          status: OrderStatus.PREPARING
+        }
+      }),
+      // Hazır siparişler
+      prisma.order.count({
+        where: {
+          branchId,
+          status: OrderStatus.READY
+        }
+      }),
+      // Bugün tamamlanan siparişler
+      prisma.order.count({
+        where: {
+          branchId,
+          status: OrderStatus.COMPLETED,
+          completedAt: {
+            gte: startOfToday,
+            lte: endOfToday
+          }
+        }
+      })
     ]);
 
-    console.log('[KitchenService] İstatistik yanıtı:', {
-      pendingCount,
-      preparingCount,
-      completedToday,
-      averagePreparationTime
-    });
+    // Ortalama hazırlama süresini hesapla
+    const avgPrepTime = averagePreparationTime.reduce((acc, order) => {
+      if (order.preparationStartTime && order.preparationEndTime) {
+        return acc + (order.preparationEndTime.getTime() - order.preparationStartTime.getTime());
+      }
+      return acc;
+    }, 0) / (averagePreparationTime.length || 1);
 
     return {
-      pendingCount,
-      preparingCount,
-      completedToday,
-      averagePreparationTime,
+      averagePreparationTime: Math.round(avgPrepTime / 60000), // Dakika cinsinden
+      pendingOrders,
+      preparingOrders,
+      readyOrders,
+      completedToday
     };
   }
 }

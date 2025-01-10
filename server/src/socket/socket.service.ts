@@ -63,6 +63,13 @@ export class SocketService {
         user: socket.data.user
       });
 
+      // Kullanıcıyı şube odasına katılma
+      if (socket.data.user?.branchId) {
+        const branchRoom = `branch_${socket.data.user.branchId}`;
+        socket.join(branchRoom);
+        console.log(`[Socket.IO] User joined branch room: ${branchRoom}`);
+      }
+
       socket.on('disconnect', () => {
         console.log('[Socket.IO] Client disconnected:', socket.id);
       });

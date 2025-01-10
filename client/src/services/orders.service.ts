@@ -23,7 +23,20 @@ interface CreateOrderData {
 const ordersService = {
   // Get all orders
   getOrders: async (params: OrderListParams = {}) => {
-    const response = await api.get(API_ENDPOINTS.ORDERS.LIST, { params });
+    // Aktif şube ID'sini localStorage'dan al
+    const branchId = localStorage.getItem('branchId');
+    
+    // Eğer params'da branchId yoksa ve localStorage'da branchId varsa ekle
+    const updatedParams = {
+      ...params,
+      branchId: params.branchId || (branchId ? Number(branchId) : undefined)
+    };
+
+    console.log('[Orders] Siparişler getiriliyor:', {
+      params: updatedParams
+    });
+
+    const response = await api.get(API_ENDPOINTS.ORDERS.LIST, { params: updatedParams });
     return response.data;
   },
 

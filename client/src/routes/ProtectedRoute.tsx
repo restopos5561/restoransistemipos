@@ -8,9 +8,9 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
-    const { profile, isProfileLoading, isAuthenticated } = useAuth();
+    const { user, isProfileLoading: isLoading, isAuthenticated } = useAuth();
 
-    if (isProfileLoading) {
+    if (isLoading) {
         return (
             <Box sx={{ 
                 display: 'flex', 
@@ -27,7 +27,7 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
         return <Navigate to="/login" replace />;
     }
 
-    if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+    if (allowedRoles && user && !allowedRoles.includes(user.role)) {
         return <Navigate to="/unauthorized" replace />;
     }
 

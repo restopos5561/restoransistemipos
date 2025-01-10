@@ -39,6 +39,15 @@ const customersService = {
         params.restaurantId = Number(storedRestaurantId);
       }
 
+      if (!params.branchId) {
+        const storedBranchId = localStorage.getItem('branchId');
+        if (!storedBranchId) {
+          console.error('[MüşteriServisi] BranchID bulunamadı');
+          throw new Error('Şube bilgisi bulunamadı');
+        }
+        params.branchId = Number(storedBranchId);
+      }
+
       const response = await api.get<{ success: boolean; data: any }>(API_ENDPOINTS.CUSTOMERS.LIST, {
         params: {
           ...params,

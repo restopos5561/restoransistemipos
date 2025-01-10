@@ -29,62 +29,55 @@ import { OrderSource } from '../../types/enums';
 
 // Services
 import ordersService from '../../services/orders.service';
+import tablesService from '../../services/tables.service';
+import customersService from '../../services/customers.service';
 import branchService from '../../services/branch.service';
 
 // Types
+import { Table as TableType } from '../../types/table.types';
+import { Customer as CustomerType } from '../../types/customer.types';
+
 interface Product {
-  id: string;
+  id: number;
   name: string;
   price: number;
   description?: string;
   category?: {
-    id: string;
+    id: number;
     name: string;
   };
 }
 
 interface OrderItem {
-  productId: string;
+  productId: number;
   product: Product;
   quantity: number;
   notes?: string;
   totalPrice: number;
 }
 
-interface Table {
-  id: string;
-  number: string;
-  status: 'EMPTY' | 'OCCUPIED' | 'RESERVED' | 'CLEANING';
-}
-
-interface Customer {
-  id: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-}
-
 const NewOrderPage: React.FC = () => {
+  console.warn('🔥 [NewOrder] Component render edildi');
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Form state
   const [orderSource, setOrderSource] = useState<OrderSource>(OrderSource.IN_STORE);
-  const [selectedTable, setSelectedTable] = useState<string>('');
-  const [selectedCustomer, setSelectedCustomer] = useState<string>('');
+  const [selectedTable, setSelectedTable] = useState<number>(0);
+  const [selectedCustomer, setSelectedCustomer] = useState<number>(0);
   const [customerCount, setCustomerCount] = useState<number>(1);
   const [notes, setNotes] = useState<string>('');
   
   // Data lists
-  const [tables, setTables] = useState<Table[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [tables, setTables] = useState<TableType[]>([]);
+  const [customers, setCustomers] = useState<CustomerType[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<OrderItem[]>([]);
   
   // Selected product form
-  const [selectedProduct, setSelectedProduct] = useState<string>('');
+  const [selectedProduct, setSelectedProduct] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
   const [itemNotes, setItemNotes] = useState<string>('');
 
@@ -93,9 +86,18 @@ const NewOrderPage: React.FC = () => {
 
   // Verileri yükle
   useEffect(() => {
+    console.warn('🔥 [NewOrder] useEffect tetiklendi');
+    console.warn('🔥 [NewOrder] User:', user);
+
     const fetchData = async () => {
-      if (!profile?.restaurantId) {
-        setError('Restaurant bilgisi bulunamadı');
+      console.warn('🔥 [NewOrder] User bilgileri:', { 
+        restaurantId: user?.restaurantId, 
+        branchId: user?.branchId 
+      });
+
+      if (!user?.restaurantId || !user?.branchId) {
+        console.warn('🔥 [NewOrder] Restaurant veya branch ID eksik!');
+        setError('Restaurant veya şube bilgisi bulunamadı');
         return;
       }
 
@@ -103,17 +105,45 @@ const NewOrderPage: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        const [tables, customers, products] = await Promise.all([
-          branchService.getTables(profile.restaurantId),
-          branchService.getCustomers(profile.restaurantId),
-          branchService.getProducts(profile.restaurantId)
-        ]);
+        console.log('[NewOrder] Veri çekme başlıyor...');
 
-        setTables(tables.data);
-        setCustomers(customers.data);
-        setProducts(products.data);
+        // Masaları çek
+        console.log('[NewOrder] Masalar çekiliyor...');
+        const tablesResponse = await tablesService.getTablesByBranch(user.branchId);
+        console.log('[NewOrder] Masalar yanıtı:', tablesResponse);
+
+        // Müşterileri çek
+        console.log('[NewOrder] Müşteriler çekiliyor...');
+        const customersResponse = await customersService.getCustomers({ 
+          restaurantId: user.restaurantId, 
+          branchId: user.branchId 
+        });
+        console.log('[NewOrder] Müşteriler yanıtı:', customersResponse);
+
+        // Ürünleri çek
+        console.log('[NewOrder] Ürünler çekiliyor...');
+        const productsResponse = await branchService.getProducts(user.restaurantId, { 
+          branchId: user.branchId.toString() 
+        });
+        console.log('[NewOrder] Ürünler yanıtı:', productsResponse);
+
+        if (!tablesResponse.data || !customersResponse.data || !productsResponse.data) {
+          console.error('[NewOrder] Veri eksik:', {
+            tables: !tablesResponse.data,
+            customers: !customersResponse.data,
+            products: !productsResponse.data
+          });
+          throw new Error('Veriler alınamadı');
+        }
+
+        console.log('[NewOrder] State güncelleniyor...');
+        setTables(tablesResponse.data.tables);
+        setCustomers(customersResponse.data.customers);
+        setProducts(productsResponse.data.products || []);
+        console.log('[NewOrder] State güncellendi');
+
       } catch (error) {
-        console.error('Veriler yüklenirken hata oluştu:', error);
+        console.error('[NewOrder] Veri yükleme hatası:', error);
         setError('Veriler yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
       } finally {
         setLoading(false);
@@ -121,7 +151,7 @@ const NewOrderPage: React.FC = () => {
     };
 
     fetchData();
-  }, [profile?.restaurantId]);
+  }, [user?.restaurantId, user?.branchId]);
 
   // Ürün ekleme
   const handleAddProduct = () => {
@@ -141,7 +171,7 @@ const NewOrderPage: React.FC = () => {
     setSelectedProducts([...selectedProducts, newItem]);
     
     // Form alanlarını sıfırla
-    setSelectedProduct('');
+    setSelectedProduct(0);
     setQuantity(1);
     setItemNotes('');
   };
@@ -159,7 +189,7 @@ const NewOrderPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      if (!profile?.branchId) {
+      if (!user?.branchId) {
         setError('Şube bilgisi bulunamadı.');
         return;
       }
@@ -170,16 +200,16 @@ const NewOrderPage: React.FC = () => {
       }
 
       const orderData = {
-        restaurantId: Number(profile.restaurantId),
-        branchId: Number(profile.branchId),
+        restaurantId: Number(user.restaurantId),
+        branchId: Number(user.branchId),
         orderSource,
-        tableId: orderSource === OrderSource.IN_STORE ? Number(selectedTable) : null,
-        customerId: orderSource !== OrderSource.IN_STORE ? Number(selectedCustomer) : null,
-        customerCount: orderSource === OrderSource.IN_STORE ? Number(customerCount) : 1,
+        tableId: orderSource === OrderSource.IN_STORE ? selectedTable : null,
+        customerId: orderSource !== OrderSource.IN_STORE ? selectedCustomer : null,
+        customerCount: orderSource === OrderSource.IN_STORE ? customerCount : 1,
         notes,
         items: selectedProducts.map(item => ({
-          productId: Number(item.productId),
-          quantity: Number(item.quantity),
+          productId: item.productId,
+          quantity: item.quantity,
           notes: item.notes || ''
         }))
       };
@@ -245,26 +275,22 @@ const NewOrderPage: React.FC = () => {
                     <Select
                       value={selectedTable}
                       label="Masa"
-                      onChange={(e) => setSelectedTable(e.target.value)}
+                      onChange={(e) => setSelectedTable(Number(e.target.value))}
                     >
                       {tables.map((table) => (
-                        <MenuItem
-                          key={table.id}
-                          value={table.id}
-                          disabled={table.status !== 'EMPTY'}
-                        >
-                          Masa {table.number}
-                          {table.status !== 'EMPTY' && ' (Dolu)'}
+                        <MenuItem key={table.id} value={table.id}>
+                          Masa {table.tableNumber} {table.status === 'OCCUPIED' && '(Dolu)'}
                         </MenuItem>
                       ))}
                     </Select>
                   </FormControl>
 
                   <TextField
-                    label="Kişi Sayısı"
+                    fullWidth
                     type="number"
+                    label="Müşteri Sayısı"
                     value={customerCount}
-                    onChange={(e) => setCustomerCount(Math.max(1, parseInt(e.target.value)))}
+                    onChange={(e) => setCustomerCount(Number(e.target.value))}
                     inputProps={{ min: 1 }}
                   />
                 </>
@@ -274,11 +300,11 @@ const NewOrderPage: React.FC = () => {
                   <Select
                     value={selectedCustomer}
                     label="Müşteri"
-                    onChange={(e) => setSelectedCustomer(e.target.value)}
+                    onChange={(e) => setSelectedCustomer(Number(e.target.value))}
                   >
                     {customers.map((customer) => (
                       <MenuItem key={customer.id} value={customer.id}>
-                        {customer.firstName} {customer.lastName}
+                        {customer.name} {customer.phoneNumber && `(${customer.phoneNumber})`}
                       </MenuItem>
                     ))}
                   </Select>
@@ -309,9 +335,9 @@ const NewOrderPage: React.FC = () => {
                 <Select
                   value={selectedProduct}
                   label="Ürün"
-                  onChange={(e) => setSelectedProduct(e.target.value)}
+                  onChange={(e) => setSelectedProduct(Number(e.target.value))}
                 >
-                  {products.map((product) => (
+                  {Array.isArray(products) && products.map((product) => (
                     <MenuItem key={product.id} value={product.id}>
                       {product.name} - {product.price.toFixed(2)} ₺
                     </MenuItem>

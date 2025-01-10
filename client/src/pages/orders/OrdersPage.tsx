@@ -77,7 +77,7 @@ interface OrderDetail {
 const OrdersPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [orders, setOrders] = useState<OrderDetail[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -142,6 +142,11 @@ const OrdersPage: React.FC = () => {
   // Siparişleri getir
   const fetchOrders = useCallback(async () => {
     try {
+      if (!user?.branchId) {
+        setError('Şube bilgisi bulunamadı. Lütfen tekrar giriş yapın.');
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -151,7 +156,7 @@ const OrdersPage: React.FC = () => {
         search: searchTerm,
         status: statusFilter as OrderStatus,
         type: sourceFilter as OrderSource,
-        ...(profile?.branchId && { branchId: profile.branchId })
+        branchId: user.branchId
       };
 
       // Sadece geçerli tarihler varsa ekle
@@ -181,7 +186,7 @@ const OrdersPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, searchTerm, statusFilter, sourceFilter, dateRange, profile?.branchId]);
+  }, [page, searchTerm, statusFilter, sourceFilter, dateRange, user?.branchId]);
 
   // Çoklu seçim işlemleri
   const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,12 +224,9 @@ const OrdersPage: React.FC = () => {
   // Toplu yazdırma işlemi
   const handleBulkPrint = async () => {
     try {
-      const response = await ordersService.getOrdersForPrinting(selectedOrders);
-      if (response.success) {
-        // Yazdırma işlemi için gerekli kodlar eklenecek
-        console.log('Yazdırılacak siparişler:', response.data);
-        toast.success('Siparişler yazdırılıyor...');
-      }
+      // Yazdırma işlemi için gerekli kodlar eklenecek
+      console.log('Yazdırılacak siparişler:', selectedOrders);
+      toast.success('Siparişler yazdırılıyor...');
     } catch (error: any) {
       console.error('Yazdırma hatası:', error);
       toast.error('Siparişler yazdırılırken bir hata oluştu');
@@ -238,7 +240,7 @@ const OrdersPage: React.FC = () => {
   };
 
   const handleNewOrder = () => {
-    setNewOrderDialogOpen(true);
+    navigate('/orders/new');
   };
 
   const handleNewOrderClose = () => {

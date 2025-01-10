@@ -37,8 +37,10 @@ class KitchenService {
     return response.data;
   }
 
-  async getStats(): Promise<StatsResponse> {
-    const response = await api.get(API_ENDPOINTS.KITCHEN.STATS);
+  async getStats(branchId: number): Promise<StatsResponse> {
+    const response = await api.get(API_ENDPOINTS.KITCHEN.STATS, {
+      params: { branchId }
+    });
     return response.data;
   }
 

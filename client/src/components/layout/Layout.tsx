@@ -25,29 +25,29 @@ const DRAWER_WIDTH = 280;
 
 const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Siparişler', icon: <ReceiptIcon />, path: '/orders' },
-    { text: 'Mutfak', icon: <KitchenIcon />, path: '/kitchen', role: ['ADMIN', 'CHEF'] },
-    { text: 'Bar', icon: <BarIcon />, path: '/bar', role: ['ADMIN', 'BAR'] },
-    { text: 'Masalar', icon: <TableIcon />, path: '/tables', role: ['ADMIN', 'WAITER'] },
-    { text: 'Ürünler', icon: <RestaurantIcon />, path: '/products' },
-    { text: 'Kategoriler', icon: <RestaurantIcon />, path: '/categories' },
-    { text: 'Stok', icon: <InventoryIcon />, path: '/stocks' },
-    { text: 'Müşteriler', icon: <PeopleIcon />, path: '/customers' },
-    { text: 'Tedarikçiler', icon: <SupplierIcon />, path: '/suppliers' },
-    { text: 'Cari Hesaplar', icon: <AccountIcon />, path: '/accounts' },
-    { text: 'Ayarlar', icon: <SettingsIcon />, path: '/settings', role: ['ADMIN'] }
+    { text: 'Siparişler', icon: <ReceiptIcon />, path: '/orders', roles: ['ADMIN', 'MANAGER', 'CHEF', 'WAITER', 'CASHIER'] },
+    { text: 'Mutfak', icon: <KitchenIcon />, path: '/kitchen', roles: ['ADMIN', 'CHEF'] },
+    { text: 'Bar', icon: <BarIcon />, path: '/bar', roles: ['ADMIN', 'BAR', 'BAR_STAFF', 'CHEF'] },
+    { text: 'Masalar', icon: <TableIcon />, path: '/tables', roles: ['ADMIN', 'WAITER', 'CASHIER', 'CHEF'] },
+    { text: 'Ürünler', icon: <RestaurantIcon />, path: '/products', roles: ['ADMIN', 'MANAGER', 'CHEF'] },
+    { text: 'Kategoriler', icon: <RestaurantIcon />, path: '/categories', roles: ['ADMIN', 'MANAGER', 'CHEF'] },
+    { text: 'Stok', icon: <InventoryIcon />, path: '/stocks', roles: ['ADMIN', 'MANAGER', 'INVENTORY', 'CHEF'] },
+    { text: 'Müşteriler', icon: <PeopleIcon />, path: '/customers', roles: ['ADMIN', 'MANAGER', 'CHEF'] },
+    { text: 'Tedarikçiler', icon: <SupplierIcon />, path: '/suppliers', roles: ['ADMIN', 'MANAGER', 'CHEF'] },
+    { text: 'Cari Hesaplar', icon: <AccountIcon />, path: '/accounts', roles: ['ADMIN', 'MANAGER', 'ACCOUNTANT', 'CHEF'] },
+    { text: 'Ayarlar', icon: <SettingsIcon />, path: '/settings', roles: ['ADMIN', 'CHEF'] }
 ];
 
 const Layout: React.FC = () => {
-    const { isAuthenticated, isProfileLoading, profile } = useAuth();
+    const { isAuthenticated, isProfileLoading: isLoading, user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const theme = useTheme();
 
-    console.log('Current profile:', profile);
+    console.log('Current user:', user);
 
-    if (isProfileLoading) {
+    if (isLoading) {
         return (
             <Box sx={{ 
                 display: 'flex', 
@@ -66,7 +66,7 @@ const Layout: React.FC = () => {
     }
 
     const filteredMenuItems = menuItems.filter(item => 
-        !item.role || (Array.isArray(item.role) && profile?.role && item.role.includes(profile.role))
+        !item.roles || (Array.isArray(item.roles) && user?.role && item.roles.includes(user.role))
     );
 
     return (
