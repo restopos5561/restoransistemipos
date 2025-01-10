@@ -172,7 +172,7 @@ const OrderDetailPage: React.FC = () => {
         console.error('Restaurant ID not found');
         return;
       }
-      const response = await productsService.getProducts(order.restaurantId);
+      const response = await productsService.getProducts({ restaurantId: order.restaurantId });
       if (response.success) {
         setProducts(response.data);
       }
@@ -193,7 +193,7 @@ const OrderDetailPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await ordersService.getOrderById(id!);
+      const response = await ordersService.getOrderById(Number(id));
       if (response.success && response.data) {
         // API yanıtını frontend tipine dönüştür
         const orderData: OrderDetail = {
@@ -218,7 +218,7 @@ const OrderDetailPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await ordersService.updateOrderStatus(id!, newStatus);
+      const response = await ordersService.updateOrderStatus(Number(id), newStatus);
       if (response.success) {
         await fetchOrderDetails();
         setStatusDialogOpen(false);
@@ -247,7 +247,7 @@ const OrderDetailPage: React.FC = () => {
         throw new Error('Lütfen bir ürün seçin');
       }
 
-      const response = await ordersService.addOrderItems(id!, [{
+      const response = await ordersService.addOrderItems(Number(id), [{
         productId: parseInt(selectedProduct),
         quantity,
         notes: itemNotes
@@ -607,11 +607,15 @@ const OrderDetailPage: React.FC = () => {
                   label="Ürün"
                   onChange={(e) => setSelectedProduct(e.target.value)}
                 >
-                  {products.map((product) => (
-                    <MenuItem key={product.id} value={product.id}>
-                      {product.name} - {product.price.toFixed(2)} ₺
-                    </MenuItem>
-                  ))}
+                  {Array.isArray(products) && products.length > 0 ? (
+                    products.map((product) => (
+                      <MenuItem key={product.id} value={product.id}>
+                        {product.name} - {product.price.toFixed(2)} ₺
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled>Ürün bulunamadı</MenuItem>
+                  )}
                 </Select>
               </FormControl>
               <TextField

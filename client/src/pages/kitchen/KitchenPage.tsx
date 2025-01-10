@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Container,
@@ -18,6 +18,8 @@ import { kitchenService } from '../../services/kitchen.service';
 import { OrderStatus } from '../../types/enums';
 import { KitchenOrdersFilters } from '../../types/kitchen.types';
 import { toast } from 'react-toastify';
+import { SocketService } from '../../services/socket/socket.service';
+import { SOCKET_EVENTS } from '../../services/socket/socket.events';
 
 const KitchenPage: React.FC = () => {
   const theme = useTheme();
@@ -27,7 +29,7 @@ const KitchenPage: React.FC = () => {
     onlyFood: true
   });
 
-  //�statistikleri getir
+  //statistikleri getir
   const { data: statsData } = useQuery({
     queryKey: ['kitchen-stats'],
     queryFn: () => kitchenService.getStats(),
@@ -40,6 +42,38 @@ const KitchenPage: React.FC = () => {
     queryFn: () => kitchenService.getOrders(filters),
     refetchInterval: 30000,
   });
+
+  // Socket.IO event dinleyicisi
+  useEffect(() => {
+    console.log('[Kitchen] Socket.IO event dinleyicileri ayarlanıyor');
+
+    // Event dinleyicilerini ayarla
+    SocketService.on(SOCKET_EVENTS.ORDER_CREATED, (data: any) => {
+      console.log('[Kitchen] Yeni sipariş alındı:', {
+        event: SOCKET_EVENTS.ORDER_CREATED,
+        orderId: data.orderId
+      });
+      queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
+    });
+
+    SocketService.on(SOCKET_EVENTS.ORDER_UPDATED, (data: any) => {
+      console.log('[Kitchen] Sipariş güncellendi:', {
+        event: SOCKET_EVENTS.ORDER_UPDATED,
+        orderId: data.orderId,
+        status: data.order?.status
+      });
+      queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
+    });
+
+    // Cleanup fonksiyonu
+    return () => {
+      console.log('[Kitchen] Socket.IO event dinleyicileri temizleniyor');
+      SocketService.off(SOCKET_EVENTS.ORDER_CREATED);
+      SocketService.off(SOCKET_EVENTS.ORDER_UPDATED);
+    };
+  }, [queryClient]);
 
   // Sipariş durumu güncelleme
   const updateStatusMutation = useMutation({

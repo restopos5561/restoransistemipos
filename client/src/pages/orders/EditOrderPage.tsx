@@ -249,7 +249,7 @@ const EditOrderPage: React.FC = () => {
           const [tablesResponse, customersResponse, productsResponse] = await Promise.all([
             branchService.getTables(branchId),
             branchService.getCustomers(restaurantId),
-            productsService.getProducts(restaurantId),
+            productsService.getProducts({ restaurantId }),
           ]);
 
           if (!isActive) return;
@@ -334,11 +334,13 @@ const EditOrderPage: React.FC = () => {
   // Ürün ekleme
   const handleAddItem = () => {
     if (!selectedProduct) {
+      toast.error('Lütfen bir ürün seçin');
       return;
     }
 
     const product = products.find(p => p.id === selectedProduct);
     if (!product) {
+      toast.error('Seçilen ürün bulunamadı');
       return;
     }
 
@@ -374,6 +376,17 @@ const EditOrderPage: React.FC = () => {
   // Sipariş güncelleme
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!profile?.branchId) {
+      toast.error('Şube bilgisi bulunamadı');
+      return;
+    }
+
+    if (orderItems.length === 0) {
+      toast.error('Lütfen en az bir ürün ekleyin');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -382,13 +395,12 @@ const EditOrderPage: React.FC = () => {
         throw new Error('Sipariş bilgileri bulunamadı');
       }
 
-      // Tamamlanmış siparişleri güncellemeyi engelle
       if (order.status === 'DELIVERED' || order.status === 'COMPLETED') {
         throw new Error('Tamamlanmış siparişler güncellenemez');
       }
 
       const orderData = {
-        branchId: profile?.branchId || 0,
+        branchId: profile.branchId,
         orderSource: formData.orderSource,
         tableId: formData.tableId,
         customerId: formData.customerId,
@@ -398,22 +410,28 @@ const EditOrderPage: React.FC = () => {
         discountAmount: formData.discountAmount,
         discountType: formData.discountType,
         paymentStatus: formData.paymentStatus,
-        orderItems: orderItems.map(item => ({
-          productId: item.productId,
+        items: orderItems.map(item => ({
+          productId: item.product.id,
           quantity: item.quantity,
           notes: item.notes || '',
-        })),
+        }))
       };
 
       console.log('Gönderilen sipariş verisi:', orderData);
 
-      await ordersService.updateOrder(parseInt(id!), orderData);
-      navigate('/orders');
+      const response = await ordersService.updateOrder(parseInt(id!), orderData);
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Sipariş güncellenirken bir hata oluştu');
+      }
+
       toast.success('Sipariş başarıyla güncellendi');
+      navigate('/orders');
     } catch (error: any) {
-      console.error('Sipariş güncellenirken hata oluştu:', error);
-      setError(error.response?.data?.message || error.message || 'Sipariş güncellenirken bir hata oluştu');
-      toast.error(error.response?.data?.message || error.message || 'Sipariş güncellenirken bir hata oluştu');
+      console.error('Sipariş güncellenirken hata:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Sipariş güncellenirken bir hata oluştu';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

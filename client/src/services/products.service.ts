@@ -13,14 +13,33 @@ interface ProductListParams {
 
 const productsService = {
   // Get all products with optional filtering
-  getProducts: async (params: ProductListParams = {}) => {
-    const response = await api.get(API_ENDPOINTS.PRODUCTS.LIST, { 
-      params: {
-        ...params,
-        restaurantId: params.restaurantId || Number(localStorage.getItem('restaurantId'))
-      }
-    });
-    return response.data;
+  getProducts: async (params?: ProductListParams) => {
+    try {
+      const queryParams = {
+        restaurantId: params?.restaurantId || localStorage.getItem('restaurantId'),
+        branchId: params?.branchId,
+        categoryId: params?.categoryId,
+        search: params?.search,
+        isActive: params?.isActive,
+        page: params?.page,
+        limit: params?.limit
+      };
+
+      // Undefined değerleri temizle
+      Object.keys(queryParams).forEach(key => {
+        if (queryParams[key as keyof typeof queryParams] === undefined) {
+          delete queryParams[key as keyof typeof queryParams];
+        }
+      });
+
+      const response = await api.get(API_ENDPOINTS.PRODUCTS.LIST, { 
+        params: queryParams
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Ürünler yüklenirken hata:', error);
+      throw error;
+    }
   },
 
   // Get a single product by ID

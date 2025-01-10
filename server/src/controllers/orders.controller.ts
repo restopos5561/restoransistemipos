@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { OrdersService } from '../services/orders.service';
 import { BadRequestError } from '../errors/bad-request-error';
 import { OrderStatus } from '@prisma/client';
+import { OrderSchema } from '../schemas/order.schema';
 
 export class OrdersController {
   private ordersService: OrdersService;
@@ -44,9 +45,27 @@ export class OrdersController {
   };
 
   updateOrder = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const order = await this.ordersService.updateOrder(parseInt(id), req.body);
-    res.json({ success: true, data: order });
+    try {
+      const { id } = req.params;
+      if (!id) {
+        throw new BadRequestError('Order ID is required');
+      }
+
+      console.log('Sipariş güncelleme isteği:', {
+        orderId: id,
+        data: req.body
+      });
+
+      const order = await this.ordersService.updateOrder(parseInt(id), req.body);
+      res.json({ success: true, data: order });
+    } catch (error: any) {
+      console.error('Update order error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Sipariş güncellenirken bir hata oluştu',
+        error: error.message
+      });
+    }
   };
 
   deleteOrder = async (req: Request, res: Response) => {
@@ -117,13 +136,37 @@ export class OrdersController {
     res.json({ success: true, data: orders });
   };
 
-  bulkDeleteOrders = async (req: Request, res: Response) => {
-    const { orderIds } = req.body;
-    if (!Array.isArray(orderIds) || orderIds.length === 0) {
-      throw new BadRequestError('Geçerli sipariş ID\'leri belirtilmelidir');
+  bulkDeleteOrders = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      console.log('[Orders] Gelen istek:', {
+        body: req.body,
+        orderIds: req.body.orderIds
+      });
+
+      const { orderIds } = req.body;
+
+      if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+        throw new BadRequestError('Geçerli sipariş ID\'leri gönderilmedi');
+      }
+
+      // orderIds'leri number'a çevir
+      const numericOrderIds = orderIds.map((id: any) => {
+        const numId = Number(id);
+        if (isNaN(numId)) {
+          throw new BadRequestError(`Geçersiz sipariş ID formatı: ${id}`);
+        }
+        return numId;
+      });
+
+      const result = await this.ordersService.bulkDeleteOrders(numericOrderIds);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('[Orders] Controller hatası:', {
+        body: req.body,
+        error: error instanceof Error ? error.message : 'Bilinmeyen hata'
+      });
+      next(error);
     }
-    await this.ordersService.bulkDeleteOrders(orderIds);
-    res.status(204).send();
   };
 
   bulkUpdateOrderStatus = async (req: Request, res: Response) => {

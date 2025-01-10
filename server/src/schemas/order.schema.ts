@@ -45,25 +45,30 @@ export const OrderSchema = {
   }),
 
   update: z.object({
-    branchId: z.number().optional(),
-    orderSource: z.nativeEnum(OrderSource).optional(),
-    tableId: z.number().nullable().optional(),
-    customerId: z.number().nullable().optional(),
-    customerCount: z.number().nullable().optional(),
-    notes: z.string().optional(),
-    priority: z.boolean().optional(),
-    discountAmount: z.number().optional(),
-    discountType: z.string().nullable().optional(),
-    paymentStatus: z.nativeEnum(PaymentStatus).optional(),
-    items: z.array(
-      z.object({
-        id: z.number().optional(),
-        productId: z.number(),
-        quantity: z.number().min(1),
-        notes: z.string().optional(),
-        status: z.nativeEnum(OrderStatus),
+    params: z.object({
+      id: z.string({
+        required_error: 'Sipariş ID gereklidir'
       })
-    ).optional(),
+    }),
+    body: z.object({
+      branchId: z.number().optional(),
+      orderSource: z.nativeEnum(OrderSource).optional(),
+      tableId: z.number().nullable().optional(),
+      customerId: z.number().nullable().optional(),
+      customerCount: z.number().optional(),
+      notes: z.string().optional(),
+      priority: z.boolean().optional(),
+      discountAmount: z.number().optional(),
+      discountType: z.string().nullable().optional(),
+      paymentStatus: z.nativeEnum(PaymentStatus).optional(),
+      items: z.array(
+        z.object({
+          productId: z.number(),
+          quantity: z.number().min(1, 'Miktar en az 1 olmalıdır'),
+          notes: z.string().optional()
+        })
+      ).optional()
+    })
   }),
 
   updateStatus: z.object({

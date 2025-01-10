@@ -5,7 +5,7 @@ import { startOfDay, endOfDay } from 'date-fns';
 const prisma = new PrismaClient();
 
 interface KitchenOrdersFilters {
-  status?: OrderStatus[];
+  status?: OrderStatus[] | string;
   priority?: boolean;
   page?: number;
   limit?: number;
@@ -17,7 +17,13 @@ export class KitchenService {
   async getOrders(filters: KitchenOrdersFilters) {
     const where = {
       ...(filters.branchId && { branchId: filters.branchId }),
-      ...(filters.status && { status: { in: filters.status } }),
+      ...(filters.status && { 
+        status: { 
+          in: Array.isArray(filters.status) 
+            ? filters.status 
+            : filters.status.split(',') as OrderStatus[] 
+        } 
+      }),
       ...(filters.priority !== undefined && { priority: filters.priority }),
       // Opsiyonel filtre: Sadece yemek siparişleri
       ...(filters.onlyFood && {

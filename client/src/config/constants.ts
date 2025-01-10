@@ -90,14 +90,17 @@ export const API_ENDPOINTS = {
     CREATE: '/api/orders',
     UPDATE: (id: string) => `/api/orders/${id}`,
     DELETE: (id: string) => `/api/orders/${id}`,
-    CANCEL: (id: string) => `/api/orders/${id}/cancel`,
     STATUS: (id: string) => `/api/orders/${id}/status`,
     NOTES: (id: string) => `/api/orders/${id}/notes`,
-    PRINT: '/api/orders/print',
+    BY_TABLE: (tableId: string) => `/api/orders/table/${tableId}`,
+    BY_WAITER: (waiterId: string) => `/api/orders/waiter/${waiterId}`,
+    BY_CUSTOMER: (customerId: string) => `/api/orders/customer/${customerId}`,
+    BY_BRANCH: (branchId: string) => `/api/orders/branch/${branchId}`,
+    BY_STATUS: (status: string) => `/api/orders/status/${status}`,
+    BY_DATE_RANGE: '/api/orders/date-range',
     BULK_DELETE: '/api/orders/bulk-delete',
     BULK_STATUS: '/api/orders/bulk-status',
-    ADD_ITEMS: (id: string) => `/api/orders/${id}/items`,
-    BY_TABLE: (tableId: string) => `/api/orders/table/${tableId}`,
+    PRINT: '/api/orders/print'
   },
   TABLES: {
     LIST: '/api/tables',
@@ -118,6 +121,7 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/api/customers/${id}`,
     ORDERS: (id: string) => `/api/customers/${id}/orders`,
     RESERVATIONS: (id: string) => `/api/customers/${id}/reservations`,
+    SEARCH: '/api/customers/search'
   },
   CATEGORIES: {
     LIST: '/api/categories',

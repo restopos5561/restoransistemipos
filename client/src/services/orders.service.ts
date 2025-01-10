@@ -22,7 +22,7 @@ interface CreateOrderData {
 
 const ordersService = {
   // Get all orders
-  getOrders: async (params = {}) => {
+  getOrders: async (params: OrderListParams = {}) => {
     const response = await api.get(API_ENDPOINTS.ORDERS.LIST, { params });
     return response.data;
   },
@@ -32,36 +32,39 @@ const ordersService = {
     try {
       // Ensure data is properly formatted according to backend schema
       const formattedData = {
-        body: {
-          branchId: Number(data.branchId),
-          restaurantId: Number(data.restaurantId),
-          orderSource: data.orderSource,
-          tableId: data.tableId ? Number(data.tableId) : null,
-          customerId: data.customerId ? Number(data.customerId) : null,
-          customerCount: Number(data.customerCount),
-          notes: data.notes || '',
-          items: data.items.map((item) => ({
-            productId: Number(item.productId),
-            quantity: Number(item.quantity),
-            notes: item.notes || '',
-          }))
-        }
+        branchId: Number(data.branchId),
+        restaurantId: Number(data.restaurantId),
+        orderSource: data.orderSource,
+        tableId: data.tableId ? Number(data.tableId) : null,
+        customerId: data.customerId ? Number(data.customerId) : null,
+        customerCount: Number(data.customerCount),
+        notes: data.notes || '',
+        items: data.items.map((item) => ({
+          productId: Number(item.productId),
+          quantity: Number(item.quantity),
+          notes: item.notes || '',
+        }))
       };
 
-      console.log('API isteği URL:', API_ENDPOINTS.ORDERS.CREATE);
-      console.log('Gönderilen veri:', JSON.stringify(formattedData, null, 2));
+      console.log('[Orders] Sipariş oluşturma isteği:', {
+        endpoint: API_ENDPOINTS.ORDERS.CREATE,
+        data: formattedData
+      });
       
       const response = await api.post(API_ENDPOINTS.ORDERS.CREATE, formattedData);
-      console.log('Backend yanıtı:', response.data);
+      
+      console.log('[Orders] Sipariş başarıyla oluşturuldu:', {
+        orderId: response.data.id,
+        status: response.data.status,
+        items: response.data.orderItems?.length || 0
+      });
+      
       return response.data;
     } catch (error: any) {
-      console.error('Sipariş oluşturma hatası detayı:', {
+      console.error('[Orders] Sipariş oluşturma hatası:', {
         status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        headers: error.response?.headers,
-        config: error.response?.config,
-        message: error.message
+        message: error.response?.data?.message || error.message,
+        data: error.response?.data
       });
       throw error;
     }
@@ -80,7 +83,7 @@ const ordersService = {
   },
 
   // Update order status
-  updateOrderStatus: async (id: number, status: string) => {
+  updateOrderStatus: async (id: number, status: OrderStatus) => {
     const response = await api.patch(API_ENDPOINTS.ORDERS.STATUS(id.toString()), { status });
     return response.data;
   },
@@ -89,6 +92,91 @@ const ordersService = {
   deleteOrder: async (id: number) => {
     const response = await api.delete(API_ENDPOINTS.ORDERS.DELETE(id.toString()));
     return response.data;
+  },
+
+  // Bulk delete orders
+  bulkDeleteOrders: async (orderIds: number[]) => {
+    try {
+      console.log('[Orders] Toplu sipariş silme isteği:', {
+        endpoint: API_ENDPOINTS.ORDERS.BULK_DELETE,
+        orderIds,
+        requestBody: { orderIds }
+      });
+      
+      const response = await api.post(API_ENDPOINTS.ORDERS.BULK_DELETE, { orderIds });
+      
+      console.log('[Orders] Siparişler başarıyla silindi:', {
+        status: response.status,
+        data: response.data
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('[Orders] Toplu sipariş silme hatası:', {
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message,
+        data: error.response?.data,
+        requestBody: { orderIds }
+      });
+      throw error;
+    }
+  },
+
+  addOrderItems: async (orderId: number, items: Array<{ productId: number; quantity: number; notes?: string }>) => {
+    try {
+      const response = await api.post(`${API_ENDPOINTS.ORDERS.DETAIL(orderId.toString())}/items`, { items });
+      return response.data;
+    } catch (error) {
+      console.error('Sipariş ürünleri eklenirken hata:', error);
+      throw error;
+    }
+  },
+
+  // Update order
+  updateOrder: async (id: number, data: any) => {
+    try {
+      // Ensure data is properly formatted according to backend schema
+      const formattedData = {
+        branchId: Number(data.branchId),
+        orderSource: data.orderSource,
+        tableId: data.tableId ? Number(data.tableId) : null,
+        customerId: data.customerId ? Number(data.customerId) : null,
+        customerCount: Number(data.customerCount),
+        notes: data.notes || '',
+        priority: data.priority || false,
+        discountAmount: Number(data.discountAmount) || 0,
+        discountType: data.discountType || null,
+        paymentStatus: data.paymentStatus || 'PENDING',
+        items: data.items?.map((item: any) => ({
+          productId: Number(item.productId),
+          quantity: Number(item.quantity),
+          notes: item.notes || ''
+        }))
+      };
+
+      console.log('[Orders] Sipariş güncelleme isteği:', {
+        orderId: id,
+        data: formattedData
+      });
+      
+      const response = await api.put(`/api/orders/${id}`, formattedData);
+      
+      console.log('[Orders] Sipariş başarıyla güncellendi:', {
+        orderId: id,
+        status: response.status,
+        data: response.data
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('[Orders] Sipariş güncelleme hatası:', {
+        orderId: id,
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message,
+        data: error.response?.data
+      });
+      throw error;
+    }
   }
 };
 

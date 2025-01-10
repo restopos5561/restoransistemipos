@@ -1,7 +1,8 @@
 import { PrismaClient, Order, OrderStatus, OrderSource, OrderItemStatus, Prisma, PaymentStatus } from '@prisma/client';
 import { BadRequestError } from '../errors/bad-request-error';
 import { OrderNotFoundError, OrderItemNotFoundError } from '../errors/order-errors';
-import { SocketService, SOCKET_EVENTS } from '../socket';
+import { SocketService } from '../socket/socket.service';
+import { SOCKET_EVENTS } from '../socket/socket.events';
 
 const prisma = new PrismaClient();
 
@@ -30,8 +31,8 @@ interface UpdateOrderInput {
   status?: OrderStatus;
   discountAmount?: number;
   discountType?: string | null;
-  paymentStatus?: PaymentStatus;  // string yerine PaymentStatus kullanın
-  orderItems?: {
+  paymentStatus?: PaymentStatus;
+  items?: {
     id?: number;
     productId: number;
     quantity: number;
@@ -263,6 +264,13 @@ export class OrdersService {
 
   async createOrder(data: CreateOrderInput): Promise<Order> {
     try {
+      console.log('[Orders] Yeni sipariş oluşturma başladı:', {
+        restaurantId: data.restaurantId,
+        branchId: data.branchId,
+        source: data.orderSource,
+        items: data.items.length
+      });
+
       return prisma.$transaction(async (tx) => {
         // Önce ürünleri al
         const products = await tx.product.findMany({
@@ -273,12 +281,18 @@ export class OrdersService {
           }
         });
 
+        console.log('[Orders] Ürünler bulundu:', {
+          requested: data.items.length,
+          found: products.length
+        });
+
         // Ürünlerin varlığını kontrol et
         const missingProducts = data.items
           .filter(item => !products.find(p => p.id === item.productId))
           .map(item => item.productId);
 
         if (missingProducts.length > 0) {
+          console.error('[Orders] Eksik ürünler:', missingProducts);
           throw new Error(`Ürünler bulunamadı: ${missingProducts.join(', ')}`);
         }
 
@@ -302,6 +316,11 @@ export class OrdersService {
           0
         );
 
+        console.log('[Orders] Sipariş detayları hazırlandı:', {
+          items: orderItems.length,
+          totalAmount
+        });
+
         // Siparişi oluştur
         const order = await tx.order.create({
           data: {
@@ -313,6 +332,7 @@ export class OrdersService {
             customerCount: data.customerCount || 1,
             orderNotes: data.notes || '',
             totalAmount,
+            status: OrderStatus.PENDING,
             orderItems: {
               create: orderItems
             }
@@ -329,10 +349,26 @@ export class OrdersService {
           }
         });
 
+        console.log('[Orders] Sipariş başarıyla oluşturuldu:', {
+          orderId: order.id,
+          status: order.status,
+          items: order.orderItems.length
+        });
+
+        // Socket.IO event'ini gönder
+        console.log('[Socket.IO] Sipariş event\'i gönderiliyor:', SOCKET_EVENTS.ORDER_CREATED);
+        SocketService.emit(SOCKET_EVENTS.ORDER_CREATED, {
+          orderId: order.id,
+          order: order
+        });
+
         return order;
       });
     } catch (error) {
-      console.error('Sipariş oluşturma hatası:', error);
+      console.error('[Orders] Sipariş oluşturma hatası:', {
+        message: error instanceof Error ? error.message : 'Bilinmeyen hata',
+        error
+      });
       throw error;
     }
   }
@@ -433,10 +469,11 @@ export class OrdersService {
           ...(data.orderNotes !== undefined && { orderNotes: data.orderNotes }),
           ...(data.priority !== undefined && { priority: data.priority }),
           ...(data.paymentStatus !== undefined && { paymentStatus: data.paymentStatus }),
-          // ... diğer alanlar
+          ...(data.discountAmount !== undefined && { discountAmount: data.discountAmount }),
+          ...(data.discountType !== undefined && { discountType: data.discountType }),
         };
 
-        if (data.orderItems?.length) {
+        if (data.items?.length) {
           // Mevcut kalemleri sil
           await tx.orderItem.deleteMany({
             where: { orderId: id },
@@ -444,7 +481,7 @@ export class OrdersService {
 
           // Ürünleri kontrol et ve fiyatlarını al
           const products = await Promise.all(
-            data.orderItems.map((item) =>
+            data.items.map((item) =>
               tx.product.findFirst({
                 where: {
                   id: item.productId,
@@ -456,7 +493,7 @@ export class OrdersService {
 
           // Ürünlerin varlığını kontrol et
           const missingProducts = products
-            .map((product, index) => (!product ? data.orderItems![index].productId : null))
+            .map((product, index) => (!product ? data.items![index].productId : null))
             .filter((id): id is number => id !== null);
 
           if (missingProducts.length > 0) {
@@ -466,7 +503,7 @@ export class OrdersService {
           }
 
           // OrderItem'ları oluştur
-          const orderItems = data.orderItems.map((item, index) => ({
+          const orderItems = data.items.map((item, index) => ({
             orderId: id,
             productId: item.productId,
             quantity: item.quantity,
@@ -479,13 +516,18 @@ export class OrdersService {
             data: orderItems,
           });
 
-          // Toplam tutarı güncelle
+          // Toplam tutarı hesapla
           const totalAmount = orderItems.reduce(
-            (sum, item) => sum + item.quantity * item.unitPrice,
+            (sum, item) => sum + item.quantity * Number(item.unitPrice),
             0
           );
 
-          updateData.totalAmount = totalAmount;
+          // İndirim öncesi toplam tutarı güncelle
+          updateData.totalPriceBeforeDiscounts = totalAmount;
+          
+          // İndirim sonrası toplam tutarı güncelle
+          const discountAmount = data.discountAmount || 0;
+          updateData.totalAmount = totalAmount - discountAmount;
         }
 
         // Siparişi güncelle
@@ -502,6 +544,13 @@ export class OrdersService {
               },
             },
           },
+        });
+
+        // Socket üzerinden güncellemeyi bildir
+        SocketService.emit(SOCKET_EVENTS.ORDER_UPDATED, {
+          orderId: updatedOrder.id,
+          status: updatedOrder.status,
+          data: updatedOrder
         });
 
         return updatedOrder;
@@ -839,46 +888,109 @@ export class OrdersService {
     });
   }
 
-  async bulkDeleteOrders(orderIds: number[]): Promise<void> {
-    await prisma.$transaction(async (tx) => {
-      // 1. Önce kart ödeme kayıtlarını sil
-      await tx.cardPayment.deleteMany({
-        where: {
-          payment: {
-            orderId: {
+  async bulkDeleteOrders(orderIds: number[]) {
+    try {
+      console.log('[Orders] Toplu sipariş silme başladı:', {
+        orderIds,
+        count: orderIds.length
+      });
+
+      const result = await prisma.$transaction(async (tx) => {
+        // Önce siparişlerin var olduğunu kontrol et
+        const orders = await tx.order.findMany({
+          where: {
+            id: {
+              in: orderIds
+            }
+          },
+          include: {
+            orderItems: true,
+            payment: {
+              include: {
+                cardPayment: true
+              }
+            }
+          }
+        });
+
+        console.log('[Orders] Silinecek siparişler bulundu:', {
+          requested: orderIds.length,
+          found: orders.length
+        });
+
+        // Eksik siparişleri kontrol et
+        const missingOrders = orderIds.filter(id => !orders.find(o => o.id === id));
+        if (missingOrders.length > 0) {
+          console.error('[Orders] Bazı siparişler bulunamadı:', missingOrders);
+          throw new Error(`Siparişler bulunamadı: ${missingOrders.join(', ')}`);
+        }
+
+        // Her sipariş için ilişkili kayıtları sil
+        for (const order of orders) {
+          try {
+            // 1. Stok geçmişi kayıtlarını sil
+            await tx.stockHistory.deleteMany({
+              where: {
+                orderId: order.id
+              }
+            });
+
+            // 2. Kart ödeme kayıtlarını sil
+            if (order.payment?.cardPayment) {
+              await tx.cardPayment.delete({
+                where: {
+                  id: order.payment.cardPayment.id
+                }
+              });
+            }
+
+            // 3. Ödeme kayıtlarını sil
+            if (order.payment) {
+              await tx.payment.delete({
+                where: {
+                  id: order.payment.id
+                }
+              });
+            }
+
+            // 4. Sipariş kalemlerini sil
+            await tx.orderItem.deleteMany({
+              where: {
+                orderId: order.id
+              }
+            });
+
+            console.log(`[Orders] Sipariş #${order.id} ilişkili kayıtları silindi`);
+          } catch (error) {
+            console.error(`[Orders] Sipariş #${order.id} ilişkili kayıtları silinirken hata:`, error);
+            throw error;
+          }
+        }
+
+        // 5. En son siparişleri sil
+        const deleteResult = await tx.order.deleteMany({
+          where: {
+            id: {
               in: orderIds
             }
           }
-        }
+        });
+
+        console.log('[Orders] Siparişler ve ilişkili kayıtlar başarıyla silindi:', {
+          count: deleteResult.count
+        });
+
+        return deleteResult;
       });
 
-      // 2. Sonra ödeme kayıtlarını sil
-      await tx.payment.deleteMany({
-        where: {
-          orderId: {
-            in: orderIds
-          }
-        }
+      return result;
+    } catch (error) {
+      console.error('[Orders] Toplu sipariş silme hatası:', {
+        message: error instanceof Error ? error.message : 'Bilinmeyen hata',
+        error
       });
-
-      // 3. Sipariş kalemlerini sil
-      await tx.orderItem.deleteMany({
-        where: {
-          orderId: {
-            in: orderIds
-          }
-        }
-      });
-
-      // 4. En son siparişleri sil
-      await tx.order.deleteMany({
-        where: {
-          id: {
-            in: orderIds
-          }
-        }
-      });
-    });
+      throw error;
+    }
   }
 
   async bulkUpdateOrderStatus(orderIds: number[], status: OrderStatus): Promise<void> {

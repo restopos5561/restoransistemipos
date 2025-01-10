@@ -41,7 +41,7 @@ const branchService = {
     if (!restaurantId) {
       throw new Error('Restaurant ID gereklidir');
     }
-    const response = await api.get('/tables', { 
+    const response = await api.get(API_ENDPOINTS.TABLES.LIST, { 
       params: {
         ...params,
         restaurantId
@@ -55,7 +55,7 @@ const branchService = {
     if (!restaurantId) {
       throw new Error('Restaurant ID gereklidir');
     }
-    const response = await api.get('/customers', {
+    const response = await api.get(API_ENDPOINTS.CUSTOMERS.LIST, {
       params: {
         ...params,
         restaurantId
