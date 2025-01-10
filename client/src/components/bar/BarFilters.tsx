@@ -9,6 +9,8 @@ import {
   Box,
   useTheme,
   alpha,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { OrderStatus } from '../../types/enums';
@@ -79,30 +81,20 @@ const BarFilters: React.FC<BarFiltersProps> = ({ filters, onFilterChange }) => {
 
         {/* Öncelik Filtresi */}
         <Grid item xs={12} md={2}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Öncelik</InputLabel>
-            <Select
-              value={filters.priority === undefined ? '' : filters.priority.toString()}
-              label="Öncelik"
-              onChange={(e) => {
-                const value = e.target.value;
-                onFilterChange({
-                  priority: value === '' ? undefined : value === 'true',
-                });
-              }}
-              sx={{
-                bgcolor: 'white',
-                borderRadius: 2,
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: alpha(theme.palette.divider, 0.2),
-                },
-              }}
-            >
-              <MenuItem value="">Tümü</MenuItem>
-              <MenuItem value="true">Öncelikli</MenuItem>
-              <MenuItem value="false">Normal</MenuItem>
-            </Select>
-          </FormControl>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={!!filters.priority}
+                onChange={(event) => {
+                  onFilterChange({
+                    priority: event.target.checked
+                  });
+                }}
+                color="warning"
+              />
+            }
+            label="Sadece Öncelikli"
+          />
         </Grid>
 
         {/* Başlangıç Tarihi */}

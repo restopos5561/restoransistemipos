@@ -23,7 +23,7 @@ const BarPage: React.FC = () => {
   const { user } = useAuth();
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [audioEnabled, setAudioEnabled] = useState(false);
   const [audioInitialized, setAudioInitialized] = useState(false);
 
   // Rol kontrolü
@@ -42,47 +42,49 @@ const BarPage: React.FC = () => {
     onloaderror: (_id: string, error: Error) => {
       console.error('🔊 [Bar] Ses dosyası yüklenirken hata:', error);
       setAudioInitialized(false);
+      toast.error('Ses sistemi başlatılamadı');
     },
     onplayerror: (_id: string, error: Error) => {
       console.error('🔊 [Bar] Ses çalınırken hata:', error);
+      toast.error('Ses çalınamadı');
     }
   });
 
   // Ses çalma fonksiyonu
   const playNotification = () => {
-    console.log('🔊 [Bar] Bildirim sesi çalınıyor');
     if (audioEnabled && audioInitialized) {
       try {
         playSound();
       } catch (error) {
         console.error('🔊 [Bar] Ses çalma hatası:', error);
+        toast.error('Bildirim sesi çalınamadı');
       }
-    } else {
-      console.warn('🔊 [Bar] Ses devre dışı veya başlatılmadı:', { audioEnabled, audioInitialized });
     }
   };
 
   // Ses özelliğini başlat
   const initializeAudio = async () => {
     try {
-      playSound();
+      // Kullanıcı etkileşimi ile ses sistemini başlat
+      await playSound();
       setAudioEnabled(true);
       setAudioInitialized(true);
-      console.log('🔊 [Bar] Ses özelliği başlatıldı');
+      toast.success('Ses sistemi başlatıldı');
     } catch (error) {
       console.error('🔊 [Bar] Ses özelliği başlatılamadı:', error);
       setAudioEnabled(false);
       setAudioInitialized(false);
+      toast.error('Ses sistemi başlatılamadı');
     }
   };
 
   // Ses durumunu değiştir
   const toggleAudio = async () => {
-    console.log('🔊 [Bar] Ses durumu değiştiriliyor:', { audioEnabled, audioInitialized });
     if (!audioEnabled) {
       await initializeAudio();
     } else {
       setAudioEnabled(false);
+      toast.info('Ses kapatıldı');
     }
   };
 
@@ -93,7 +95,8 @@ const BarPage: React.FC = () => {
     branchId: user.branchId,
     search: '',
     page: 1,
-    limit: 10
+    limit: 10,
+    priority: false
   });
 
   // Şube değişikliğinde filtreleri güncelle
@@ -144,120 +147,112 @@ const BarPage: React.FC = () => {
 
   // Socket.IO event dinleyicisi
   useEffect(() => {
-    console.log('🔌 [Bar] Socket.IO event dinleyicileri ayarlanıyor');
-
     // Socket bağlantısını kontrol et
     const socket = SocketService.getSocket();
-    if (!socket) {
-      console.error('🔌 [Bar] Socket bağlantısı bulunamadı!');
+    if (!socket || !user?.branchId) {
+      console.error('🔌 [Bar] Socket bağlantısı veya kullanıcı bilgisi bulunamadı!');
       return;
     }
 
     // Event dinleyicilerini ayarla
     const handleOrderCreated = (data: any) => {
-      console.log('🔌 [Bar] Yeni sipariş alındı:', {
-        event: SOCKET_EVENTS.ORDER_CREATED,
-        orderId: data.orderId,
-        data
-      });
+      // Sadece ilgili şubeye ait siparişleri işle
+      if (data.branchId === user.branchId) {
+        console.log('🔌 [Bar] Yeni sipariş alındı:', {
+          event: SOCKET_EVENTS.ORDER_CREATED,
+          orderId: data.orderId
+        });
 
-      // Ses çal
-      if (audioEnabled && audioInitialized) {
+        // Ses çal
         playNotification();
-      } else {
-        console.warn('🔊 [Bar] Ses devre dışı - bildirim çalınamadı');
+
+        // Bildirim göster
+        toast.info('Yeni içecek siparişi geldi!', {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+
+        // Verileri yenile
+        queryClient.invalidateQueries({ queryKey: ['bar-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['bar-stats'] });
       }
-
-      // Bildirim göster
-      toast.info('Yeni içecek siparişi geldi!', {
-        position: 'top-right',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-
-      // Verileri yenile
-      queryClient.invalidateQueries({ queryKey: ['bar-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['bar-stats'] });
     };
 
     const handleOrderDeleted = (data: any) => {
-      console.log('🔌 [Bar] Sipariş silindi:', {
-        event: SOCKET_EVENTS.ORDER_DELETED,
-        orderId: data.orderId,
-        data
-      });
+      // Sadece ilgili şubeye ait siparişleri işle
+      if (data.branchId === user.branchId) {
+        console.log('🔌 [Bar] Sipariş silindi:', {
+          event: SOCKET_EVENTS.ORDER_DELETED,
+          orderId: data.orderId
+        });
 
-      // Ses çal
-      if (audioEnabled && audioInitialized) {
+        // Ses çal
         playNotification();
-      } else {
-        console.warn('🔊 [Bar] Ses devre dışı - bildirim çalınamadı');
+
+        // Bildirim göster
+        toast.warning('Sipariş iptal edildi!', {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+
+        // Verileri yenile
+        queryClient.invalidateQueries({ queryKey: ['bar-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['bar-stats'] });
       }
-
-      // Bildirim göster
-      toast.warning('Sipariş iptal edildi!', {
-        position: 'top-right',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-
-      // Verileri yenile
-      queryClient.invalidateQueries({ queryKey: ['bar-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['bar-stats'] });
     };
 
     const handleOrderStatusChanged = (data: any) => {
-      console.log('🔌 [Bar] Sipariş durumu değişti:', {
-        event: SOCKET_EVENTS.ORDER_STATUS_CHANGED,
-        orderId: data.orderId,
-        status: data.status,
-        data
-      });
+      // Sadece ilgili şubeye ait siparişleri işle
+      if (data.branchId === user.branchId) {
+        console.log('🔌 [Bar] Sipariş durumu değişti:', {
+          event: SOCKET_EVENTS.ORDER_STATUS_CHANGED,
+          orderId: data.orderId,
+          status: data.status
+        });
 
-      // Ses çal
-      if (audioEnabled && audioInitialized) {
+        // Ses çal
         playNotification();
-      } else {
-        console.warn('🔊 [Bar] Ses devre dışı - bildirim çalınamadı');
+
+        // Bildirim göster
+        let message = 'Sipariş durumu güncellendi';
+        let type: 'info' | 'success' | 'warning' = 'info';
+
+        switch (data.status) {
+          case OrderStatus.PREPARING:
+            message = 'Sipariş hazırlanmaya başlandı';
+            type = 'info';
+            break;
+          case OrderStatus.READY:
+            message = 'Sipariş hazır';
+            type = 'success';
+            break;
+          case OrderStatus.CANCELLED:
+            message = 'Sipariş iptal edildi';
+            type = 'warning';
+            break;
+        }
+
+        toast[type](message, {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+
+        // Verileri yenile
+        queryClient.invalidateQueries({ queryKey: ['bar-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['bar-stats'] });
       }
-
-      // Bildirim göster
-      let message = 'Sipariş durumu güncellendi';
-      let type: 'info' | 'success' | 'warning' = 'info';
-
-      switch (data.status) {
-        case OrderStatus.PREPARING:
-          message = 'Sipariş hazırlanmaya başlandı';
-          type = 'info';
-          break;
-        case OrderStatus.READY:
-          message = 'Sipariş hazır';
-          type = 'success';
-          break;
-        case OrderStatus.CANCELLED:
-          message = 'Sipariş iptal edildi';
-          type = 'warning';
-          break;
-      }
-
-      toast[type](message, {
-        position: 'top-right',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-
-      // Verileri yenile
-      queryClient.invalidateQueries({ queryKey: ['bar-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['bar-stats'] });
     };
 
     // Event dinleyicilerini ekle
@@ -267,12 +262,13 @@ const BarPage: React.FC = () => {
 
     // Cleanup function
     return () => {
-      console.log('🔌 [Bar] Socket.IO event dinleyicileri temizleniyor');
-      socket.off(SOCKET_EVENTS.ORDER_CREATED, handleOrderCreated);
-      socket.off(SOCKET_EVENTS.ORDER_DELETED, handleOrderDeleted);
-      socket.off(SOCKET_EVENTS.ORDER_STATUS_CHANGED, handleOrderStatusChanged);
+      if (socket) {
+        socket.off(SOCKET_EVENTS.ORDER_CREATED, handleOrderCreated);
+        socket.off(SOCKET_EVENTS.ORDER_DELETED, handleOrderDeleted);
+        socket.off(SOCKET_EVENTS.ORDER_STATUS_CHANGED, handleOrderStatusChanged);
+      }
     };
-  }, [audioEnabled, audioInitialized, queryClient, playNotification]);
+  }, [user?.branchId, queryClient, playNotification]);
 
   // Sipariş durumu güncelleme
   const updateStatusMutation = useMutation({

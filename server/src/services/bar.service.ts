@@ -1,4 +1,4 @@
-import { PrismaClient, OrderStatus } from '@prisma/client';
+import { PrismaClient, OrderStatus, CategoryType } from '@prisma/client';
 import { BadRequestError } from '../errors/bad-request-error';
 import { startOfDay, endOfDay } from 'date-fns';
 
@@ -15,22 +15,37 @@ interface BarOrdersFilters {
 
 export class BarService {
   async getOrders(filters: BarOrdersFilters) {
+    console.log('[BarService] Siparişler isteniyor:', {
+      endpoint: '/api/bar/orders',
+      params: filters
+    });
+
+    if (!filters.branchId) {
+      throw new BadRequestError('Şube ID\'si gereklidir.');
+    }
+
     const where = {
-      ...(filters.branchId && { branchId: filters.branchId }),
+      branchId: filters.branchId,
       ...(filters.status && { status: { in: filters.status } }),
-      ...(filters.priority !== undefined && { priority: filters.priority }),
+      ...(filters.priority === true && { priority: true }),
       ...(filters.onlyBeverages && {
         orderItems: {
           some: {
             product: {
-              categoryId: {
-                equals: 2, // İçecekler kategorisi
-              },
-            },
-          },
-        },
+              category: {
+                type: CategoryType.BEVERAGE
+              }
+            }
+          }
+        }
       }),
     };
+
+    console.log('[BarService] Sorgu parametreleri:', {
+      where,
+      skip: ((filters.page || 1) - 1) * (filters.limit || 10),
+      take: filters.limit || 10
+    });
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
@@ -58,8 +73,60 @@ export class BarService {
       prisma.order.count({ where }),
     ]);
 
+    console.log('[BarService] Backend yanıtı:', {
+      orderCount: orders.length,
+      orders: orders.map(order => ({
+        id: order.id,
+        status: order.status,
+        orderSource: order.orderSource,
+        table: order.table ? {
+          id: order.table.id,
+          number: order.table.tableNumber
+        } : null,
+        itemCount: order.orderItems.length,
+        items: order.orderItems.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            category: item.product.category ? {
+              id: item.product.category.id,
+              name: item.product.category.name,
+              type: item.product.category.type
+            } : null
+          },
+          notes: item.note || ''
+        }))
+      })),
+      total,
+      page: filters.page || 1,
+      limit: filters.limit || 10,
+      totalPages: Math.ceil(total / (filters.limit || 10))
+    });
+
     return {
-      orders,
+      orders: orders.map(order => ({
+        ...order,
+        table: order.table ? {
+          id: order.table.id,
+          number: order.table.tableNumber
+        } : null,
+        items: order.orderItems.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            category: item.product.category ? {
+              id: item.product.category.id,
+              name: item.product.category.name,
+              type: item.product.category.type
+            } : null
+          },
+          notes: item.note || ''
+        }))
+      })),
       total,
       page: filters.page || 1,
       limit: filters.limit || 10,

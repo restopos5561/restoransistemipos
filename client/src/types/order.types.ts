@@ -155,6 +155,11 @@ export interface Order {
       id: number;
       name: string;
       price: number;
+      category?: {
+        id: number;
+        name: string;
+        type: string;
+      };
     };
     quantity: number;
     notes: string;
