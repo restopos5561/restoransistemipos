@@ -55,7 +55,7 @@ const KitchenPage: React.FC = () => {
     console.log('[Kitchen] Socket.IO event dinleyicileri ayarlanıyor');
 
     // Event dinleyicilerini ayarla
-    SocketService.on(SOCKET_EVENTS.ORDER_CREATED, (data: any) => {
+    const handleOrderCreated = (data: any) => {
       console.log('[Kitchen] Yeni sipariş alındı:', {
         event: SOCKET_EVENTS.ORDER_CREATED,
         orderId: data.orderId
@@ -77,9 +77,9 @@ const KitchenPage: React.FC = () => {
       // Verileri yenile
       queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
       queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
-    });
+    };
 
-    SocketService.on(SOCKET_EVENTS.ORDER_UPDATED, (data: any) => {
+    const handleOrderUpdated = (data: any) => {
       console.log('[Kitchen] Sipariş güncellendi:', {
         event: SOCKET_EVENTS.ORDER_UPDATED,
         orderId: data.orderId,
@@ -99,13 +99,16 @@ const KitchenPage: React.FC = () => {
       // Verileri yenile
       queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
       queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
-    });
+    };
 
-    // Cleanup fonksiyonu
+    SocketService.on(SOCKET_EVENTS.ORDER_CREATED, handleOrderCreated);
+    SocketService.on(SOCKET_EVENTS.ORDER_UPDATED, handleOrderUpdated);
+
+    // Cleanup function
     return () => {
       console.log('[Kitchen] Socket.IO event dinleyicileri temizleniyor');
-      SocketService.off(SOCKET_EVENTS.ORDER_CREATED);
-      SocketService.off(SOCKET_EVENTS.ORDER_UPDATED);
+      SocketService.off(SOCKET_EVENTS.ORDER_CREATED, handleOrderCreated);
+      SocketService.off(SOCKET_EVENTS.ORDER_UPDATED, handleOrderUpdated);
     };
   }, [queryClient, playNewOrder]);
 

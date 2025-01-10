@@ -26,7 +26,9 @@ export class KitchenService {
         status: { 
           in: Array.isArray(filters.status) 
             ? filters.status 
-            : filters.status.split(',') as OrderStatus[] 
+            : typeof filters.status === 'string'
+              ? filters.status.split(',') as OrderStatus[]
+              : [filters.status]
         } 
       }),
       ...(filters.priority !== undefined && { priority: filters.priority }),

@@ -8,7 +8,7 @@ class KitchenService {
     try {
       const params = {
         ...filters,
-        status: filters.status?.join(',')
+        status: Array.isArray(filters.status) ? filters.status.join(',') : filters.status
       };
       
       console.log('[KitchenService] Siparişler isteniyor:', {
