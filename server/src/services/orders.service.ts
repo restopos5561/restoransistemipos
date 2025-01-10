@@ -1,6 +1,7 @@
 import { PrismaClient, Order, OrderStatus, OrderSource, OrderItemStatus, Prisma, PaymentStatus } from '@prisma/client';
 import { BadRequestError } from '../errors/bad-request-error';
 import { OrderNotFoundError, OrderItemNotFoundError } from '../errors/order-errors';
+import { SocketService, SOCKET_EVENTS } from '../socket';
 
 const prisma = new PrismaClient();
 
@@ -307,33 +308,66 @@ export class OrdersService {
     });
   }
 
-  async updateOrderStatus(id: number, data: UpdateOrderInput): Promise<Order> {
-    const order = await this.getOrderById(id);
-
-    if (data.status && !this.canUpdateStatus(order.status, data.status as OrderStatus)) {
-      throw new BadRequestError(
-        `Sipariş durumu ${order.status}'dan ${data.status}'a güncellenemez`
-      );
-    }
-
-    return prisma.order.update({
+  async updateOrderStatus(id: number, status: OrderStatus) {
+    const order = await prisma.order.findUnique({
       where: { id },
-      data: {
-        status: data.status,
-        orderNotes: data.orderNotes,
-        waiterId: data.waiterId,
-      },
       include: {
         table: true,
-        customer: true,
-        waiter: true,
         orderItems: {
           include: {
             product: true,
+            selectedOptions: true,
           },
         },
       },
     });
+
+    if (!order) {
+      throw new BadRequestError('Sipariş bulunamadı');
+    }
+
+    if (!this.canUpdateStatus(order.status, status)) {
+      throw new BadRequestError('Bu durum güncellemesi yapılamaz');
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { id },
+      data: {
+        status,
+        ...(status === OrderStatus.PREPARING && {
+          preparationStartTime: new Date(),
+        }),
+        ...(status === OrderStatus.READY && {
+          preparationEndTime: new Date(),
+        }),
+      },
+      include: {
+        table: true,
+        orderItems: {
+          include: {
+            product: true,
+            selectedOptions: true,
+          },
+        },
+      },
+    });
+
+    // Socket.IO event'lerini gönder
+    SocketService.emit(SOCKET_EVENTS.ORDER_STATUS_CHANGED, {
+      orderId: id,
+      status,
+      order: updatedOrder
+    });
+
+    // Eğer masa varsa, masanın durumunu da broadcast et
+    if (updatedOrder.table) {
+      SocketService.emit(SOCKET_EVENTS.TABLE_UPDATED, {
+        tableId: updatedOrder.table.id,
+        order: updatedOrder
+      });
+    }
+
+    return updatedOrder;
   }
 
   private canUpdateStatus(currentStatus: OrderStatus, newStatus: OrderStatus): boolean {

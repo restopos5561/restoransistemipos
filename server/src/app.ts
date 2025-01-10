@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { PrismaClient } from '@prisma/client';
 import pino from 'pino';
+import { createServer } from 'http';
+import { SocketService } from './socket';
 import { authRouter } from './routes/auth.routes';
 import { usersRouter } from './routes/users.routes';
 import { errorHandler } from './middleware/error-handler';
@@ -56,15 +58,32 @@ const prisma = new PrismaClient();
 
 // Initialize Express app
 const app: Express = express();
+const httpServer = createServer(app);
+
+// Initialize Socket.IO
+SocketService.initialize(httpServer);
 
 // Middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "ws://localhost:3002", "http://localhost:3002", "http://localhost:3000"],
+      upgradeInsecureRequests: null
+    }
+  }
 }));
 
 // CORS middleware
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  const allowedOrigins = ['http://localhost:3000', 'http://localhost:3002'];
+  const origin = req.headers.origin;
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -164,4 +183,4 @@ app.use('/api', optionsRouter);
 // Error handling
 app.use(errorHandler);
 
-export { app, logger, prisma };
+export { app, httpServer, logger, prisma };

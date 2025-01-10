@@ -36,6 +36,8 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'react-hot-toast';
+import { useSocket } from '../../hooks/useSocket';
+import { SOCKET_EVENTS } from '../../constants/socketEvents';
 
 // Components
 import SearchBar from '../../components/common/SearchBar/SearchBar';
@@ -96,6 +98,7 @@ const OrdersPage: React.FC = () => {
   const [bulkActionDialogOpen, setBulkActionDialogOpen] = useState(false);
   const [bulkActionType, setBulkActionType] = useState<'delete' | 'status' | null>(null);
   const [newOrderDialogOpen, setNewOrderDialogOpen] = useState(false);
+  const { on } = useSocket();
 
   // Sipariş durumuna göre chip rengi ve metin
   const getStatusColor = useCallback((status: OrderStatus) => {
@@ -249,6 +252,29 @@ const OrdersPage: React.FC = () => {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  useEffect(() => {
+    // Sipariş durumu değişikliklerini dinle
+    const unsubscribe = on(SOCKET_EVENTS.ORDER_STATUS_CHANGED, (data) => {
+      // Sipariş listesini güncelle
+      setOrders(prevOrders => {
+        return prevOrders.map(order => {
+          if (order.id === data.orderId) {
+            return {
+              ...order,
+              status: data.status,
+              ...data.order
+            };
+          }
+          return order;
+        });
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [on]);
 
   // Memoize edilmiş tablo başlıkları
   const tableHeaders = useMemo(() => [

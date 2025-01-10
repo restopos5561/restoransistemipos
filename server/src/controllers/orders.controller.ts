@@ -64,7 +64,7 @@ export class OrdersController {
 
   cancelOrder = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const order = await this.ordersService.updateOrderStatus(parseInt(id), { status: OrderStatus.CANCELLED });
+    const order = await this.ordersService.updateOrderStatus(parseInt(id), OrderStatus.CANCELLED);
     res.json({ success: true, data: order });
   };
 
