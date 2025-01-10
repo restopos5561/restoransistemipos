@@ -13,13 +13,12 @@ interface CreateOrderInput {
   waiterId?: number;
   customerCount?: number;
   orderSource: OrderSource;
-  orderItems: {
+  items: {
     productId: number;
     quantity: number;
     note?: string;
-    unitPrice?: number;
   }[];
-  orderNotes?: string;
+  notes?: string;
 }
 
 interface UpdateOrderInput {
@@ -269,26 +268,37 @@ export class OrdersService {
         const products = await tx.product.findMany({
           where: {
             id: {
-              in: data.orderItems.map(item => item.productId)
+              in: data.items.map(item => item.productId)
             }
           }
         });
 
         // Ürünlerin varlığını kontrol et
-        const missingProducts = data.orderItems
+        const missingProducts = data.items
           .filter(item => !products.find(p => p.id === item.productId))
           .map(item => item.productId);
 
         if (missingProducts.length > 0) {
-          throw new BadRequestError(`Bu ürünler bulunamadı: ${missingProducts.join(', ')}`);
+          throw new Error(`Ürünler bulunamadı: ${missingProducts.join(', ')}`);
         }
 
-        // Ürün fiyatlarını map'le
-        const productPrices = new Map(products.map(p => [p.id, p.price]));
+        // Ürün fiyatlarını al ve toplam tutarı hesapla
+        const orderItems = data.items.map(item => {
+          const product = products.find(p => p.id === item.productId);
+          if (!product) {
+            throw new Error(`Ürün bulunamadı: ${item.productId}`);
+          }
 
-        // Toplam tutarı hesapla
-        const totalAmount = data.orderItems.reduce(
-          (sum, item) => sum + (item.quantity * Number(productPrices.get(item.productId) || 0)),
+          return {
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: product.price,
+            note: item.note || '',
+          };
+        });
+
+        const totalAmount = orderItems.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
           0
         );
 
@@ -297,37 +307,32 @@ export class OrdersService {
           data: {
             branchId: data.branchId,
             restaurantId: data.restaurantId,
-            tableId: data.tableId,
-            customerId: data.customerId,
-            customerCount: data.customerCount,
             orderSource: data.orderSource,
-            orderNotes: data.orderNotes,
+            tableId: data.tableId || null,
+            customerId: data.customerId || null,
+            customerCount: data.customerCount || 1,
+            orderNotes: data.notes || '',
             totalAmount,
             orderItems: {
-              create: data.orderItems.map(item => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                unitPrice: productPrices.get(item.productId)!,
-                note: item.note
-              }))
+              create: orderItems
             }
           },
           include: {
-            table: true,
-            customer: true,
-            waiter: true,
             orderItems: {
               include: {
                 product: true
               }
-            }
+            },
+            table: true,
+            customer: true,
+            branch: true,
           }
         });
 
         return order;
       });
     } catch (error) {
-      console.error('Create order error:', error);
+      console.error('Sipariş oluşturma hatası:', error);
       throw error;
     }
   }

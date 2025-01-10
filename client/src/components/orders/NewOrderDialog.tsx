@@ -37,7 +37,7 @@ interface NewOrderDialogProps {
 interface OrderItem {
   productId: number;
   quantity: number;
-  notes?: string | undefined;
+  notes?: string;
 }
 
 interface Product {

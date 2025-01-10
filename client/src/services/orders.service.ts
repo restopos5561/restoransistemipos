@@ -30,21 +30,22 @@ const ordersService = {
   // Create a new order
   createOrder: async (data: CreateOrderData) => {
     try {
-      // Ensure data is properly formatted
+      // Ensure data is properly formatted according to backend schema
       const formattedData = {
-        branchId: Number(data.branchId),
-        restaurantId: Number(data.restaurantId),
-        orderSource: data.orderSource,
-        tableId: data.tableId ? Number(data.tableId) : undefined,
-        customerId: data.customerId ? Number(data.customerId) : undefined,
-        customerCount: Number(data.customerCount),
-        orderNotes: data.notes || '',
-        orderItems: data.items.map((item) => ({
-          productId: Number(item.productId),
-          quantity: Number(item.quantity),
-          note: item.notes || '',
-          unitPrice: undefined // Backend'in hesaplaması için boş bırakıyoruz
-        }))
+        body: {
+          branchId: Number(data.branchId),
+          restaurantId: Number(data.restaurantId),
+          orderSource: data.orderSource,
+          tableId: data.tableId ? Number(data.tableId) : null,
+          customerId: data.customerId ? Number(data.customerId) : null,
+          customerCount: Number(data.customerCount),
+          notes: data.notes || '',
+          items: data.items.map((item) => ({
+            productId: Number(item.productId),
+            quantity: Number(item.quantity),
+            notes: item.notes || '',
+          }))
+        }
       };
 
       console.log('API isteği URL:', API_ENDPOINTS.ORDERS.CREATE);

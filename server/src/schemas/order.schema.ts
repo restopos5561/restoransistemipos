@@ -11,20 +11,37 @@ export enum PaymentStatus {
 
 export const OrderSchema = {
   create: z.object({
-    branchId: z.number(),
-    restaurantId: z.number(),
-    orderSource: z.nativeEnum(OrderSource),
-    tableId: z.number().nullable().optional(),
-    customerId: z.number().nullable().optional(),
-    customerCount: z.number().nullable().optional(),
-    notes: z.string().optional(),
-    items: z.array(
-      z.object({
-        productId: z.number(),
-        quantity: z.number().min(1),
-        notes: z.string().optional()
-      })
-    ).min(1)
+    body: z.object({
+      branchId: z.number({
+        required_error: 'Şube ID gereklidir',
+        invalid_type_error: 'Şube ID sayı olmalıdır'
+      }),
+      restaurantId: z.number({
+        required_error: 'Restoran ID gereklidir',
+        invalid_type_error: 'Restoran ID sayı olmalıdır'
+      }),
+      orderSource: z.nativeEnum(OrderSource, {
+        required_error: 'Sipariş kaynağı gereklidir',
+        invalid_type_error: 'Geçersiz sipariş kaynağı'
+      }),
+      tableId: z.number().nullable().optional(),
+      customerId: z.number().nullable().optional(),
+      customerCount: z.number().nullable().optional(),
+      notes: z.string().optional(),
+      items: z.array(
+        z.object({
+          productId: z.number({
+            required_error: 'Ürün ID gereklidir',
+            invalid_type_error: 'Ürün ID sayı olmalıdır'
+          }),
+          quantity: z.number({
+            required_error: 'Miktar gereklidir',
+            invalid_type_error: 'Miktar sayı olmalıdır'
+          }).min(1, 'Miktar en az 1 olmalıdır'),
+          notes: z.string().optional()
+        })
+      ).min(1, 'En az bir ürün eklenmelidir')
+    })
   }),
 
   update: z.object({
@@ -75,7 +92,7 @@ export const OrderSchema = {
       z.object({
         productId: z.number(),
         quantity: z.number().min(1),
-        note: z.string().optional(),
+        notes: z.string().optional(),
         status: z.nativeEnum(OrderStatus).optional(),
         selectedOptions: z.array(z.number()).optional()
       })
