@@ -126,20 +126,22 @@ export class KitchenService {
   }
 
   async getStats(branchId?: number) {
+    console.log('[KitchenService] İstatistikler isteniyor:', {
+      branchId
+    });
+
     const today = new Date();
-    const whereBase = {
+    const whereBase: Prisma.OrderWhereInput = {
       ...(branchId && { branchId }),
       orderItems: {
         some: {
           product: {
-            categoryId: {
-              not: {
-                in: [2], // İçecekler kategorisi
-              },
-            },
-          },
-        },
-      },
+            NOT: {
+              categoryId: null
+            }
+          }
+        }
+      }
     };
 
     const [
@@ -201,6 +203,13 @@ export class KitchenService {
         return Math.round(totalMinutes / orders.length);
       }),
     ]);
+
+    console.log('[KitchenService] İstatistik yanıtı:', {
+      pendingCount,
+      preparingCount,
+      completedToday,
+      averagePreparationTime
+    });
 
     return {
       pendingCount,
