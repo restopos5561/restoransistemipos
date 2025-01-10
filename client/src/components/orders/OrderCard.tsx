@@ -80,13 +80,33 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
             />
           </Stack>
 
-          <Box>
+          <Box sx={{ bgcolor: 'grey.50', p: 1, borderRadius: 1 }}>
+            <Typography variant="subtitle2" color="text.primary" gutterBottom>
+              Sipariş İçeriği:
+            </Typography>
             {order.items?.map((item) => (
-              <Typography key={item.id} variant="body2" color="text.secondary">
-                {item.quantity}x {item.product.name}
-                {item.notes && <em> ({item.notes})</em>}
+              <Typography 
+                key={item.id} 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 0.5
+                }}
+              >
+                <span>
+                  {item.quantity}x {item.product.name}
+                  {item.notes && <em style={{ color: 'error.main' }}> ({item.notes})</em>}
+                </span>
               </Typography>
             ))}
+            {(!order.items || order.items.length === 0) && (
+              <Typography variant="body2" color="text.secondary">
+                Ürün bulunamadı
+              </Typography>
+            )}
           </Box>
 
           <Stack direction="row" spacing={1} alignItems="center">

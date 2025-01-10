@@ -127,7 +127,13 @@ const KitchenPage: React.FC = () => {
         throw new Error('Şube ID\'si bulunamadı');
       }
       const data = await kitchenService.getOrders(filters);
-      console.log('[Kitchen] Siparişler alındı:', data);
+      console.log('[Kitchen] Siparişler ve içerikleri:', {
+        orders: data.orders.map(order => ({
+          id: order.id,
+          items: order.items,
+          table: order.table
+        }))
+      });
       return data;
     },
     refetchInterval: 30000,

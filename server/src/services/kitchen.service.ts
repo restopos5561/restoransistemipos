@@ -74,7 +74,18 @@ export class KitchenService {
     ]);
 
     console.log('[KitchenService] Backend yanıtı:', {
-      orders: orders.length,
+      orders: orders.map(order => ({
+        id: order.id,
+        items: order.orderItems.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          product: {
+            id: item.product.id,
+            name: item.product.name
+          },
+          notes: item.note || ''
+        }))
+      })),
       total,
       page: filters.page || 1,
       limit: filters.limit || 10,
@@ -82,7 +93,18 @@ export class KitchenService {
     });
 
     return {
-      orders,
+      orders: orders.map(order => ({
+        ...order,
+        items: order.orderItems.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          product: {
+            id: item.product.id,
+            name: item.product.name
+          },
+          notes: item.note || ''
+        }))
+      })),
       total,
       page: filters.page || 1,
       limit: filters.limit || 10,
