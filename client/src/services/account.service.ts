@@ -1,4 +1,5 @@
-import axios from '../utils/axios';
+import api from './api';
+import { API_ENDPOINTS } from '../config/constants';
 
 // Backend'deki enum tiplerini tanımla
 export type AccountType = 'SUPPLIER' | 'CUSTOMER' | 'REVENUE' | 'EXPENSE';
@@ -57,8 +58,8 @@ class AccountService {
   // Hesap işlemleri
   async getAccounts() {
     const restaurantId = this.getRestaurantId();
-    const response = await axios.get<{ success: boolean; data: { accounts: Account[] } }>(
-      '/accounts',
+    const response = await api.get<{ success: boolean; data: { accounts: Account[] } }>(
+      API_ENDPOINTS.ACCOUNTS.LIST,
       {
         params: { restaurantId }
       }
@@ -68,8 +69,8 @@ class AccountService {
 
   async getAccountById(id: number) {
     const restaurantId = this.getRestaurantId();
-    const response = await axios.get<{ success: boolean; data: Account }>(
-      `/accounts/${id}`,
+    const response = await api.get<{ success: boolean; data: Account }>(
+      API_ENDPOINTS.ACCOUNTS.DETAIL(id.toString()),
       {
         params: { restaurantId }
       }
@@ -79,8 +80,8 @@ class AccountService {
 
   async createAccount(data: CreateAccountInput) {
     const restaurantId = this.getRestaurantId();
-    const response = await axios.post<{ success: boolean; data: Account }>(
-      '/accounts',
+    const response = await api.post<{ success: boolean; data: Account }>(
+      API_ENDPOINTS.ACCOUNTS.CREATE,
       { ...data, restaurantId }
     );
     return response.data;
@@ -88,8 +89,8 @@ class AccountService {
 
   async updateAccount(id: number, data: Partial<CreateAccountInput>) {
     const restaurantId = this.getRestaurantId();
-    const response = await axios.put<{ success: boolean; data: Account }>(
-      `/accounts/${id}`,
+    const response = await api.put<{ success: boolean; data: Account }>(
+      API_ENDPOINTS.ACCOUNTS.UPDATE(id.toString()),
       data,
       {
         params: { restaurantId }
@@ -100,8 +101,8 @@ class AccountService {
 
   async deleteAccount(id: number) {
     const restaurantId = this.getRestaurantId();
-    const response = await axios.delete<{ success: boolean }>(
-      `/accounts/${id}`,
+    const response = await api.delete<{ success: boolean }>(
+      API_ENDPOINTS.ACCOUNTS.DELETE(id.toString()),
       {
         params: { restaurantId }
       }
@@ -112,8 +113,8 @@ class AccountService {
   // İşlem işlemleri
   async getAccountTransactions(accountId: number) {
     const restaurantId = this.getRestaurantId();
-    const response = await axios.get<{ success: boolean; data: { transactions: AccountTransaction[] } }>(
-      `/accounts/transactions/account/${accountId}`,
+    const response = await api.get<{ success: boolean; data: { transactions: AccountTransaction[] } }>(
+      API_ENDPOINTS.ACCOUNTS.TRANSACTIONS.LIST(accountId.toString()),
       {
         params: { restaurantId }
       }
@@ -123,8 +124,8 @@ class AccountService {
 
   async createTransaction(data: CreateTransactionInput) {
     const restaurantId = this.getRestaurantId();
-    const response = await axios.post<{ success: boolean; data: AccountTransaction }>(
-      '/accounts/transactions',
+    const response = await api.post<{ success: boolean; data: AccountTransaction }>(
+      API_ENDPOINTS.ACCOUNTS.TRANSACTIONS.CREATE,
       { ...data, restaurantId }
     );
     return response.data;

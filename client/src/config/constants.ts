@@ -19,6 +19,17 @@ export const API_ENDPOINTS = {
     RESET_PASSWORD: '/api/auth/reset-password',
     BRANCHES: '/api/auth/branches'
   },
+  ACCOUNTS: {
+    LIST: '/api/accounts',
+    DETAIL: (id: string) => `/api/accounts/${id}`,
+    CREATE: '/api/accounts',
+    UPDATE: (id: string) => `/api/accounts/${id}`,
+    DELETE: (id: string) => `/api/accounts/${id}`,
+    TRANSACTIONS: {
+      LIST: (accountId: string) => `/api/accounts/transactions/account/${accountId}`,
+      CREATE: '/api/accounts/transactions'
+    }
+  },
   BRANCHES: {
     LIST: '/api/branches',
     DETAIL: (id: string) => `/api/branches/${id}`,

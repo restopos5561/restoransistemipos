@@ -124,8 +124,8 @@ const AccountsPage: React.FC = () => {
       console.log('Tedarikçi Yanıtı:', suppliersResponse);
 
       // Müşteri verilerini işle
-      if (customersResponse?.data?.data?.customers?.length > 0) {
-        const mappedCustomers = customersResponse.data.data.customers.map((customer: Customer) => ({
+      if (customersResponse?.data?.customers?.length > 0) {
+        const mappedCustomers = customersResponse.data.customers.map((customer: Customer) => ({
           id: customer.id,
           name: customer.name
         }));
