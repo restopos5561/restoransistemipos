@@ -154,6 +154,13 @@ model Permission {
   userPermissions UserPermissions[]
 }
 
+// Ürün Türleri
+enum ProductType {
+  RAW_MATERIAL     // Hammadde
+  PREPARED_FOOD    // Hazırlanan Yemek
+  READY_TO_SERVE   // Hazır Ürün
+}
+
 // Ürün Modeli
 model Product {
   id                 Int                  @id @default(autoincrement())
@@ -165,6 +172,7 @@ model Product {
   image              String?              // Ürün resmi URL'i
   categoryId         Int?
   category           Category?            @relation(fields: [categoryId], references: [id])
+  type               ProductType          @default(PREPARED_FOOD)
   stocks             Stock[] // One-to-many ilişki
   variants           ProductVariant[] // Ürün varyantları (boyut, renk vb.)
   orderItems         OrderItem[] // Ürünün dahil olduğu sipariş kalemleri

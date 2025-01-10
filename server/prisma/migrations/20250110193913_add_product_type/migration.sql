@@ -1,0 +1,5 @@
+-- CreateEnum
+CREATE TYPE "ProductType" AS ENUM ('RAW_MATERIAL', 'PREPARED_FOOD', 'READY_TO_SERVE');
+
+-- AlterTable
+ALTER TABLE "Product" ADD COLUMN     "type" "ProductType" NOT NULL DEFAULT 'PREPARED_FOOD';

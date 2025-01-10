@@ -157,7 +157,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
                         {item.quantity}x {item.product?.name || 'Ürün adı bulunamadı'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {item.product?.price ? `₺${(item.quantity * item.product.price).toFixed(2)}` : ''}
+                        {item.unitPrice ? `₺${(item.quantity * Number(item.unitPrice)).toFixed(2)}` : ''}
                       </Typography>
                     </Box>
                     

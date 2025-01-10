@@ -56,14 +56,37 @@ async function main() {
         const categories = await Promise.all([
             prisma.category.create({
                 data: {
+                    name: "Hammaddeler",
+                    restaurantId: restaurant.id,
+                    type: "OTHER"
+                }
+            }),
+            prisma.category.create({
+                data: {
                     name: "Ana Yemekler",
-                    restaurantId: restaurant.id
+                    restaurantId: restaurant.id,
+                    type: "FOOD"
+                }
+            }),
+            prisma.category.create({
+                data: {
+                    name: "Mezeler",
+                    restaurantId: restaurant.id,
+                    type: "FOOD"
                 }
             }),
             prisma.category.create({
                 data: {
                     name: "İçecekler",
-                    restaurantId: restaurant.id
+                    restaurantId: restaurant.id,
+                    type: "BEVERAGE"
+                }
+            }),
+            prisma.category.create({
+                data: {
+                    name: "Tatlılar",
+                    restaurantId: restaurant.id,
+                    type: "FOOD"
                 }
             })
         ]);
@@ -71,28 +94,81 @@ async function main() {
         // Ürünler için seed verileri
         console.log('Creating products...');
         const products = await Promise.all([
+            // Hammaddeler
             prisma.product.create({
                 data: {
                     name: "Domates",
-                    categoryId: categories[0].id,
+                    categoryId: categories[0].id, // Hammaddeler
                     price: 4.5,
-                    restaurantId: restaurant.id
+                    unit: "KG",
+                    type: "RAW_MATERIAL",
+                    restaurantId: restaurant.id,
+                    cost: 3.5,
+                    stockTracking: true
                 }
             }),
             prisma.product.create({
                 data: {
                     name: "Salatalık",
-                    categoryId: categories[0].id,
+                    categoryId: categories[0].id, // Hammaddeler
                     price: 2.5,
-                    restaurantId: restaurant.id
+                    unit: "KG",
+                    type: "RAW_MATERIAL",
+                    restaurantId: restaurant.id,
+                    cost: 2.0,
+                    stockTracking: true
+                }
+            }),
+            // Ana Yemekler
+            prisma.product.create({
+                data: {
+                    name: "Köfte Porsiyon",
+                    categoryId: categories[1].id, // Ana Yemekler
+                    price: 150.0,
+                    unit: "PORTION",
+                    type: "PREPARED_FOOD",
+                    restaurantId: restaurant.id,
+                    cost: 85.0,
+                    preparationTime: 20,
+                    stockTracking: false
                 }
             }),
             prisma.product.create({
                 data: {
-                    name: "Biber",
-                    categoryId: categories[0].id,
-                    price: 5.0,
-                    restaurantId: restaurant.id
+                    name: "Tavuk Şiş",
+                    categoryId: categories[1].id, // Ana Yemekler
+                    price: 120.0,
+                    unit: "PORTION",
+                    type: "PREPARED_FOOD",
+                    restaurantId: restaurant.id,
+                    cost: 65.0,
+                    preparationTime: 25,
+                    stockTracking: false
+                }
+            }),
+            // İçecekler
+            prisma.product.create({
+                data: {
+                    name: "Cola (330ml)",
+                    categoryId: categories[3].id, // İçecekler
+                    price: 30.0,
+                    unit: "PIECE",
+                    type: "READY_TO_SERVE",
+                    restaurantId: restaurant.id,
+                    cost: 15.0,
+                    stockTracking: true
+                }
+            }),
+            prisma.product.create({
+                data: {
+                    name: "Ayran (300ml)",
+                    categoryId: categories[3].id, // İçecekler
+                    price: 20.0,
+                    unit: "PIECE",
+                    type: "READY_TO_SERVE",
+                    restaurantId: restaurant.id,
+                    cost: 8.0,
+                    stockTracking: true
                 }
             })
         ]);
@@ -266,9 +342,9 @@ async function main() {
             })
         ]);
 
-        // 7. Siparişler oluştur (orders.postman_collection.json'a göre)
+        // 7. Siparişler oluştur
         await Promise.all([
-            // Mutfak siparişi
+            // Mutfak siparişi - Köfte ve Cola
             prisma.order.create({
                 data: {
                     branchId: branches[0].id,
@@ -277,36 +353,44 @@ async function main() {
                     waiterId: otherUsers[0].id,
                     status: "PENDING",
                     orderSource: "IN_STORE",
+                    totalAmount: 180, // 150 (köfte) + 30 (cola)
                     orderItems: {
                         create: [
                             {
-                                productId: products[0].id,
+                                productId: products[2].id, // Köfte Porsiyon
                                 quantity: 1,
-                                unitPrice: 150
+                                unitPrice: 150,
+                                orderItemStatus: "PENDING",
+                                type: "SALE"
                             },
                             {
-                                productId: products[1].id,
+                                productId: products[4].id, // Cola
                                 quantity: 1,
-                                unitPrice: 30
+                                unitPrice: 30,
+                                orderItemStatus: "PENDING",
+                                type: "SALE"
                             }
                         ]
                     }
                 }
             }),
-            // Bar siparişi
+            // Bar siparişi - 2 Cola
             prisma.order.create({
                 data: {
                     branchId: branches[0].id,
                     restaurantId: restaurant.id,
-                    tableId: tables[0].id,
-                    waiterId: otherUsers[0].id,
+                    tableId: tables[1].id,
+                    waiterId: otherUsers[1].id, // Bar personeli
                     status: "PENDING",
                     orderSource: "IN_STORE",
+                    totalAmount: 60, // 2 x 30 (cola)
                     orderItems: {
                         create: {
-                            productId: products[1].id,
+                            productId: products[4].id, // Cola
                             quantity: 2,
-                            unitPrice: products[1].price
+                            unitPrice: 30,
+                            orderItemStatus: "PENDING",
+                            type: "SALE"
                         }
                     }
                 }
@@ -320,17 +404,17 @@ async function main() {
         await prisma.discount.createMany({
             data: [
                 {
-                    orderId: 1,
+                    orderId: orders[0].id,
                     discountType: "PERCENTAGE",
-                    discountAmount: 10,
+                    discountAmount: 10, // %10 indirim
                     note: "Öğrenci indirimi",
                     createdAt: new Date()
                 },
                 {
-                    orderId: 1,
+                    orderId: orders[0].id,
                     orderItemId: 1,
                     discountType: "FIXED_AMOUNT",
-                    discountAmount: 15,
+                    discountAmount: 15, // 15 TL indirim
                     note: "Kampanya indirimi",
                     createdAt: new Date()
                 }
@@ -340,20 +424,36 @@ async function main() {
         // Stok verileri
         const stocks = [
             {
-                productId: 1,
-                branchId: 1,
-                quantity: 100,
-                lowStockThreshold: 20,
-                idealStockLevel: 150,
-                expirationDate: new Date('2024-12-31')
+                productId: products[0].id, // Domates
+                branchId: branches[0].id,
+                quantity: 25,  // 25 kg
+                lowStockThreshold: 10,
+                idealStockLevel: 30,
+                expirationDate: new Date('2024-01-20')
             },
             {
-                productId: 2,
-                branchId: 1,
-                quantity: 50,
-                lowStockThreshold: 10,
-                idealStockLevel: 75,
+                productId: products[1].id, // Salatalık
+                branchId: branches[0].id,
+                quantity: 15,  // 15 kg
+                lowStockThreshold: 8,
+                idealStockLevel: 20,
+                expirationDate: new Date('2024-01-18')
+            },
+            {
+                productId: products[4].id, // Cola
+                branchId: branches[0].id,
+                quantity: 120, // 120 adet
+                lowStockThreshold: 50,
+                idealStockLevel: 200,
                 expirationDate: new Date('2024-06-30')
+            },
+            {
+                productId: products[5].id, // Ayran
+                branchId: branches[0].id,
+                quantity: 80,  // 80 adet
+                lowStockThreshold: 40,
+                idealStockLevel: 150,
+                expirationDate: new Date('2024-02-15')
             }
         ];
 
@@ -361,20 +461,38 @@ async function main() {
         const stockHistories = [
             {
                 stockId: 1,
-                productId: 1,
-                restaurantId: 1,
-                quantity: 100,
+                productId: products[0].id,
+                restaurantId: restaurant.id,
+                quantity: 25,
                 type: StockTransactionType.IN,
-                notes: 'İlk stok girişi',
+                notes: 'İlk stok girişi - Domates',
                 date: new Date('2024-01-01')
             },
             {
                 stockId: 2,
-                productId: 2,
-                restaurantId: 1,
-                quantity: 50,
+                productId: products[1].id,
+                restaurantId: restaurant.id,
+                quantity: 15,
                 type: StockTransactionType.IN,
-                notes: 'İlk stok girişi',
+                notes: 'İlk stok girişi - Salatalık',
+                date: new Date('2024-01-01')
+            },
+            {
+                stockId: 3,
+                productId: products[4].id,
+                restaurantId: restaurant.id,
+                quantity: 120,
+                type: StockTransactionType.IN,
+                notes: 'İlk stok girişi - Cola',
+                date: new Date('2024-01-01')
+            },
+            {
+                stockId: 4,
+                productId: products[5].id,
+                restaurantId: restaurant.id,
+                quantity: 80,
+                type: StockTransactionType.IN,
+                notes: 'İlk stok girişi - Ayran',
                 date: new Date('2024-01-01')
             }
         ];
@@ -942,49 +1060,70 @@ async function main() {
 
         // Reçete ve malzeme verileri
         const recipes = await Promise.all([
-            // Köfte reçetesi
+            // Köfte Porsiyon reçetesi
             prisma.recipe.create({
                 data: {
-                    productId: products[0].id, // Köfte ürünü
+                    productId: products[2].id, // Köfte Porsiyon
                     ingredients: {
                         create: [
                             {
-                                name: "Köfte",
-                                quantity: 180,
+                                name: "Dana Kıyma",
+                                quantity: 150,
                                 unit: "gram",
-                                cost: 25.50,
+                                cost: 45.0,
                                 waste: 5
                             },
                             {
-                                name: "Tuz",
-                                quantity: 5,
+                                name: "Soğan",
+                                quantity: 30,
                                 unit: "gram",
-                                cost: 0.25,
-                                waste: 0
+                                cost: 2.5,
+                                waste: 10
                             },
                             {
-                                name: "Karabiber",
-                                quantity: 2,
+                                name: "Baharatlar",
+                                quantity: 10,
                                 unit: "gram",
-                                cost: 0.50,
+                                cost: 5.0,
                                 waste: 0
                             }
                         ]
                     }
                 }
             }),
-            // Cola reçetesi (hazır ürün olduğu için basit)
+            // Tavuk Şiş reçetesi
             prisma.recipe.create({
                 data: {
-                    productId: products[1].id, // Cola ürünü
+                    productId: products[3].id, // Tavuk Şiş
                     ingredients: {
                         create: [
                             {
-                                name: "Cola (330ml)",
-                                quantity: 1,
-                                unit: "adet",
-                                cost: 15.00,
-                                waste: 2
+                                name: "Tavuk Göğüs",
+                                quantity: 180,
+                                unit: "gram",
+                                cost: 35.0,
+                                waste: 8
+                            },
+                            {
+                                name: "Biber",
+                                quantity: 50,
+                                unit: "gram",
+                                cost: 3.0,
+                                waste: 15
+                            },
+                            {
+                                name: "Domates",
+                                quantity: 50,
+                                unit: "gram",
+                                cost: 2.0,
+                                waste: 15
+                            },
+                            {
+                                name: "Marine Sosu",
+                                quantity: 30,
+                                unit: "ml",
+                                cost: 8.0,
+                                waste: 5
                             }
                         ]
                     }

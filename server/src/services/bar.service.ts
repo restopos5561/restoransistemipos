@@ -115,21 +115,21 @@ export class BarService {
         items: order.orderItems.map(item => ({
           id: item.id,
           quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
           product: {
             id: item.product.id,
             name: item.product.name,
-            price: item.product.price,
             category: item.product.category ? {
               id: item.product.category.id,
               name: item.product.category.name,
               type: item.product.category.type
             } : null
           },
-          totalPrice: item.quantity * item.product.price,
+          totalPrice: Number(item.unitPrice) * item.quantity,
           notes: item.note || ''
         })),
         totalAmount: order.orderItems.reduce((total, item) => 
-          total + (item.quantity * item.product.price), 0)
+          total + (Number(item.unitPrice) * item.quantity), 0)
       })),
       total,
       page: filters.page || 1,
