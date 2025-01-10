@@ -20,10 +20,12 @@ import { KitchenOrdersFilters } from '../../types/kitchen.types';
 import { toast } from 'react-toastify';
 import { SocketService } from '../../services/socket/socket.service';
 import { SOCKET_EVENTS } from '../../services/socket/socket.events';
+import useSound from 'use-sound';
 
 const KitchenPage: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
+  const [playNewOrder] = useSound('/sounds/notification.mp3', { volume: 0.5 });
   const [filters, setFilters] = useState<KitchenOrdersFilters>({
     status: [OrderStatus.PENDING, OrderStatus.PREPARING],
     onlyFood: true
@@ -58,6 +60,21 @@ const KitchenPage: React.FC = () => {
         event: SOCKET_EVENTS.ORDER_CREATED,
         orderId: data.orderId
       });
+
+      // Bildirim göster
+      toast.info('Yeni sipariş geldi!', {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
+      // Ses çal
+      playNewOrder();
+
+      // Verileri yenile
       queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
       queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
     });
@@ -68,6 +85,18 @@ const KitchenPage: React.FC = () => {
         orderId: data.orderId,
         status: data.order?.status
       });
+
+      // Bildirim göster
+      toast.info('Sipariş güncellendi!', {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
+      // Verileri yenile
       queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
       queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
     });
@@ -78,7 +107,7 @@ const KitchenPage: React.FC = () => {
       SocketService.off(SOCKET_EVENTS.ORDER_CREATED);
       SocketService.off(SOCKET_EVENTS.ORDER_UPDATED);
     };
-  }, [queryClient]);
+  }, [queryClient, playNewOrder]);
 
   // Sipariş durumu güncelleme
   const updateStatusMutation = useMutation({

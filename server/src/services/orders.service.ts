@@ -262,115 +262,90 @@ export class OrdersService {
     return formattedOrder;
   }
 
-  async createOrder(data: CreateOrderInput): Promise<Order> {
-    try {
-      console.log('[Orders] Yeni sipariş oluşturma başladı:', {
+  async createOrder(data: CreateOrderInput) {
+    console.log('[OrdersService] Sipariş oluşturuluyor:', data);
+
+    // Ürünleri getir
+    const products = await prisma.product.findMany({
+      where: {
+        id: {
+          in: data.items.map(item => item.productId)
+        }
+      }
+    });
+
+    // Sipariş kalemlerini hazırla
+    const orderItems = data.items.map(item => {
+      const product = products.find(p => p.id === item.productId);
+      if (!product) {
+        throw new BadRequestError(`Ürün bulunamadı: ${item.productId}`);
+      }
+
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: product.price,
+        note: item.note,
+      };
+    });
+
+    // Toplam tutarı hesapla
+    const totalAmount = orderItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+
+    // Siparişi oluştur
+    const order = await prisma.order.create({
+      data: {
         restaurantId: data.restaurantId,
         branchId: data.branchId,
-        source: data.orderSource,
-        items: data.items.length
-      });
-
-      return prisma.$transaction(async (tx) => {
-        // Önce ürünleri al
-        const products = await tx.product.findMany({
-          where: {
-            id: {
-              in: data.items.map(item => item.productId)
-            }
-          }
-        });
-
-        console.log('[Orders] Ürünler bulundu:', {
-          requested: data.items.length,
-          found: products.length
-        });
-
-        // Ürünlerin varlığını kontrol et
-        const missingProducts = data.items
-          .filter(item => !products.find(p => p.id === item.productId))
-          .map(item => item.productId);
-
-        if (missingProducts.length > 0) {
-          console.error('[Orders] Eksik ürünler:', missingProducts);
-          throw new Error(`Ürünler bulunamadı: ${missingProducts.join(', ')}`);
+        tableId: data.tableId,
+        customerId: data.customerId,
+        waiterId: data.waiterId,
+        customerCount: data.customerCount,
+        orderSource: data.orderSource,
+        orderNotes: data.notes,
+        totalAmount,
+        totalPriceBeforeDiscounts: totalAmount,
+        orderItems: {
+          create: orderItems
         }
-
-        // Ürün fiyatlarını al ve toplam tutarı hesapla
-        const orderItems = data.items.map(item => {
-          const product = products.find(p => p.id === item.productId);
-          if (!product) {
-            throw new Error(`Ürün bulunamadı: ${item.productId}`);
-          }
-
-          return {
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: product.price,
-            note: item.note || '',
-          };
-        });
-
-        const totalAmount = orderItems.reduce(
-          (sum, item) => sum + item.unitPrice * item.quantity,
-          0
-        );
-
-        console.log('[Orders] Sipariş detayları hazırlandı:', {
-          items: orderItems.length,
-          totalAmount
-        });
-
-        // Siparişi oluştur
-        const order = await tx.order.create({
-          data: {
-            branchId: data.branchId,
-            restaurantId: data.restaurantId,
-            orderSource: data.orderSource,
-            tableId: data.tableId || null,
-            customerId: data.customerId || null,
-            customerCount: data.customerCount || 1,
-            orderNotes: data.notes || '',
-            totalAmount,
-            status: OrderStatus.PENDING,
-            orderItems: {
-              create: orderItems
-            }
-          },
+      },
+      include: {
+        table: true,
+        customer: true,
+        waiter: true,
+        orderItems: {
           include: {
-            orderItems: {
-              include: {
-                product: true
-              }
-            },
-            table: true,
-            customer: true,
-            branch: true,
-          }
-        });
+            product: true,
+          },
+        },
+      },
+    });
 
-        console.log('[Orders] Sipariş başarıyla oluşturuldu:', {
-          orderId: order.id,
-          status: order.status,
-          items: order.orderItems.length
-        });
+    console.log('[OrdersService] Sipariş oluşturuldu:', {
+      orderId: order.id,
+      status: order.status
+    });
 
-        // Socket.IO event'ini gönder
-        console.log('[Socket.IO] Sipariş event\'i gönderiliyor:', SOCKET_EVENTS.ORDER_CREATED);
-        SocketService.emit(SOCKET_EVENTS.ORDER_CREATED, {
-          orderId: order.id,
-          order: order
-        });
+    // Socket.IO event'i gönder
+    SocketService.emit(SOCKET_EVENTS.ORDER_CREATED, {
+      orderId: order.id,
+      order: {
+        id: order.id,
+        status: order.status,
+        items: order.orderItems.map(item => ({
+          id: item.id,
+          productId: item.productId,
+          product: {
+            id: item.product.id,
+            name: item.product.name
+          },
+          quantity: item.quantity,
+          note: item.note
+        }))
+      }
+    });
 
-        return order;
-      });
-    } catch (error) {
-      console.error('[Orders] Sipariş oluşturma hatası:', {
-        message: error instanceof Error ? error.message : 'Bilinmeyen hata',
-        error
-      });
-      throw error;
-    }
+    return order;
   }
 
   async updateOrderStatus(id: number, status: OrderStatus) {
@@ -452,116 +427,147 @@ export class OrdersService {
   }
 
   async updateOrder(id: number, data: UpdateOrderInput) {
-    try {
-      const existingOrder = await this.getOrderById(id);
+    console.log('[OrdersService] Sipariş güncelleniyor:', {
+      orderId: id,
+      data
+    });
 
-      // Sipariş DELIVERED veya COMPLETED ise güncellemeye izin verme
-      if (existingOrder.status === 'DELIVERED' || existingOrder.status === 'COMPLETED') {
-        throw new BadRequestError('Tamamlanmış siparişler güncellenemez');
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        orderItems: true
       }
+    });
 
-      return prisma.$transaction(async (tx) => {
-        // Sipariş güncellemesi
-        const updateData: Prisma.OrderUpdateInput = {
-          ...(data.tableId !== undefined && { tableId: data.tableId }),
-          ...(data.customerId !== undefined && { customerId: data.customerId }),
-          ...(data.waiterId !== undefined && { waiterId: data.waiterId }),
-          ...(data.orderNotes !== undefined && { orderNotes: data.orderNotes }),
-          ...(data.priority !== undefined && { priority: data.priority }),
-          ...(data.paymentStatus !== undefined && { paymentStatus: data.paymentStatus }),
-          ...(data.discountAmount !== undefined && { discountAmount: data.discountAmount }),
-          ...(data.discountType !== undefined && { discountType: data.discountType }),
-        };
+    if (!order) {
+      throw new OrderNotFoundError(id);
+    }
 
-        if (data.items?.length) {
-          // Mevcut kalemleri sil
-          await tx.orderItem.deleteMany({
-            where: { orderId: id },
-          });
+    // Sipariş kalemlerini güncelle
+    if (data.items) {
+      // Mevcut kalemleri sil
+      await prisma.orderItem.deleteMany({
+        where: { orderId: id }
+      });
 
-          // Ürünleri kontrol et ve fiyatlarını al
-          const products = await Promise.all(
-            data.items.map((item) =>
-              tx.product.findFirst({
-                where: {
-                  id: item.productId,
-                  restaurantId: existingOrder.restaurantId,
-                },
-              })
-            )
-          );
-
-          // Ürünlerin varlığını kontrol et
-          const missingProducts = products
-            .map((product, index) => (!product ? data.items![index].productId : null))
-            .filter((id): id is number => id !== null);
-
-          if (missingProducts.length > 0) {
-            throw new BadRequestError(
-              `Bu ürünler bulunamadı: ${missingProducts.join(', ')}`
-            );
+      // Yeni kalemleri ekle
+      const products = await prisma.product.findMany({
+        where: {
+          id: {
+            in: data.items.map(item => item.productId)
           }
+        }
+      });
 
-          // OrderItem'ları oluştur
-          const orderItems = data.items.map((item, index) => ({
-            orderId: id,
-            productId: item.productId,
-            quantity: item.quantity,
-            note: item.notes || '',
-            unitPrice: products[index]!.price,
-            orderItemStatus: item.status || OrderItemStatus.PENDING,
-          }));
-
-          await tx.orderItem.createMany({
-            data: orderItems,
-          });
-
-          // Toplam tutarı hesapla
-          const totalAmount = orderItems.reduce(
-            (sum, item) => sum + item.quantity * Number(item.unitPrice),
-            0
-          );
-
-          // İndirim öncesi toplam tutarı güncelle
-          updateData.totalPriceBeforeDiscounts = totalAmount;
-          
-          // İndirim sonrası toplam tutarı güncelle
-          const discountAmount = data.discountAmount || 0;
-          updateData.totalAmount = totalAmount - discountAmount;
+      const orderItems = data.items.map(item => {
+        const product = products.find(p => p.id === item.productId);
+        if (!product) {
+          throw new BadRequestError(`Ürün bulunamadı: ${item.productId}`);
         }
 
-        // Siparişi güncelle
-        const updatedOrder = await tx.order.update({
-          where: { id },
-          data: updateData,
-          include: {
-            table: true,
-            customer: true,
-            waiter: true,
-            orderItems: {
-              include: {
-                product: true,
-              },
+        return {
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: product.price,
+          note: item.notes,
+          status: item.status
+        };
+      });
+
+      // Toplam tutarı hesapla
+      const totalAmount = orderItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+
+      // Siparişi güncelle
+      const updatedOrder = await prisma.order.update({
+        where: { id },
+        data: {
+          ...data,
+          totalAmount,
+          totalPriceBeforeDiscounts: totalAmount,
+          orderItems: {
+            create: orderItems
+          }
+        },
+        include: {
+          table: true,
+          customer: true,
+          waiter: true,
+          orderItems: {
+            include: {
+              product: true,
             },
           },
-        });
-
-        // Socket üzerinden güncellemeyi bildir
-        SocketService.emit(SOCKET_EVENTS.ORDER_UPDATED, {
-          orderId: updatedOrder.id,
-          status: updatedOrder.status,
-          data: updatedOrder
-        });
-
-        return updatedOrder;
+        },
       });
-    } catch (error) {
-      console.error('Update Order Error:', error);
-      if (error instanceof BadRequestError) {
-        throw error;
-      }
-      throw new Error('Sipariş güncellenirken bir hata oluştu');
+
+      console.log('[OrdersService] Sipariş güncellendi:', {
+        orderId: updatedOrder.id,
+        status: updatedOrder.status
+      });
+
+      // Socket.IO event'i gönder
+      SocketService.emit(SOCKET_EVENTS.ORDER_UPDATED, {
+        orderId: updatedOrder.id,
+        order: {
+          id: updatedOrder.id,
+          status: updatedOrder.status,
+          items: updatedOrder.orderItems.map(item => ({
+            id: item.id,
+            productId: item.productId,
+            product: {
+              id: item.product.id,
+              name: item.product.name
+            },
+            quantity: item.quantity,
+            note: item.note
+          }))
+        }
+      });
+
+      return updatedOrder;
     }
+
+    // Sadece sipariş bilgilerini güncelle
+    const updatedOrder = await prisma.order.update({
+      where: { id },
+      data,
+      include: {
+        table: true,
+        customer: true,
+        waiter: true,
+        orderItems: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    console.log('[OrdersService] Sipariş güncellendi:', {
+      orderId: updatedOrder.id,
+      status: updatedOrder.status
+    });
+
+    // Socket.IO event'i gönder
+    SocketService.emit(SOCKET_EVENTS.ORDER_UPDATED, {
+      orderId: updatedOrder.id,
+      order: {
+        id: updatedOrder.id,
+        status: updatedOrder.status,
+        items: updatedOrder.orderItems.map(item => ({
+          id: item.id,
+          productId: item.productId,
+          product: {
+            id: item.product.id,
+            name: item.product.name
+          },
+          quantity: item.quantity,
+          note: item.note
+        }))
+      }
+    });
+
+    return updatedOrder;
   }
 
   async deleteOrder(id: number): Promise<void> {
