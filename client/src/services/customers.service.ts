@@ -1,5 +1,6 @@
 import api from './api';
 import { API_ENDPOINTS } from '../config/constants';
+import { Customer } from '../types/customer.types';
 
 interface CustomerListParams {
   search?: string;
@@ -9,218 +10,105 @@ interface CustomerListParams {
   restaurantId?: number;
 }
 
-interface Customer {
-  id: number;
-  name: string;
-  email?: string;
-  phoneNumber?: string;
-  address?: string;
-  restaurantId: number;
-}
-
 interface CustomerListResponse {
-  customers: Customer[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-interface ApiResponse<T> {
   success: boolean;
-  data: T;
+  data: {
+    customers: Customer[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  error?: string;
 }
 
 const customersService = {
-  // Get all customers with optional filtering
-  getCustomers: async (params: CustomerListParams = {}) => {
+  getCustomers: async (params: CustomerListParams = {}): Promise<CustomerListResponse> => {
     try {
-      console.log('Müşteri Servisi - Parametre:', params);
-      
-      const restaurantId = params.restaurantId || localStorage.getItem('restaurantId');
-      console.log('Müşteri Servisi - Restaurant ID:', restaurantId);
-      
-      if (!restaurantId) {
-        throw new Error('Restaurant ID bulunamadı');
+      console.debug('[MüşteriServisi] İstek başlatılıyor:', {
+        ...params,
+        restaurantId: params.restaurantId || localStorage.getItem('restaurantId')
+      });
+
+      if (!params.restaurantId) {
+        const storedRestaurantId = localStorage.getItem('restaurantId');
+        if (!storedRestaurantId) {
+          console.error('[MüşteriServisi] RestaurantID bulunamadı');
+          throw new Error('Restoran bilgisi bulunamadı');
+        }
+        params.restaurantId = Number(storedRestaurantId);
       }
 
-      const response = await api.get(API_ENDPOINTS.CUSTOMERS.LIST, { 
+      const response = await api.get<{ success: boolean; data: any }>(API_ENDPOINTS.CUSTOMERS.LIST, {
         params: {
           ...params,
-          restaurantId: Number(restaurantId)
+          page: params.page || 1,
+          limit: params.limit || 10
         }
       });
 
-      console.log('Müşteri Servisi - Backend yanıtı:', response.data);
+      console.debug('[MüşteriServisi] Ham yanıt:', response.data);
 
+      // Backend yanıt kontrolü
       if (!response.data?.success) {
-        throw new Error('API yanıtı başarısız');
+        console.error('[MüşteriServisi] Backend yanıtı başarısız:', response.data);
+        throw new Error('Sunucudan geçersiz yanıt alındı');
       }
 
-      return response.data;
-    } catch (error: any) {
-      console.error('Müşteri Servisi - Hata:', error);
-      throw new Error(error.response?.data?.message || 'Müşteri listesi alınırken bir hata oluştu');
-    }
-  },
+      // Backend'den gelen veriyi düzenle
+      const backendData = response.data.data;
+      const customers = Array.isArray(backendData.customers) ? backendData.customers : [];
+      
+      console.debug('[MüşteriServisi] İşlenmiş veri:', {
+        customerCount: customers.length,
+        total: backendData.total,
+        page: backendData.page
+      });
 
-  // Get a single customer by ID
-  getCustomerById: async (id: number) => {
-    try {
-      console.log('Müşteri detayı getiriliyor - ID:', id);
-      const response = await api.get(API_ENDPOINTS.CUSTOMERS.DETAIL(id.toString()));
-      console.log('Backend yanıtı:', response.data);
-      return response.data.data;
-    } catch (error: any) {
-      console.error('Müşteri detayı getirme hatası:', error);
-      if (error.response?.status === 404) {
-        throw new Error('Cari bulunamadı');
-      }
-      throw new Error('Cari detayı alınırken bir hata oluştu');
-    }
-  },
-
-  // Create a new customer
-  createCustomer: async (data: any) => {
-    const restaurantId = localStorage.getItem('restaurantId');
-    if (!restaurantId) {
-      throw new Error('Restaurant ID bulunamadı');
-    }
-
-    if (!data.name?.trim()) {
-      throw new Error('İsim alanı zorunludur');
-    }
-
-    const customerData = {
-      name: data.name.trim(),
-      email: data.email || null,
-      phoneNumber: data.phoneNumber || null,
-      address: data.address || null,
-      restaurantId: Number(restaurantId)
-    };
-
-    const response = await api.post(API_ENDPOINTS.CUSTOMERS.CREATE, customerData);
-    return response.data;
-  },
-
-  // Update a customer
-  updateCustomer: async (id: number, data: any) => {
-    try {
-      console.log('Cari güncelleme isteği gönderiliyor:', { id, data });
-
-      const restaurantId = data.restaurantId || localStorage.getItem('restaurantId');
-      if (!restaurantId) {
-        throw new Error('Restaurant ID bulunamadı');
-      }
-
-      // Veriyi temizle ve hazırla
-      const updateData = {
-        name: data.name?.trim(),
-        email: data.email?.trim() || null,
-        phoneNumber: data.phoneNumber?.trim() || null,
-        address: data.address?.trim() || null,
-        restaurantId: Number(restaurantId)
+      return {
+        success: true,
+        data: {
+          customers,
+          total: backendData.total || 0,
+          page: backendData.page || params.page || 1,
+          limit: backendData.limit || params.limit || 10,
+          totalPages: backendData.totalPages || Math.ceil((backendData.total || 0) / (params.limit || 10))
+        }
       };
-
-      console.log('Backend\'e gönderilecek veri:', updateData);
-
-      const response = await api.put(
-        API_ENDPOINTS.CUSTOMERS.UPDATE(id.toString()), 
-        updateData
-      );
-
-      console.log('Backend yanıtı:', response.data);
-
-      if (!response.data?.success) {
-        throw new Error(response.data?.message || 'Güncelleme başarısız');
-      }
-
-      return response.data.data;
     } catch (error: any) {
-      console.error('Cari güncelleme hatası:', error);
+      console.error('[MüşteriServisi] Hata:', error);
       
-      if (error.response?.status === 404) {
-        throw new Error('Cari bulunamadı');
-      }
-      if (error.response?.status === 400) {
-        throw new Error(error.response.data?.message || 'Geçersiz güncelleme verisi');
-      }
-      if (error.response?.status === 403) {
-        throw new Error('Bu işlem için yetkiniz yok');
+      // API yanıt hatası detayları
+      if (error.response) {
+        console.error('[MüşteriServisi] API Hata Detayı:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        });
+
+        // Özel hata mesajları
+        if (error.response.status === 401) {
+          throw new Error('Oturum süresi dolmuş olabilir, lütfen tekrar giriş yapın');
+        }
+        if (error.response.status === 403) {
+          throw new Error('Bu işlem için yetkiniz bulunmuyor');
+        }
+        if (error.response.status === 404) {
+          throw new Error('İstenilen veriler bulunamadı');
+        }
       }
 
-      throw new Error(
-        error.response?.data?.message || 
-        error.message || 
-        'Cari güncellenirken bir hata oluştu'
-      );
-    }
-  },
-
-  // Delete a customer
-  deleteCustomer: async (id: number) => {
-    try {
-      console.log('Backend silme isteği gönderiliyor - ID:', id);
-      const response = await api.delete(API_ENDPOINTS.CUSTOMERS.DELETE(id.toString()));
-      console.log('Backend yanıtı:', response);
-
-      // Backend 204 (No Content) dönüyor başarılı silme durumunda
-      if (response.status === 204) {
-        return true;
-      }
-
-      // Eğer başka bir durum kodu dönerse ve success false ise hata fırlat
-      if (!response.data?.success) {
-        throw new Error(response.data?.message || 'Silme işlemi başarısız');
-      }
-
-      return true;
-    } catch (error: any) {
-      console.error('Backend silme hatası:', error);
-      
-      // Özel hata durumlarını kontrol et
-      if (error.response?.status === 404) {
-        throw new Error('Cari bulunamadı');
-      }
-      if (error.response?.status === 400) {
-        throw new Error(error.response.data?.message || 'Geçersiz silme isteği');
-      }
-      if (error.response?.status === 403) {
-        throw new Error('Bu işlem için yetkiniz yok');
-      }
-      
-      // Genel hata durumu
-      throw new Error(
-        error.response?.data?.message || 
-        error.message || 
-        'Cari silinirken bir hata oluştu'
-      );
-    }
-  },
-
-  // Get customer orders
-  getCustomerOrders: async (id: number, params: { page?: number; limit?: number } = {}) => {
-    try {
-      console.log('Müşteri siparişleri getiriliyor - ID:', id);
-      const response = await api.get(API_ENDPOINTS.CUSTOMERS.ORDERS(id.toString()), { params });
-      console.log('Backend yanıtı:', response.data);
-      return response.data.data;
-    } catch (error: any) {
-      console.error('Sipariş getirme hatası:', error);
-      throw new Error('Siparişler alınırken bir hata oluştu');
-    }
-  },
-
-  // Get customer reservations
-  getCustomerReservations: async (id: number, params: { page?: number; limit?: number } = {}) => {
-    try {
-      console.log('Müşteri rezervasyonları getiriliyor - ID:', id);
-      const response = await api.get(API_ENDPOINTS.CUSTOMERS.RESERVATIONS(id.toString()), { params });
-      console.log('Backend yanıtı:', response.data);
-      return response.data.data;
-    } catch (error: any) {
-      console.error('Rezervasyon getirme hatası:', error);
-      throw new Error('Rezervasyonlar alınırken bir hata oluştu');
+      return {
+        success: false,
+        data: {
+          customers: [],
+          total: 0,
+          page: params.page || 1,
+          limit: params.limit || 10,
+          totalPages: 0
+        },
+        error: error.message || 'Müşteri listesi alınırken bir hata oluştu'
+      };
     }
   }
 };

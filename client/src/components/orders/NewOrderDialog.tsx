@@ -53,8 +53,10 @@ interface Table {
 
 interface Customer {
   id: number;
-  firstName: string;
-  lastName: string;
+  name: string;
+  email?: string;
+  phoneNumber?: string;
+  address?: string;
 }
 
 const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderCreated }) => {
@@ -95,19 +97,53 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
           }),
           customersService.getCustomers({
             branchId: userProfile.branchId,
-            restaurantId: userProfile.restaurantId
+            restaurantId: userProfile.restaurantId,
+            page: 1,
+            limit: 10
           })
         ]);
 
-        if (tablesRes.success) setTables(tablesRes.data.tables || []);
-        if (productsRes.success) setProducts(productsRes.data.products || []);
-        if (customersRes.success) setCustomers(customersRes.data.customers || []);
-
-        console.log('Fetched data:', {
-          tables: tablesRes.data,
-          products: productsRes.data,
-          customers: customersRes.data
+        console.log('Backend yanıtları:', {
+          tables: tablesRes,
+          products: productsRes,
+          customers: customersRes
         });
+
+        // Müşteri verilerini kontrol et ve set et
+        if (customersRes?.success && customersRes?.data?.customers) {
+          console.log('Müşteriler yükleniyor:', customersRes.data.customers);
+          setCustomers(customersRes.data.customers);
+        } else {
+          console.error('Müşteri verisi bulunamadı:', customersRes);
+          setCustomers([]);
+        }
+
+        // Masa verilerini kontrol et ve set et
+        if (tablesRes?.success && tablesRes?.data?.tables) {
+          console.log('Masalar yükleniyor:', tablesRes.data.tables);
+          setTables(tablesRes.data.tables);
+        } else {
+          console.error('Masa verisi bulunamadı:', tablesRes);
+          setTables([]);
+        }
+
+        // Ürün verilerini kontrol et ve set et
+        if (productsRes?.success && productsRes?.data?.products) {
+          console.log('Ürünler yükleniyor:', productsRes.data.products);
+          setProducts(productsRes.data.products);
+        } else {
+          console.error('Ürün verisi bulunamadı:', productsRes);
+          setProducts([]);
+        }
+
+        // Veri kontrolü
+        const hasErrors = !customersRes?.success || !customersRes?.data?.customers || 
+                         !tablesRes?.success || !tablesRes?.data?.tables || 
+                         !productsRes?.success || !productsRes?.data?.products;
+
+        if (hasErrors) {
+          toast.error('Bazı veriler yüklenemedi, lütfen sayfayı yenileyin');
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Veriler yüklenirken bir hata oluştu');
@@ -252,26 +288,34 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
           )}
 
           <Grid item xs={12} sm={6}>
-            <Autocomplete<Customer>
+            <Autocomplete
               options={customers}
-              getOptionLabel={(customer) => customer ? `${customer.firstName} ${customer.lastName}` : ''}
-              onChange={(_, value) => setCustomerId(value?.id || null)}
+              getOptionLabel={(customer) => customer.name || ''}
               renderInput={(params) => (
-                <TextField 
-                  {...params} 
-                  label="Müşteri" 
-                  error={!customers.length}
-                  helperText={!customers.length ? 'Müşteri listesi yüklenemedi' : ''}
+                <TextField
+                  {...params}
+                  label="Müşteri"
+                  error={customers.length === 0}
+                  helperText={customers.length === 0 ? 'Müşteri listesi yüklenemedi' : ''}
                 />
               )}
-              isOptionEqualToValue={(option, value) => option.id === value?.id}
-              renderOption={(props, option) => (
-                <li {...props} key={option.id}>
-                  {option.firstName} {option.lastName}
+              onChange={(_, newValue) => setCustomerId(newValue?.id || null)}
+              renderOption={(props, customer) => (
+                <li {...props}>
+                  <div>
+                    <Typography variant="body1">{customer.name}</Typography>
+                    {customer.phoneNumber && (
+                      <Typography variant="body2" color="textSecondary">
+                        {customer.phoneNumber}
+                      </Typography>
+                    )}
+                  </div>
                 </li>
               )}
               fullWidth
               noOptionsText="Müşteri bulunamadı"
+              loading={loadingData}
+              loadingText="Yükleniyor..."
             />
           </Grid>
 

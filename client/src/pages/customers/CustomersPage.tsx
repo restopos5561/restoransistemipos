@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -11,44 +11,83 @@ import {
   IconButton,
 } from '@mui/material';
 import { Add as AddIcon, Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import CustomerList from '../../components/customers/CustomerList';
 import customersService from '../../services/customers.service';
 import Loading from '../../components/common/Loading/Loading';
-import { CustomerListResponse } from '../../types/customer.types';
+import { Customer } from '../../types/customer.types';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../hooks/useAuth';
+
+interface CustomerData {
+  customers: Customer[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 const CustomersPage: React.FC = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  const { data, isLoading, refetch } = useQuery<CustomerListResponse>({
+  // Profile değiştiğinde restaurantId'yi kontrol et
+  useEffect(() => {
+    if (profile?.restaurantId) {
+      localStorage.setItem('restaurantId', profile.restaurantId.toString());
+      console.debug('[Cariler] RestaurantID güncellendi:', profile.restaurantId);
+    }
+  }, [profile]);
+
+  const queryOptions: UseQueryOptions<CustomerData, Error> = {
     queryKey: ['customers', page, limit, search],
     queryFn: async () => {
-      const restaurantId = localStorage.getItem('restaurantId');
-      console.log('Müşteri listesi yükleniyor...', { page, limit, search, restaurantId });
+      console.debug('[Cariler] Veri yükleniyor...', { page, limit, search });
       
+      const restaurantId = profile?.restaurantId || localStorage.getItem('restaurantId');
       if (!restaurantId) {
-        console.error('Restaurant ID bulunamadı');
-        throw new Error('Restaurant ID bulunamadı');
+        console.error('[Cariler] RestaurantID bulunamadı');
+        throw new Error('Restoran bilgisi bulunamadı. Lütfen tekrar giriş yapın.');
       }
 
-      const params = {
-        page,
-        limit,
-        search: search.trim(),
-        restaurantId: Number(restaurantId)
-      };
-      console.log('API isteği parametreleri:', params);
+      try {
+        const response = await customersService.getCustomers({
+          page,
+          limit,
+          search: search.trim(),
+          restaurantId: Number(restaurantId)
+        });
 
-      return await customersService.getCustomers(params);
+        console.debug('[Cariler] Veri yüklendi:', {
+          success: response.success,
+          total: response.data?.total,
+          count: response.data?.customers?.length
+        });
+
+        if (!response.success) {
+          throw new Error(response.error || 'Veriler alınamadı');
+        }
+
+        return response.data;
+      } catch (err: any) {
+        console.error('[Cariler] Veri yükleme hatası:', err);
+        throw err;
+      }
     },
+    retry: 1,
     refetchOnWindowFocus: false
-  });
+  };
 
-  console.log('Render - Mevcut data:', data);
+  const { data, isLoading, error, refetch } = useQuery<CustomerData, Error>(queryOptions);
+
+  // Veri ve yükleme durumu kontrolü
+  const customers = data?.customers || [];
+  const total = data?.total || 0;
+  const isError = error instanceof Error;
+  const errorMessage = isError ? error.message : 'Bir hata oluştu';
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(event.target.value);
@@ -61,17 +100,18 @@ const CustomersPage: React.FC = () => {
   };
 
   const handlePageChange = (newPage: number) => {
+    console.debug('[Cariler] Sayfa değişti:', newPage);
     setPage(newPage);
   };
 
   const handleRefresh = async () => {
-    console.log('Liste yenileme başlatıldı');
+    console.debug('[Cariler] Liste yenileniyor...');
     try {
       await refetch();
-      console.log('Liste yenileme başarılı');
-    } catch (error) {
-      console.error('Liste yenileme hatası:', error);
-      toast.error('Liste yenilenirken bir hata oluştu');
+      toast.success('Liste güncellendi');
+    } catch (err: any) {
+      console.error('[Cariler] Yenileme hatası:', err);
+      toast.error(err.message || 'Liste yenilenirken bir hata oluştu');
     }
   };
 
@@ -84,13 +124,22 @@ const CustomersPage: React.FC = () => {
       <Box sx={{ py: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
           <Typography variant="h4">Cariler</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/customers/new')}
-          >
-            Yeni Cari
-          </Button>
+          <Box>
+            <Button
+              variant="outlined"
+              onClick={handleRefresh}
+              sx={{ mr: 1 }}
+            >
+              Yenile
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/customers/new')}
+            >
+              Yeni Cari
+            </Button>
+          </Box>
         </Box>
 
         <Card sx={{ p: 3 }}>
@@ -112,15 +161,29 @@ const CustomersPage: React.FC = () => {
                       <ClearIcon />
                     </IconButton>
                   </InputAdornment>
-                ),
+                )
               }}
             />
           </Box>
 
-          {data?.data?.customers ? (
+          {isError ? (
+            <Box sx={{ py: 3, textAlign: 'center' }}>
+              <Typography color="error">
+                {errorMessage}
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleRefresh}
+                sx={{ mt: 2 }}
+              >
+                Tekrar Dene
+              </Button>
+            </Box>
+          ) : customers.length > 0 ? (
             <CustomerList
-              customers={data.data.customers}
-              total={data.data.total}
+              customers={customers}
+              total={total}
               page={page}
               limit={limit}
               onPageChange={handlePageChange}
@@ -129,7 +192,7 @@ const CustomersPage: React.FC = () => {
           ) : (
             <Box sx={{ py: 3, textAlign: 'center' }}>
               <Typography color="text.secondary">
-                Veri yüklenirken bir hata oluştu
+                {search ? 'Arama kriterine uygun cari bulunamadı' : 'Henüz cari eklenmemiş'}
               </Typography>
             </Box>
           )}

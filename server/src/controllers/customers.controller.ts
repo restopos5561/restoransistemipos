@@ -12,7 +12,7 @@ export class CustomersController {
   async getCustomers(req: Request, res: Response) {
     const { search, phoneNumber, email, page = 1, limit = 10, restaurantId } = req.query;
 
-    const customers = await this.customersService.getCustomers({
+    const result = await this.customersService.getCustomers({
       search: search as string,
       phoneNumber: phoneNumber as string,
       email: email as string,
@@ -21,7 +21,7 @@ export class CustomersController {
       restaurantId: Number(restaurantId),
     });
 
-    res.json({ success: true, data: customers });
+    res.json(result);
   }
 
   async createCustomer(req: Request, res: Response) {
