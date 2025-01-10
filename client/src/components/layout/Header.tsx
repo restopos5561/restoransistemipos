@@ -9,8 +9,10 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ children }) => {
-    const { logout, profile } = useAuth();
+    const { logout, user } = useAuth();
     const theme = useTheme();
+
+    console.log('🔥 [Header] User:', user);
 
     return (
         <AppBar 
@@ -48,7 +50,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                                 color: theme.palette.primary.main
                             }}
                         >
-                            {profile?.name?.charAt(0).toUpperCase() || <Person />}
+                            {user?.name?.charAt(0).toUpperCase() || <Person />}
                         </Avatar>
                         <Typography 
                             variant="subtitle2" 
@@ -58,7 +60,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                                 display: { xs: 'none', sm: 'block' }
                             }}
                         >
-                            {profile?.name}
+                            {user?.name}
                         </Typography>
                     </Box>
 

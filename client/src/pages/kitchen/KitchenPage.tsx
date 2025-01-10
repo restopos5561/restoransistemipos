@@ -27,20 +27,63 @@ const KitchenPage: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [audioInitialized, setAudioInitialized] = useState(false);
   
   // Ses çalma hook'u
   const [playSound] = useSound('/sounds/notification.mp3', {
     volume: 1.0,
     interrupt: true,
+    onload: () => {
+      console.log('🔊 [Kitchen] Ses dosyası yüklendi');
+      setAudioInitialized(true);
+    },
+    onloaderror: (_id: string, error: Error) => {
+      console.error('🔊 [Kitchen] Ses dosyası yüklenirken hata:', error);
+      setAudioInitialized(false);
+    },
+    onplayerror: (_id: string, error: Error) => {
+      console.error('🔊 [Kitchen] Ses çalınırken hata:', error);
+    }
   });
 
   // Ses çalma fonksiyonu
   const playNotification = () => {
-    console.log('[Kitchen] Bildirim sesi çalınıyor');
+    console.log('🔊 [Kitchen] Bildirim sesi çalınıyor');
+    if (audioEnabled && audioInitialized) {
+      try {
+        playSound();
+      } catch (error) {
+        console.error('🔊 [Kitchen] Ses çalma hatası:', error);
+      }
+    } else {
+      console.warn('🔊 [Kitchen] Ses devre dışı veya başlatılmadı:', { audioEnabled, audioInitialized });
+    }
+  };
+
+  // Ses özelliğini başlat
+  const initializeAudio = async () => {
     try {
+      // Test sesi çal
       playSound();
+      // Ses özelliğini başlat
+      setAudioEnabled(true);
+      setAudioInitialized(true);
+      console.log('🔊 [Kitchen] Ses özelliği başlatıldı');
     } catch (error) {
-      console.error('[Kitchen] Ses çalma hatası:', error);
+      console.error('🔊 [Kitchen] Ses özelliği başlatılamadı:', error);
+      setAudioEnabled(false);
+      setAudioInitialized(false);
+    }
+  };
+
+  // Ses durumunu değiştir
+  const toggleAudio = async () => {
+    console.log('🔊 [Kitchen] Ses durumu değiştiriliyor:', { audioEnabled, audioInitialized });
+    if (!audioEnabled) {
+      await initializeAudio();
+    } else {
+      setAudioEnabled(false);
     }
   };
 
@@ -93,17 +136,29 @@ const KitchenPage: React.FC = () => {
 
   // Socket.IO event dinleyicisi
   useEffect(() => {
-    console.log('[Kitchen] Socket.IO event dinleyicileri ayarlanıyor');
+    console.log('🔌 [Kitchen] Socket.IO event dinleyicileri ayarlanıyor');
+
+    // Socket bağlantısını kontrol et
+    const socket = SocketService.getSocket();
+    if (!socket) {
+      console.error('🔌 [Kitchen] Socket bağlantısı bulunamadı!');
+      return;
+    }
 
     // Event dinleyicilerini ayarla
     const handleOrderCreated = (data: any) => {
-      console.log('[Kitchen] Yeni sipariş alındı:', {
+      console.log('🔌 [Kitchen] Yeni sipariş alındı:', {
         event: SOCKET_EVENTS.ORDER_CREATED,
-        orderId: data.orderId
+        orderId: data.orderId,
+        data
       });
 
       // Ses çal
-      playNotification();
+      if (audioEnabled && audioInitialized) {
+        playNotification();
+      } else {
+        console.warn('🔊 [Kitchen] Ses devre dışı - bildirim çalınamadı');
+      }
 
       // Bildirim göster
       toast.info('Yeni sipariş geldi!', {
@@ -120,39 +175,22 @@ const KitchenPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
     };
 
-    const handleOrderUpdated = (data: any) => {
-      console.log('[Kitchen] Sipariş güncellendi:', {
-        event: SOCKET_EVENTS.ORDER_UPDATED,
-        orderId: data.orderId,
-        status: data.order?.status
-      });
-
-      // Bildirim göster
-      toast.info('Sipariş güncellendi!', {
-        position: 'top-right',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-
-      // Verileri yenile
-      queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
-    };
-
     const handleOrderDeleted = (data: any) => {
-      console.log('[Kitchen] Sipariş silindi:', {
+      console.log('🔌 [Kitchen] Sipariş silindi:', {
         event: SOCKET_EVENTS.ORDER_DELETED,
+        orderId: data.orderId,
         data
       });
 
       // Ses çal
-      playNotification();
+      if (audioEnabled && audioInitialized) {
+        playNotification();
+      } else {
+        console.warn('🔊 [Kitchen] Ses devre dışı - bildirim çalınamadı');
+      }
 
       // Bildirim göster
-      toast.info(data.message || 'Sipariş silindi!', {
+      toast.warning('Sipariş iptal edildi!', {
         position: 'top-right',
         autoClose: 5000,
         hideProgressBar: false,
@@ -166,18 +204,67 @@ const KitchenPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
     };
 
-    SocketService.on(SOCKET_EVENTS.ORDER_CREATED, handleOrderCreated);
-    SocketService.on(SOCKET_EVENTS.ORDER_UPDATED, handleOrderUpdated);
-    SocketService.on(SOCKET_EVENTS.ORDER_DELETED, handleOrderDeleted);
+    const handleOrderStatusChanged = (data: any) => {
+      console.log('🔌 [Kitchen] Sipariş durumu değişti:', {
+        event: SOCKET_EVENTS.ORDER_STATUS_CHANGED,
+        orderId: data.orderId,
+        status: data.status,
+        data
+      });
+
+      // Ses çal
+      if (audioEnabled && audioInitialized) {
+        playNotification();
+      } else {
+        console.warn('🔊 [Kitchen] Ses devre dışı - bildirim çalınamadı');
+      }
+
+      // Bildirim göster
+      let message = 'Sipariş durumu güncellendi';
+      let type: 'info' | 'success' | 'warning' = 'info';
+
+      switch (data.status) {
+        case OrderStatus.PREPARING:
+          message = 'Sipariş hazırlanmaya başlandı';
+          type = 'info';
+          break;
+        case OrderStatus.READY:
+          message = 'Sipariş hazır';
+          type = 'success';
+          break;
+        case OrderStatus.CANCELLED:
+          message = 'Sipariş iptal edildi';
+          type = 'warning';
+          break;
+      }
+
+      toast[type](message, {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
+      // Verileri yenile
+      queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
+    };
+
+    // Event dinleyicilerini ekle
+    socket.on(SOCKET_EVENTS.ORDER_CREATED, handleOrderCreated);
+    socket.on(SOCKET_EVENTS.ORDER_DELETED, handleOrderDeleted);
+    socket.on(SOCKET_EVENTS.ORDER_STATUS_CHANGED, handleOrderStatusChanged);
 
     // Cleanup function
     return () => {
-      console.log('[Kitchen] Socket.IO event dinleyicileri temizleniyor');
-      SocketService.off(SOCKET_EVENTS.ORDER_CREATED, handleOrderCreated);
-      SocketService.off(SOCKET_EVENTS.ORDER_UPDATED, handleOrderUpdated);
-      SocketService.off(SOCKET_EVENTS.ORDER_DELETED, handleOrderDeleted);
+      console.log('🔌 [Kitchen] Socket.IO event dinleyicileri temizleniyor');
+      socket.off(SOCKET_EVENTS.ORDER_CREATED, handleOrderCreated);
+      socket.off(SOCKET_EVENTS.ORDER_DELETED, handleOrderDeleted);
+      socket.off(SOCKET_EVENTS.ORDER_STATUS_CHANGED, handleOrderStatusChanged);
     };
-  }, [queryClient, playSound]);
+  }, [audioEnabled, audioInitialized, queryClient, playNotification]); // Gerekli dependency'leri ekledim
 
   // Sipariş durumu güncelleme
   const updateStatusMutation = useMutation({
@@ -227,18 +314,31 @@ const KitchenPage: React.FC = () => {
           sx={{ mb: 2 }}
         >
           <Typography variant="h5">Mutfak Siparişleri</Typography>
-          <Button
-            startIcon={<RefreshIcon />}
-            onClick={handleRefresh}
-            sx={{
-              color: theme.palette.primary.main,
-              '&:hover': {
-                backgroundColor: alpha(theme.palette.primary.main, 0.1),
-              },
-            }}
-          >
-            Yenile
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              onClick={toggleAudio}
+              sx={{
+                color: audioEnabled ? 'success.main' : 'error.main',
+                '&:hover': {
+                  backgroundColor: alpha(audioEnabled ? theme.palette.success.main : theme.palette.error.main, 0.1),
+                },
+              }}
+            >
+              {audioEnabled ? 'Ses Açık' : 'Ses Kapalı'}
+            </Button>
+            <Button
+              startIcon={<RefreshIcon />}
+              onClick={handleRefresh}
+              sx={{
+                color: theme.palette.primary.main,
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                },
+              }}
+            >
+              Yenile
+            </Button>
+          </Box>
         </Stack>
 
         {/* İstatistikler */}

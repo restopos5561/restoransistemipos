@@ -10,20 +10,22 @@ export class SocketService {
 
   static initialize() {
     if (this.socket) {
+      console.log('🔌 [Socket.IO] Mevcut socket bağlantısı kullanılıyor');
       return this.socket;
     }
 
     const token = tokenService.getAccessToken();
     if (!token) {
-      console.warn('[Socket.IO] No access token available, delaying connection...');
+      console.warn('🔌 [Socket.IO] Access token bulunamadı, bağlantı erteleniyor...');
       return null;
     }
 
     try {
-      console.log('[Socket.IO] Connecting to:', API_CONFIG.SOCKET_URL);
+      console.log('🔌 [Socket.IO] Bağlanılıyor:', API_CONFIG.SOCKET_URL);
+      console.log('🔌 [Socket.IO] Token:', token.substring(0, 10) + '...');
 
       this.socket = io(API_CONFIG.SOCKET_URL, {
-        transports: ['websocket', 'polling'],
+        transports: ['websocket'],
         autoConnect: true,
         withCredentials: true,
         reconnection: true,
@@ -31,7 +33,7 @@ export class SocketService {
         reconnectionDelayMax: 10000,
         reconnectionAttempts: this.maxAttempts,
         timeout: 20000,
-        forceNew: true,
+        forceNew: false,
         path: '/socket.io',
         auth: {
           token: `Bearer ${token}`
@@ -39,50 +41,21 @@ export class SocketService {
       });
 
       this.socket.on('connect', () => {
-        console.log('[Socket.IO] Connected successfully');
+        console.log('🔌 [Socket.IO] Bağlantı başarılı. Socket ID:', this.socket?.id);
         this.connectionAttempts = 0;
       });
 
       this.socket.on('disconnect', (reason) => {
-        console.log('[Socket.IO] Disconnected:', reason);
+        console.log('🔌 [Socket.IO] Bağlantı kesildi:', reason);
         if (reason === 'io server disconnect') {
-          // Server tarafından bağlantı kesildi, yeniden bağlanmayı dene
+          console.log('🔌 [Socket.IO] Server tarafından bağlantı kesildi, yeniden bağlanılıyor...');
           this.reconnect();
-        }
-      });
-
-      this.socket.on('connect_error', (error) => {
-        console.error('[Socket.IO] Connection error:', error.message);
-        this.connectionAttempts++;
-        
-        if (this.connectionAttempts >= this.maxAttempts) {
-          console.error('[Socket.IO] Max connection attempts reached');
-          this.socket?.disconnect();
-          this.socket = null;
-          return;
-        }
-
-        // Token yenilendiğinde Socket.IO bağlantısını güncelle
-        const newToken = tokenService.getAccessToken();
-        if (newToken && newToken !== token) {
-          console.log('[Socket.IO] Updating connection with new token');
-          if (this.socket) {
-            this.socket.auth = { token: newToken };
-          }
-        }
-      });
-
-      this.socket.io.on("reconnect_attempt", () => {
-        console.log('[Socket.IO] Attempting to reconnect...');
-        const currentToken = tokenService.getAccessToken();
-        if (currentToken && this.socket) {
-          this.socket.auth = { token: currentToken };
         }
       });
 
       return this.socket;
     } catch (error) {
-      console.error('[Socket.IO] Initialization error:', error);
+      console.error('🔌 [Socket.IO] Initialization error:', error);
       return null;
     }
   }
