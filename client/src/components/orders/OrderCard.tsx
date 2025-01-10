@@ -71,7 +71,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
         <Stack spacing={2}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="h6">
-              Masa {order.table?.number}
+              {order.table ? `Masa ${order.table.number}` : 'Paket Sipariş'}
             </Typography>
             <Chip
               label={order.status}

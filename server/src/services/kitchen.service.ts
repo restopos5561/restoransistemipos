@@ -95,6 +95,10 @@ export class KitchenService {
     return {
       orders: orders.map(order => ({
         ...order,
+        table: order.table ? {
+          id: order.table.id,
+          number: order.table.tableNumber
+        } : null,
         items: order.orderItems.map(item => ({
           id: item.id,
           quantity: item.quantity,
