@@ -118,14 +118,18 @@ export class BarService {
           product: {
             id: item.product.id,
             name: item.product.name,
+            price: item.product.price,
             category: item.product.category ? {
               id: item.product.category.id,
               name: item.product.category.name,
               type: item.product.category.type
             } : null
           },
+          totalPrice: item.quantity * item.product.price,
           notes: item.note || ''
-        }))
+        })),
+        totalAmount: order.orderItems.reduce((total, item) => 
+          total + (item.quantity * item.product.price), 0)
       })),
       total,
       page: filters.page || 1,
