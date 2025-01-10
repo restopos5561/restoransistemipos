@@ -176,14 +176,23 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
     try {
       const userProfile = profile as User | undefined;
       if (!userProfile?.branchId || !userProfile?.restaurantId) {
-        toast.error('Şube bilgisi bulunamadı');
+        toast.error('Şube veya restoran bilgisi bulunamadı');
         return;
       }
 
-      // Validate items
-      const validItems = items.filter(item => item.productId !== 0 && item.quantity > 0);
+      // Debug için items'ları kontrol et
+      console.log('Ham items:', items);
+
+      // Validate items - productId kontrolünü düzeltelim
+      const validItems = items.filter(item => {
+        console.log('Item kontrol:', item);
+        return item.productId && item.productId > 0 && item.quantity > 0;
+      });
+
+      console.log('Geçerli items:', validItems);
+
       if (validItems.length === 0) {
-        toast.error('En az bir ürün eklemelisiniz');
+        toast.error('En az bir ürün eklemelisiniz ve ürün seçimi yapmalısınız');
         return;
       }
 
@@ -195,6 +204,12 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
 
       setLoading(true);
 
+      // Zorunlu alanları kontrol et
+      if (!orderSource) {
+        toast.error('Sipariş kaynağı seçilmedi');
+        return;
+      }
+
       const orderData = {
         branchId: Number(userProfile.branchId),
         restaurantId: Number(userProfile.restaurantId),
@@ -202,7 +217,7 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
         tableId: orderSource === OrderSource.IN_STORE ? Number(tableId) : null,
         customerId: customerId ? Number(customerId) : null,
         customerCount: Number(customerCount),
-        notes: notes.trim(),
+        notes: notes.trim() || '',
         items: validItems.map(item => ({
           productId: Number(item.productId),
           quantity: Number(item.quantity),
@@ -210,7 +225,7 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
         }))
       };
 
-      console.log('Sending order data:', orderData);
+      console.log('Gönderilen sipariş verisi:', JSON.stringify(orderData, null, 2));
       const response = await ordersService.createOrder(orderData);
 
       if (response.success) {
@@ -221,7 +236,8 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
         throw new Error(response.error || 'Sipariş oluşturulamadı');
       }
     } catch (error: any) {
-      console.error('Error creating order:', error);
+      console.error('Sipariş oluşturma hatası:', error);
+      console.error('Hata detayı:', error.response?.data);
       const errorMessage = error.response?.data?.error?.details || error.message || 'Sipariş oluşturulurken bir hata oluştu';
       toast.error(errorMessage);
     } finally {

@@ -1,4 +1,5 @@
 import api from './api';
+import { API_ENDPOINTS } from '../config/constants';
 import { BarOrdersFilters, BarOrdersResponse, UpdateOrderStatusRequest, StatsResponse } from '../types/bar.types';
 import { Order } from '../types/order.types';
 
@@ -9,22 +10,22 @@ class BarService {
       status: filters.status?.join(',')
     };
     
-    const response = await api.get('/bar/orders', { params });
+    const response = await api.get(API_ENDPOINTS.BAR.ORDERS, { params });
     return response.data;
   }
 
   async updateOrderStatus(orderId: number, data: UpdateOrderStatusRequest): Promise<Order> {
-    const response = await api.patch(`/bar/orders/${orderId}/status`, data);
+    const response = await api.patch(API_ENDPOINTS.BAR.ORDER_STATUS(orderId.toString()), data);
     return response.data;
   }
 
   async getQueue(): Promise<BarOrdersResponse> {
-    const response = await api.get('/bar/queue');
+    const response = await api.get(API_ENDPOINTS.BAR.QUEUE);
     return response.data;
   }
 
   async getStats(): Promise<StatsResponse> {
-    const response = await api.get('/bar/stats');
+    const response = await api.get(API_ENDPOINTS.BAR.STATS);
     return response.data;
   }
 }

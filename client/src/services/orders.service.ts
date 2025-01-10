@@ -35,23 +35,33 @@ const ordersService = {
         branchId: Number(data.branchId),
         restaurantId: Number(data.restaurantId),
         orderSource: data.orderSource,
-        tableId: data.tableId ? Number(data.tableId) : null,
-        customerId: data.customerId ? Number(data.customerId) : null,
+        tableId: data.tableId ? Number(data.tableId) : undefined,
+        customerId: data.customerId ? Number(data.customerId) : undefined,
         customerCount: Number(data.customerCount),
-        notes: data.notes || '',
-        items: data.items.map((item) => ({
+        orderNotes: data.notes || '',
+        orderItems: data.items.map((item) => ({
           productId: Number(item.productId),
           quantity: Number(item.quantity),
-          notes: item.notes || ''
+          note: item.notes || '',
+          unitPrice: undefined // Backend'in hesaplaması için boş bırakıyoruz
         }))
       };
 
-      console.log('Formatted order data:', formattedData);
+      console.log('API isteği URL:', API_ENDPOINTS.ORDERS.CREATE);
+      console.log('Gönderilen veri:', JSON.stringify(formattedData, null, 2));
       
       const response = await api.post(API_ENDPOINTS.ORDERS.CREATE, formattedData);
+      console.log('Backend yanıtı:', response.data);
       return response.data;
     } catch (error: any) {
-      console.error('Create order error:', error.response?.data || error);
+      console.error('Sipariş oluşturma hatası detayı:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        config: error.response?.config,
+        message: error.message
+      });
       throw error;
     }
   },

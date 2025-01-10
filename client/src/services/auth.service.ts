@@ -207,7 +207,7 @@ export const authService = {
 
     async getUserBranches() {
         try {
-            const response = await api.get('/auth/branches');
+            const response = await api.get(API_ENDPOINTS.AUTH.BRANCHES);
             return response.data;
         } catch (error: any) {
             if (error.response?.data) {

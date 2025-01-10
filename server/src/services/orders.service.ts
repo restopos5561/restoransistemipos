@@ -11,12 +11,13 @@ interface CreateOrderInput {
   tableId?: number;
   customerId?: number;
   waiterId?: number;
+  customerCount?: number;
   orderSource: OrderSource;
   orderItems: {
     productId: number;
     quantity: number;
     note?: string;
-    unitPrice: number;
+    unitPrice?: number;
   }[];
   orderNotes?: string;
 }
@@ -262,50 +263,73 @@ export class OrdersService {
   }
 
   async createOrder(data: CreateOrderInput): Promise<Order> {
-    return prisma.$transaction(async (tx) => {
-      // Önce ürün fiyatlarını al
-      const products = await Promise.all(
-        data.orderItems.map((item) =>
-          tx.product.findUnique({
-            where: { id: item.productId },
-          })
-        )
-      );
+    try {
+      return prisma.$transaction(async (tx) => {
+        // Önce ürünleri al
+        const products = await tx.product.findMany({
+          where: {
+            id: {
+              in: data.orderItems.map(item => item.productId)
+            }
+          }
+        });
 
-      // Toplam tutarı hesapla
-      const totalAmount = data.orderItems.reduce(
-        (sum, item, index) => sum + item.quantity * Number(products[index]?.price || 0),
-        0
-      );
+        // Ürünlerin varlığını kontrol et
+        const missingProducts = data.orderItems
+          .filter(item => !products.find(p => p.id === item.productId))
+          .map(item => item.productId);
 
-      // Siparişi oluştur
-      const order = await tx.order.create({
-        data: {
-          ...data,
-          totalAmount,
-          orderItems: {
-            create: data.orderItems.map((item, index) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: products[index]!.price,
-              note: item.note,
-            })),
+        if (missingProducts.length > 0) {
+          throw new BadRequestError(`Bu ürünler bulunamadı: ${missingProducts.join(', ')}`);
+        }
+
+        // Ürün fiyatlarını map'le
+        const productPrices = new Map(products.map(p => [p.id, p.price]));
+
+        // Toplam tutarı hesapla
+        const totalAmount = data.orderItems.reduce(
+          (sum, item) => sum + (item.quantity * Number(productPrices.get(item.productId) || 0)),
+          0
+        );
+
+        // Siparişi oluştur
+        const order = await tx.order.create({
+          data: {
+            branchId: data.branchId,
+            restaurantId: data.restaurantId,
+            tableId: data.tableId,
+            customerId: data.customerId,
+            customerCount: data.customerCount,
+            orderSource: data.orderSource,
+            orderNotes: data.orderNotes,
+            totalAmount,
+            orderItems: {
+              create: data.orderItems.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: productPrices.get(item.productId)!,
+                note: item.note
+              }))
+            }
           },
-        },
-        include: {
-          table: true,
-          customer: true,
-          waiter: true,
-          orderItems: {
-            include: {
-              product: true,
-            },
-          },
-        },
+          include: {
+            table: true,
+            customer: true,
+            waiter: true,
+            orderItems: {
+              include: {
+                product: true
+              }
+            }
+          }
+        });
+
+        return order;
       });
-
-      return order;
-    });
+    } catch (error) {
+      console.error('Create order error:', error);
+      throw error;
+    }
   }
 
   async updateOrderStatus(id: number, status: OrderStatus) {

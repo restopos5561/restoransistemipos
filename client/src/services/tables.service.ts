@@ -1,4 +1,5 @@
 import api from './api';
+import { API_ENDPOINTS } from '../config/constants';
 import {
   Table,
   TableFilters,
@@ -14,46 +15,46 @@ import {
 
 class TablesService {
   async getTables(filters: TableFilters): Promise<TablesResponse> {
-    const response = await api.get('/tables', { params: filters });
+    const response = await api.get(API_ENDPOINTS.TABLES.LIST, { params: filters });
     return response.data;
   }
 
   async getTableById(id: number): Promise<TableResponse> {
-    const response = await api.get(`/tables/${id}`);
+    const response = await api.get(API_ENDPOINTS.TABLES.DETAIL(id.toString()));
     return response.data;
   }
 
   async createTable(data: CreateTableInput): Promise<TableResponse> {
-    const response = await api.post('/tables', data);
+    const response = await api.post(API_ENDPOINTS.TABLES.CREATE, data);
     return response.data;
   }
 
   async updateTable(id: number, data: UpdateTableInput): Promise<TableResponse> {
-    const response = await api.put(`/tables/${id}`, data);
+    const response = await api.put(API_ENDPOINTS.TABLES.UPDATE(id.toString()), data);
     return response.data;
   }
 
   async deleteTable(id: number): Promise<void> {
-    await api.delete(`/tables/${id}`);
+    await api.delete(API_ENDPOINTS.TABLES.DELETE(id.toString()));
   }
 
   async updateTableStatus(id: number, data: UpdateTableStatusInput): Promise<TableResponse> {
-    const response = await api.patch(`/tables/${id}/status`, data);
+    const response = await api.patch(API_ENDPOINTS.TABLES.STATUS(id.toString()), data);
     return response.data;
   }
 
   async mergeTables(data: MergeTablesInput): Promise<TableResponse> {
-    const response = await api.post('/tables/merge', data);
+    const response = await api.post(API_ENDPOINTS.TABLES.MERGE, data);
     return response.data;
   }
 
   async transferTable(data: TransferTableInput): Promise<TableResponse> {
-    const response = await api.post('/tables/transfer', data);
+    const response = await api.post(API_ENDPOINTS.TABLES.TRANSFER, data);
     return response.data;
   }
 
   async getTablesByBranch(branchId: number): Promise<TablesResponse> {
-    const response = await api.get(`/tables/branch/${branchId}`);
+    const response = await api.get(API_ENDPOINTS.TABLES.BY_BRANCH(branchId.toString()));
     return response.data;
   }
 }
