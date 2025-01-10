@@ -39,7 +39,12 @@ const KitchenPage: React.FC = () => {
   // Siparişleri getir
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ['kitchen-orders', filters],
-    queryFn: () => kitchenService.getOrders(filters),
+    queryFn: async () => {
+      console.log('[Kitchen] Siparişler isteniyor:', filters);
+      const data = await kitchenService.getOrders(filters);
+      console.log('[Kitchen] Siparişler alındı:', data);
+      return data;
+    },
     refetchInterval: 30000,
   });
 
@@ -110,8 +115,8 @@ const KitchenPage: React.FC = () => {
     );
   }
 
-  const pendingOrders = ordersData?.orders.filter(order => order.status === OrderStatus.PENDING) || [];
-  const preparingOrders = ordersData?.orders.filter(order => order.status === OrderStatus.PREPARING) || [];
+  const pendingOrders = ordersData?.orders?.filter(order => order.status === OrderStatus.PENDING) || [];
+  const preparingOrders = ordersData?.orders?.filter(order => order.status === OrderStatus.PREPARING) || [];
 
   return (
     <Container maxWidth="xl">

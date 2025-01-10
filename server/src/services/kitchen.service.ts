@@ -1,4 +1,4 @@
-import { PrismaClient, OrderStatus } from '@prisma/client';
+import { PrismaClient, OrderStatus, Prisma } from '@prisma/client';
 import { BadRequestError } from '../errors/bad-request-error';
 import { startOfDay, endOfDay } from 'date-fns';
 
@@ -15,7 +15,12 @@ interface KitchenOrdersFilters {
 
 export class KitchenService {
   async getOrders(filters: KitchenOrdersFilters) {
-    const where = {
+    console.log('[KitchenService] Siparişler isteniyor:', {
+      endpoint: '/api/kitchen/orders',
+      params: filters
+    });
+
+    const where: Prisma.OrderWhereInput = {
       ...(filters.branchId && { branchId: filters.branchId }),
       ...(filters.status && { 
         status: { 
@@ -30,14 +35,12 @@ export class KitchenService {
         orderItems: {
           some: {
             product: {
-              categoryId: {
-                not: {
-                  in: [2], // İçecekler kategorisi
-                },
-              },
-            },
-          },
-        },
+              NOT: {
+                categoryId: null
+              }
+            }
+          }
+        }
       }),
     };
 
@@ -50,7 +53,11 @@ export class KitchenService {
           table: true,
           orderItems: {
             include: {
-              product: true,
+              product: {
+                include: {
+                  category: true
+                }
+              },
               selectedOptions: true,
             },
           },
@@ -59,6 +66,14 @@ export class KitchenService {
       }),
       prisma.order.count({ where }),
     ]);
+
+    console.log('[KitchenService] Backend yanıtı:', {
+      orders: orders.length,
+      total,
+      page: filters.page || 1,
+      limit: filters.limit || 10,
+      totalPages: Math.ceil(total / (filters.limit || 10))
+    });
 
     return {
       orders,

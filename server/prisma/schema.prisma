@@ -185,15 +185,23 @@ model Product {
   productOptions     ProductOption[]      // İlişki adı "productOptions" olarak kalsın
 }
 
+// Kategori Türleri
+enum CategoryType {
+  FOOD
+  BEVERAGE
+  OTHER
+}
+
 // Ürün Kategorisi Modeli
 model Category {
-  id           Int        @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   restaurantId Int
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id])
   name         String
   description  String?
+  type         CategoryType @default(FOOD)
   products     Product[]
-  isActive     Boolean    @default(true)
+  isActive     Boolean      @default(true)
 }
 
 // Stok Modeli
