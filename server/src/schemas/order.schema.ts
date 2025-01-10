@@ -72,7 +72,9 @@ export const OrderSchema = {
   }),
 
   updateStatus: z.object({
-    status: z.nativeEnum(OrderStatus),
+    body: z.object({
+      status: z.nativeEnum(OrderStatus),
+    }),
   }),
 
   updateNotes: z.object({

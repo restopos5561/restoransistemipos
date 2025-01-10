@@ -83,7 +83,7 @@ interface SupplierResponse {
 
 const AccountsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +92,7 @@ const AccountsPage: React.FC = () => {
 
   // Form state
   const [formData, setFormData] = useState<CreateAccountInput>({
-    restaurantId: profile?.restaurantId || 0,
+    restaurantId: user?.restaurantId || 0,
     accountName: '',
     accountType: 'CUSTOMER',
     creditLimit: undefined,
@@ -110,7 +110,7 @@ const AccountsPage: React.FC = () => {
       setLoading(true);
       console.log('İlişkili Veriler - Yükleme başladı');
 
-      const restaurantId = profile?.restaurantId;
+      const restaurantId = user?.restaurantId;
       if (!restaurantId) {
         throw new Error('Restaurant ID bulunamadı');
       }
@@ -182,7 +182,7 @@ const AccountsPage: React.FC = () => {
     if (account) {
       setSelectedAccount(account);
       setFormData({
-        restaurantId: profile?.restaurantId || 0,
+        restaurantId: user?.restaurantId || 0,
         accountName: account.accountName,
         accountType: account.accountType,
         creditLimit: account.creditLimit,
@@ -192,7 +192,7 @@ const AccountsPage: React.FC = () => {
     } else {
       setSelectedAccount(null);
       setFormData({
-        restaurantId: profile?.restaurantId || 0,
+        restaurantId: user?.restaurantId || 0,
         accountName: '',
         accountType: 'CUSTOMER',
         creditLimit: undefined,
@@ -207,7 +207,7 @@ const AccountsPage: React.FC = () => {
     setDialogOpen(false);
     setSelectedAccount(null);
     setFormData({
-      restaurantId: profile?.restaurantId || 0,
+      restaurantId: user?.restaurantId || 0,
       accountName: '',
       accountType: 'CUSTOMER',
       creditLimit: undefined,

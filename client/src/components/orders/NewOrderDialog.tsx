@@ -28,6 +28,7 @@ import customersService from '../../services/customers.service';
 import { toast } from 'react-hot-toast';
 import { User } from '../../types/auth.types';
 import { Customer } from '../../types/customer.types';
+import branchService from '../../services/branch.service';
 
 interface NewOrderDialogProps {
   open: boolean;
@@ -54,7 +55,7 @@ interface Table {
 }
 
 const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderCreated }) => {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderSource, setOrderSource] = useState<OrderSource>(OrderSource.IN_STORE);
@@ -67,87 +68,42 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
 
+  const userInfo = user as User | undefined;
+  if (!userInfo?.branchId || !userInfo?.restaurantId) {
+    return null;
+  }
+
   // Fetch necessary data
   useEffect(() => {
     const fetchData = async () => {
-      const userProfile = profile as User | undefined;
-      if (!userProfile?.branchId || !userProfile?.restaurantId) {
-        toast.error('Şube veya restoran bilgisi bulunamadı');
-        return;
-      }
-
       try {
-        setLoading(true);
-        const [tablesRes, productsRes, customersRes] = await Promise.all([
-          tablesService.getTables({ 
-            branchId: userProfile.branchId,
-            restaurantId: userProfile.restaurantId 
-          }),
-          productsService.getProducts({ 
-            branchId: userProfile.branchId,
-            restaurantId: userProfile.restaurantId 
-          }),
-          customersService.getCustomers({
-            branchId: userProfile.branchId,
-            restaurantId: userProfile.restaurantId,
-            page: 1,
-            limit: 10
-          })
+        const [customersResponse, productsResponse, tablesResponse] = await Promise.all([
+          branchService.getCustomers(userInfo.restaurantId, userInfo.branchId),
+          productsService.getProducts({ restaurantId: userInfo.restaurantId }),
+          branchService.getTables(userInfo.branchId, userInfo.restaurantId)
         ]);
 
-        console.log('Backend yanıtları:', {
-          tables: tablesRes,
-          products: productsRes,
-          customers: customersRes
-        });
-
-        // Müşteri verilerini kontrol et ve set et
-        if (customersRes?.success && customersRes?.data?.customers) {
-          console.log('Müşteriler yükleniyor:', customersRes.data.customers);
-          setCustomers(customersRes.data.customers);
-        } else {
-          console.error('Müşteri verisi bulunamadı:', customersRes);
-          setCustomers([]);
+        if (customersResponse.success) {
+          setCustomers(customersResponse.data);
         }
 
-        // Masa verilerini kontrol et ve set et
-        if (tablesRes?.success && tablesRes?.data?.tables) {
-          console.log('Masalar yükleniyor:', tablesRes.data.tables);
-          setTables(tablesRes.data.tables);
-        } else {
-          console.error('Masa verisi bulunamadı:', tablesRes);
-          setTables([]);
+        if (productsResponse.success) {
+          setProducts(productsResponse.data.products);
         }
 
-        // Ürün verilerini kontrol et ve set et
-        if (productsRes?.success && productsRes?.data?.products) {
-          console.log('Ürünler yükleniyor:', productsRes.data.products);
-          setProducts(productsRes.data.products);
-        } else {
-          console.error('Ürün verisi bulunamadı:', productsRes);
-          setProducts([]);
-        }
-
-        // Veri kontrolü
-        const hasErrors = !customersRes?.success || !customersRes?.data?.customers || 
-                         !tablesRes?.success || !tablesRes?.data?.tables || 
-                         !productsRes?.success || !productsRes?.data?.products;
-
-        if (hasErrors) {
-          toast.error('Bazı veriler yüklenemedi, lütfen sayfayı yenileyin');
+        if (tablesResponse.success) {
+          setTables(tablesResponse.data.tables);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Veriler yüklenirken bir hata oluştu');
-      } finally {
-        setLoading(false);
       }
     };
 
     if (open) {
       fetchData();
     }
-  }, [open, profile]);
+  }, [open, user]);
 
   const handleAddItem = () => {
     setItems([...items, { productId: 0, quantity: 1 }]);
@@ -176,7 +132,7 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
       setLoading(true);
       setError(null);
 
-      if (!profile?.branchId) {
+      if (!user?.branchId) {
         setError('Şube bilgisi bulunamadı.');
         return;
       }
@@ -187,8 +143,8 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
       }
 
       const orderData = {
-        restaurantId: Number(profile.restaurantId),
-        branchId: Number(profile.branchId),
+        restaurantId: Number(user.restaurantId),
+        branchId: Number(user.branchId),
         orderSource,
         tableId: orderSource === OrderSource.IN_STORE ? tableId : null,
         customerId: orderSource !== OrderSource.IN_STORE ? customerId : null,

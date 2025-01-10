@@ -135,7 +135,7 @@ interface OrderDetail {
 const EditOrderPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { profile, isProfileLoading } = useAuth();
+  const { user, isProfileLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
@@ -202,24 +202,24 @@ const EditOrderPage: React.FC = () => {
   // Profil ve auth kontrolü
   useEffect(() => {
     console.log('Auth State:', {
-      profile,
+      user,
       isProfileLoading,
-      restaurantId: profile?.restaurantId,
-      branchId: profile?.branchId
+      restaurantId: user?.restaurantId,
+      branchId: user?.branchId
     });
 
-    if (!isProfileLoading && !profile) {
+    if (!isProfileLoading && !user) {
       console.error('Profil bulunamadı, login sayfasına yönlendiriliyor');
       navigate('/login');
     }
-  }, [profile, isProfileLoading, navigate]);
+  }, [user, isProfileLoading, navigate]);
 
   // Verileri yükle
   useEffect(() => {
     let isActive = true;
     const fetchData = async () => {
       try {
-        if (!id || isProfileLoading || !profile?.restaurantId || !profile?.branchId) {
+        if (!id || isProfileLoading || !user?.restaurantId || !user?.branchId) {
           return;
         }
 
@@ -227,8 +227,8 @@ const EditOrderPage: React.FC = () => {
         setError(null);
 
         const orderId = parseInt(id);
-        const restaurantId = profile.restaurantId;
-        const branchId = profile.branchId;
+        const restaurantId = user.restaurantId;
+        const branchId = user.branchId;
 
         // First fetch order details
         const orderResponse = await ordersService.getOrderById(orderId);
@@ -247,8 +247,8 @@ const EditOrderPage: React.FC = () => {
         // Then fetch related data
         try {
           const [tablesResponse, customersResponse, productsResponse] = await Promise.all([
-            branchService.getTables(branchId),
-            branchService.getCustomers(restaurantId),
+            branchService.getTables(branchId, restaurantId),
+            branchService.getCustomers(restaurantId, branchId),
             productsService.getProducts({ restaurantId }),
           ]);
 
@@ -329,7 +329,7 @@ const EditOrderPage: React.FC = () => {
     return () => {
       isActive = false;
     };
-  }, [id, isProfileLoading, profile]);
+  }, [id, isProfileLoading, user]);
 
   // Ürün ekleme
   const handleAddItem = () => {
@@ -377,7 +377,7 @@ const EditOrderPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!profile?.branchId) {
+    if (!user?.branchId) {
       toast.error('Şube bilgisi bulunamadı');
       return;
     }
@@ -400,7 +400,7 @@ const EditOrderPage: React.FC = () => {
       }
 
       const orderData = {
-        branchId: profile.branchId,
+        branchId: user.branchId,
         orderSource: formData.orderSource,
         tableId: formData.tableId,
         customerId: formData.customerId,
@@ -440,13 +440,29 @@ const EditOrderPage: React.FC = () => {
   // Add status update handler
   const handleStatusUpdate = async () => {
     try {
+      console.warn('🔥 [EditOrderPage] Durum güncelleme başladı:', {
+        orderId: order?.id,
+        currentStatus: order?.status,
+        newStatus,
+        orderData: order
+      });
+      
       setLoading(true);
-      await ordersService.updateOrderStatus(order!.id, newStatus);
+      await ordersService.updateOrderStatus(Number(order!.id), newStatus);
+      
+      console.warn('🔥 [EditOrderPage] Durum güncelleme başarılı');
+      
       setOrder(prev => prev ? { ...prev, status: newStatus } : null);
       setShowStatusDialog(false);
       toast.success('Sipariş durumu güncellendi');
     } catch (error: any) {
-      console.error('Sipariş durumu güncellenirken hata:', error);
+      console.error('🔥 [EditOrderPage] Durum güncelleme hatası:', {
+        error,
+        response: error.response?.data,
+        orderId: order?.id,
+        currentStatus: order?.status,
+        newStatus
+      });
       toast.error(error.response?.data?.message || error.message || 'Sipariş durumu güncellenirken bir hata oluştu');
     } finally {
       setLoading(false);

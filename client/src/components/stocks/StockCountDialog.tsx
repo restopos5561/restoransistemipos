@@ -39,7 +39,7 @@ const StockCountDialog: React.FC<StockCountDialogProps> = ({
   currentBranchId,
   fetchStocks,
 }) => {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [countedStocks, setCountedStocks] = useState<Record<number, string>>({});
@@ -82,7 +82,7 @@ const StockCountDialog: React.FC<StockCountDialogProps> = ({
 
       const data = {
         branchId: currentBranchId,
-        countedBy: profile!.id,
+        countedBy: user!.id,
         countedDate: new Date().toISOString(),
         products,
       };

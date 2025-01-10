@@ -29,25 +29,25 @@ interface CustomerData {
 
 const CustomersPage: React.FC = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  // Profile değiştiğinde restaurantId'yi kontrol et
+  // User değiştiğinde restaurantId'yi kontrol et
   useEffect(() => {
-    if (profile?.restaurantId) {
-      localStorage.setItem('restaurantId', profile.restaurantId.toString());
-      console.debug('[Cariler] RestaurantID güncellendi:', profile.restaurantId);
+    if (user?.restaurantId) {
+      localStorage.setItem('restaurantId', user.restaurantId.toString());
+      console.debug('[Cariler] RestaurantID güncellendi:', user.restaurantId);
     }
-  }, [profile]);
+  }, [user]);
 
   const queryOptions: UseQueryOptions<CustomerData, Error> = {
     queryKey: ['customers', page, limit, search],
     queryFn: async () => {
       console.debug('[Cariler] Veri yükleniyor...', { page, limit, search });
       
-      const restaurantId = profile?.restaurantId || localStorage.getItem('restaurantId');
+      const restaurantId = user?.restaurantId || localStorage.getItem('restaurantId');
       if (!restaurantId) {
         console.error('[Cariler] RestaurantID bulunamadı');
         throw new Error('Restoran bilgisi bulunamadı. Lütfen tekrar giriş yapın.');

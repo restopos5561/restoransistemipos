@@ -55,7 +55,7 @@ api.interceptors.response.use(
             } catch (refreshError) {
                 console.error('Token refresh error:', refreshError);
                 tokenService.clearTokens();
-                window.location.href = '/login';
+                window.dispatchEvent(new CustomEvent('auth:logout'));
                 return Promise.reject(refreshError);
             }
         }

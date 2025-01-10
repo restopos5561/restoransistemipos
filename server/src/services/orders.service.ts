@@ -23,9 +23,12 @@ interface CreateOrderInput {
 }
 
 interface UpdateOrderInput {
+  branchId?: number;
   tableId?: number | null;
   customerId?: number | null;
   waiterId?: number | null;
+  customerCount?: number;
+  notes?: string;
   orderNotes?: string;
   priority?: boolean;
   status?: OrderStatus;
@@ -415,11 +418,10 @@ export class OrdersService {
   }
 
   private canUpdateStatus(currentStatus: OrderStatus, newStatus: OrderStatus): boolean {
-    // Sipariş durumu güncelleme kuralları
     const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
       PENDING: ['PREPARING', 'CANCELLED'],
-      PREPARING: ['READY', 'CANCELLED'],
-      READY: ['DELIVERED', 'CANCELLED'],
+      PREPARING: ['READY', 'CANCELLED', 'PENDING'],
+      READY: ['DELIVERED', 'CANCELLED', 'PREPARING'],
       DELIVERED: ['COMPLETED'],
       COMPLETED: [],
       CANCELLED: [],
@@ -447,6 +449,19 @@ export class OrdersService {
       throw new OrderNotFoundError(id);
     }
 
+    // Veri dönüşümü
+    const transformedData: any = {
+      ...(data.branchId && { branch: { connect: { id: data.branchId } } }),
+      ...(data.tableId && { table: { connect: { id: data.tableId } } }),
+      ...(data.customerId && { customer: { connect: { id: data.customerId } } }),
+      customerCount: data.customerCount,
+      orderNotes: data.notes,
+      priority: data.priority,
+      discountAmount: data.discountAmount,
+      discountType: data.discountType,
+      paymentStatus: data.paymentStatus
+    };
+
     // Sipariş kalemlerini güncelle
     if (data.items) {
       // Mevcut kalemleri sil
@@ -470,10 +485,10 @@ export class OrdersService {
         }
 
         return {
-          productId: item.productId,
+          product: { connect: { id: item.productId } },
           quantity: item.quantity,
-          unitPrice: product.price,
           note: item.notes,
+          unitPrice: product.price,
           status: item.status
         };
       });
@@ -485,7 +500,7 @@ export class OrdersService {
       const updatedOrder = await prisma.order.update({
         where: { id },
         data: {
-          ...data,
+          ...transformedData,
           totalAmount,
           totalPriceBeforeDiscounts: totalAmount,
           orderItems: {
@@ -534,7 +549,7 @@ export class OrdersService {
     // Sadece sipariş bilgilerini güncelle
     const updatedOrder = await prisma.order.update({
       where: { id },
-      data,
+      data: transformedData,
       include: {
         table: true,
         customer: true,

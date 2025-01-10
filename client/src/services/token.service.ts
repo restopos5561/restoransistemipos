@@ -39,6 +39,7 @@ export const tokenService = {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('restaurantId');
+      localStorage.removeItem('branchId');
       return true;
     } catch (error) {
       console.error('Error clearing tokens:', error);

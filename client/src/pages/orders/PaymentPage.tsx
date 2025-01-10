@@ -84,7 +84,7 @@ const PAYMENT_METHODS: PaymentMethod[] = [
 const PaymentPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,7 +148,7 @@ const PaymentPage: React.FC = () => {
     try {
       setProcessing(true);
       
-      if (!profile?.branchId) {
+      if (!user?.branchId) {
         setError('Şube bilgisi bulunamadı.');
         return;
       }
@@ -162,7 +162,7 @@ const PaymentPage: React.FC = () => {
       // Ödeme işlemini gerçekleştir
       await paymentService.processCardPayment({
         orderId: id!,
-        branchId: profile.branchId.toString(),
+        branchId: Number(user.branchId),
         amount: order!.totalAmount,
         cardNumber,
         expiryDate,
@@ -185,7 +185,7 @@ const PaymentPage: React.FC = () => {
     try {
       setProcessing(true);
       
-      if (!profile?.branchId) {
+      if (!user?.branchId) {
         setError('Şube bilgisi bulunamadı.');
         return;
       }
@@ -198,7 +198,7 @@ const PaymentPage: React.FC = () => {
 
       await paymentService.processCashPayment({
         orderId: id!,
-        branchId: profile.branchId.toString(),
+        branchId: Number(user.branchId),
         amount: order!.totalAmount,
         receivedAmount: received,
         changeAmount
@@ -218,14 +218,14 @@ const PaymentPage: React.FC = () => {
     try {
       setProcessing(true);
       
-      if (!profile?.branchId) {
+      if (!user?.branchId) {
         setError('Şube bilgisi bulunamadı.');
         return;
       }
 
       await paymentService.processMealCardPayment({
         orderId: id!,
-        branchId: profile.branchId.toString(),
+        branchId: Number(user.branchId),
         amount: order!.totalAmount
       });
 

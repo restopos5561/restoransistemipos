@@ -43,7 +43,7 @@ const TransferStockDialog: React.FC<TransferStockDialogProps> = ({
   currentBranchId,
   productId,
 }) => {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,12 +82,12 @@ const TransferStockDialog: React.FC<TransferStockDialogProps> = ({
       quantity,
       currentBranchId,
       productId,
-      userId: profile?.id,
-      restaurantId: profile?.restaurantId
+      userId: user?.id,
+      restaurantId: user?.restaurantId
     });
 
     // Validation checks
-    if (!profile?.id) {
+    if (!user?.id) {
       setError('Oturum bilgisi bulunamadı. Lütfen yeniden giriş yapın.');
       return;
     }
@@ -123,7 +123,7 @@ const TransferStockDialog: React.FC<TransferStockDialogProps> = ({
       toBranchId,
       productId,
       quantity: parsedQuantity,
-      transferBy: profile.id,
+      transferBy: user.id,
       notes: notes || undefined,
     };
 

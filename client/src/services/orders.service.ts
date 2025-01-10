@@ -116,8 +116,33 @@ const ordersService = {
 
   // Update order status
   updateOrderStatus: async (id: number, status: OrderStatus) => {
-    const response = await api.patch(API_ENDPOINTS.ORDERS.STATUS(id.toString()), { status });
-    return response.data;
+    console.warn('🔥 [OrdersService] Durum güncelleme isteği:', {
+      orderId: id,
+      status,
+      endpoint: API_ENDPOINTS.ORDERS.STATUS(id.toString())
+    });
+    
+    try {
+      const response = await api.patch(
+        API_ENDPOINTS.ORDERS.STATUS(id.toString()),
+        { status }
+      );
+      
+      console.warn('🔥 [OrdersService] Durum güncelleme yanıtı:', {
+        status: response.status,
+        data: response.data
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('🔥 [OrdersService] Durum güncelleme hatası:', {
+        error,
+        response: error.response?.data,
+        orderId: id,
+        status
+      });
+      throw error;
+    }
   },
 
   // Delete order
