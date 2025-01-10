@@ -6,6 +6,7 @@ export const SOCKET_EVENTS = {
   ORDER_ITEM_ADDED: 'order:itemAdded',
   ORDER_ITEM_REMOVED: 'order:itemRemoved',
   ORDER_ITEM_UPDATED: 'order:itemUpdated',
+  ORDER_DELETED: 'order:deleted',
   
   // Table Events  
   TABLE_STATUS_CHANGED: 'table:statusChanged',

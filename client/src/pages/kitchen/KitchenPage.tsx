@@ -101,14 +101,37 @@ const KitchenPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
     };
 
+    const handleOrderDeleted = (data: any) => {
+      console.log('[Kitchen] Sipariş silindi:', {
+        event: SOCKET_EVENTS.ORDER_DELETED,
+        orderId: data.orderId
+      });
+
+      // Bildirim göster
+      toast.info('Sipariş silindi!', {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
+      // Verileri yenile
+      queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['kitchen-stats'] });
+    };
+
     SocketService.on(SOCKET_EVENTS.ORDER_CREATED, handleOrderCreated);
     SocketService.on(SOCKET_EVENTS.ORDER_UPDATED, handleOrderUpdated);
+    SocketService.on(SOCKET_EVENTS.ORDER_DELETED, handleOrderDeleted);
 
     // Cleanup function
     return () => {
       console.log('[Kitchen] Socket.IO event dinleyicileri temizleniyor');
       SocketService.off(SOCKET_EVENTS.ORDER_CREATED, handleOrderCreated);
       SocketService.off(SOCKET_EVENTS.ORDER_UPDATED, handleOrderUpdated);
+      SocketService.off(SOCKET_EVENTS.ORDER_DELETED, handleOrderDeleted);
     };
   }, [queryClient, playNewOrder]);
 

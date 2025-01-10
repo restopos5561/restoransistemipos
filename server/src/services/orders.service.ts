@@ -902,78 +902,36 @@ export class OrdersService {
       });
 
       const result = await prisma.$transaction(async (tx) => {
-        // Önce siparişlerin var olduğunu kontrol et
-        const orders = await tx.order.findMany({
+        // 1. Önce kart ödeme kayıtlarını sil
+        await tx.cardPayment.deleteMany({
           where: {
-            id: {
+            payment: {
+              orderId: {
+                in: orderIds
+              }
+            }
+          }
+        });
+
+        // 2. Sonra ödeme kayıtlarını sil
+        await tx.payment.deleteMany({
+          where: {
+            orderId: {
               in: orderIds
             }
-          },
-          include: {
-            orderItems: true,
-            payment: {
-              include: {
-                cardPayment: true
-              }
+          }
+        });
+
+        // 3. Sipariş kalemlerini sil
+        await tx.orderItem.deleteMany({
+          where: {
+            orderId: {
+              in: orderIds
             }
           }
         });
 
-        console.log('[Orders] Silinecek siparişler bulundu:', {
-          requested: orderIds.length,
-          found: orders.length
-        });
-
-        // Eksik siparişleri kontrol et
-        const missingOrders = orderIds.filter(id => !orders.find(o => o.id === id));
-        if (missingOrders.length > 0) {
-          console.error('[Orders] Bazı siparişler bulunamadı:', missingOrders);
-          throw new Error(`Siparişler bulunamadı: ${missingOrders.join(', ')}`);
-        }
-
-        // Her sipariş için ilişkili kayıtları sil
-        for (const order of orders) {
-          try {
-            // 1. Stok geçmişi kayıtlarını sil
-            await tx.stockHistory.deleteMany({
-              where: {
-                orderId: order.id
-              }
-            });
-
-            // 2. Kart ödeme kayıtlarını sil
-            if (order.payment?.cardPayment) {
-              await tx.cardPayment.delete({
-                where: {
-                  id: order.payment.cardPayment.id
-                }
-              });
-            }
-
-            // 3. Ödeme kayıtlarını sil
-            if (order.payment) {
-              await tx.payment.delete({
-                where: {
-                  id: order.payment.id
-                }
-              });
-            }
-
-            // 4. Sipariş kalemlerini sil
-            await tx.orderItem.deleteMany({
-              where: {
-                orderId: order.id
-              }
-            });
-
-            console.log(`[Orders] Sipariş #${order.id} ilişkili kayıtları silindi`);
-          } catch (error) {
-            console.error(`[Orders] Sipariş #${order.id} ilişkili kayıtları silinirken hata:`, error);
-            throw error;
-          }
-        }
-
-        // 5. En son siparişleri sil
+        // 4. En son siparişleri sil
         const deleteResult = await tx.order.deleteMany({
           where: {
             id: {
@@ -984,6 +942,14 @@ export class OrdersService {
 
         console.log('[Orders] Siparişler ve ilişkili kayıtlar başarıyla silindi:', {
           count: deleteResult.count
+        });
+
+        // Socket.IO event'i gönder
+        orderIds.forEach(orderId => {
+          SocketService.emit(SOCKET_EVENTS.ORDER_DELETED, {
+            orderId,
+            message: 'Sipariş silindi'
+          });
         });
 
         return deleteResult;
