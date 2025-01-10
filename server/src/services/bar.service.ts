@@ -104,10 +104,10 @@ export class BarService {
     });
   }
 
-  async getStats(branchId?: number) {
+  async getStats(branchId: number) {
     const today = new Date();
     const whereBase = {
-      ...(branchId && { branchId }),
+      branchId,
       orderItems: {
         some: {
           product: {

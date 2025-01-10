@@ -24,8 +24,10 @@ class BarService {
     return response.data;
   }
 
-  async getStats(): Promise<StatsResponse> {
-    const response = await api.get(API_ENDPOINTS.BAR.STATS);
+  async getStats(branchId: number): Promise<StatsResponse> {
+    const response = await api.get(API_ENDPOINTS.BAR.STATS, {
+      params: { branchId }
+    });
     return response.data;
   }
 }

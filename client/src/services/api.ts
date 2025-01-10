@@ -45,7 +45,7 @@ api.interceptors.response.use(
                     throw new Error('No refresh token found');
                 }
 
-                const response = await api.post('/auth/refresh', { refreshToken });
+                const response = await api.post('/api/auth/refresh', { refreshToken });
                 const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
                 tokenService.setTokens(accessToken, newRefreshToken);

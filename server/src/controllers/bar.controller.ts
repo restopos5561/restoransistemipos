@@ -64,6 +64,11 @@ export class BarController {
   async getStats(req: Request, res: Response, next: NextFunction) {
     try {
       const branchId = req.query.branchId ? parseInt(req.query.branchId as string) : undefined;
+      
+      if (!branchId) {
+        throw new Error('Şube ID\'si gereklidir');
+      }
+
       const stats = await barService.getStats(branchId);
 
       res.json({
