@@ -80,7 +80,9 @@ export const OrderSchema = {
   }),
 
   bulkDelete: z.object({
-    orderIds: z.array(z.number()).min(1),
+    body: z.object({
+      orderIds: z.array(z.number()).min(1),
+    })
   }),
 
   bulkUpdateStatus: z.object({

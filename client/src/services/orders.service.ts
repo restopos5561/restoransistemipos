@@ -118,8 +118,7 @@ const ordersService = {
     try {
       console.log('[Orders] Toplu sipariş silme isteği:', {
         endpoint: API_ENDPOINTS.ORDERS.BULK_DELETE,
-        orderIds,
-        requestBody: { orderIds }
+        orderIds
       });
       
       const response = await api.post(API_ENDPOINTS.ORDERS.BULK_DELETE, { orderIds });
@@ -134,8 +133,7 @@ const ordersService = {
       console.error('[Orders] Toplu sipariş silme hatası:', {
         status: error.response?.status,
         message: error.response?.data?.message || error.message,
-        data: error.response?.data,
-        requestBody: { orderIds }
+        data: error.response?.data
       });
       throw error;
     }
