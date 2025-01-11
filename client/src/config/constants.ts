@@ -154,4 +154,7 @@ export const API_ENDPOINTS = {
     ADD_PRODUCT: (id: string) => `/api/suppliers/${id}/products`,
     BY_PRODUCT: (productId: string) => `/api/products/${productId}/suppliers`,
   },
+  PRODUCT_SUPPLIERS: {
+    DELETE: (productId: string, supplierId: string) => `/api/product-suppliers/${productId}/${supplierId}`,
+  },
 } as const;

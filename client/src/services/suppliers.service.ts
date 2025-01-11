@@ -220,6 +220,39 @@ const suppliersService = {
       console.error('Ürüne göre tedarikçi getirme hatası:', error);
       throw new Error('Ürüne göre tedarikçiler alınırken bir hata oluştu');
     }
+  },
+
+  // Ürün-tedarikçi ilişkisini sil
+  removeProduct: async (productId: number, supplierId: number): Promise<void> => {
+    try {
+      console.log('Ürün-tedarikçi ilişkisi siliniyor:', { productId, supplierId });
+      const response = await api.delete(
+        API_ENDPOINTS.PRODUCT_SUPPLIERS.DELETE(productId.toString(), supplierId.toString())
+      );
+      console.log('Backend yanıtı:', response);
+
+      if (response.status !== 204) {
+        throw new Error('Silme işlemi başarısız');
+      }
+    } catch (error: any) {
+      console.error('Ürün-tedarikçi ilişkisi silme hatası:', error);
+      
+      if (error.response?.status === 404) {
+        throw new Error('Ürün-tedarikçi ilişkisi bulunamadı');
+      }
+      if (error.response?.status === 400) {
+        throw new Error(error.response.data?.message || 'Geçersiz silme isteği');
+      }
+      if (error.response?.status === 403) {
+        throw new Error('Bu işlem için yetkiniz yok');
+      }
+      
+      throw new Error(
+        error.response?.data?.message || 
+        error.message || 
+        'Ürün-tedarikçi ilişkisi silinirken bir hata oluştu'
+      );
+    }
   }
 };
 

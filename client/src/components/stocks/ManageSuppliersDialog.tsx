@@ -21,6 +21,7 @@ import {
   Select,
   MenuItem,
   TextField,
+  DialogContentText,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { Stock } from '@/types/stock.types';
@@ -45,6 +46,8 @@ const ManageSuppliersDialog: React.FC<ManageSuppliersDialogProps> = ({
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
   const [supplierProductCode, setSupplierProductCode] = useState<string>('');
   const [lastPurchasePrice, setLastPurchasePrice] = useState<string>('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [supplierToDelete, setSupplierToDelete] = useState<number | null>(null);
   const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
@@ -140,122 +143,168 @@ const ManageSuppliersDialog: React.FC<ManageSuppliersDialogProps> = ({
       setLoading(true);
       setError(null);
 
-      // TODO: Implement remove supplier functionality
-      // await suppliersService.removeProduct(supplierId, stock.productId);
-
+      await suppliersService.removeProduct(stock.productId, supplierId);
       enqueueSnackbar('Tedarikçi başarıyla kaldırıldı', { variant: 'success' });
-      loadSuppliers();
+      
+      // Tedarikçi listelerini yenile
+      await Promise.all([
+        loadSuppliers(),
+        reloadSuppliers()
+      ]);
+
     } catch (err) {
       setError('Tedarikçi kaldırılırken bir hata oluştu');
       console.error('Tedarikçi kaldırma hatası:', err);
     } finally {
       setLoading(false);
+      setDeleteConfirmOpen(false);
+      setSupplierToDelete(null);
     }
+  };
+
+  const handleDeleteClick = (supplierId: number) => {
+    setSupplierToDelete(supplierId);
+    setDeleteConfirmOpen(true);
   };
 
   if (!stock) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Tedarikçi Yönetimi - {stock.product.name}</DialogTitle>
-      <DialogContent>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+    <>
+      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+        <DialogTitle>Tedarikçi Yönetimi - {stock.product.name}</DialogTitle>
+        <DialogContent>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
 
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Yeni Tedarikçi Ekle
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-            <FormControl fullWidth>
-              <InputLabel>Tedarikçi</InputLabel>
-              <Select
-                value={selectedSupplierId}
-                onChange={(e) => setSelectedSupplierId(e.target.value)}
-                label="Tedarikçi"
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Yeni Tedarikçi Ekle
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+              <FormControl fullWidth>
+                <InputLabel>Tedarikçi</InputLabel>
+                <Select
+                  value={selectedSupplierId}
+                  onChange={(e) => setSelectedSupplierId(e.target.value)}
+                  label="Tedarikçi"
+                >
+                  {suppliers.map((supplier) => (
+                    <MenuItem key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <TextField
+                label="Tedarikçi Ürün Kodu"
+                value={supplierProductCode}
+                onChange={(e) => setSupplierProductCode(e.target.value)}
+              />
+              <TextField
+                label="Son Alış Fiyatı"
+                type="number"
+                value={lastPurchasePrice}
+                onChange={(e) => setLastPurchasePrice(e.target.value)}
+                inputProps={{ min: 0, step: 0.01 }}
+              />
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleAddSupplier}
+                disabled={loading || !selectedSupplierId}
               >
-                {suppliers.map((supplier) => (
-                  <MenuItem key={supplier.id} value={supplier.id}>
-                    {supplier.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              label="Tedarikçi Ürün Kodu"
-              value={supplierProductCode}
-              onChange={(e) => setSupplierProductCode(e.target.value)}
-            />
-            <TextField
-              label="Son Alış Fiyatı"
-              type="number"
-              value={lastPurchasePrice}
-              onChange={(e) => setLastPurchasePrice(e.target.value)}
-              inputProps={{ min: 0, step: 0.01 }}
-            />
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddSupplier}
-              disabled={loading || !selectedSupplierId}
-            >
-              Ekle
-            </Button>
+                Ekle
+              </Button>
+            </Box>
           </Box>
-        </Box>
 
-        <Typography variant="h6" gutterBottom>
-          Mevcut Tedarikçiler
-        </Typography>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Tedarikçi Adı</TableCell>
-                <TableCell>Ürün Kodu</TableCell>
-                <TableCell align="right">Son Alış Fiyatı</TableCell>
-                <TableCell align="right">İşlemler</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {stock?.product.suppliers && stock.product.suppliers.length > 0 ? (
-                stock.product.suppliers.map((ps) => (
-                  <TableRow key={ps.supplierId}>
-                    <TableCell>{ps.supplier.name}</TableCell>
-                    <TableCell>{ps.supplierProductCode || '-'}</TableCell>
-                    <TableCell align="right">
-                      {ps.lastPurchasePrice ? `₺${ps.lastPurchasePrice}` : '-'}
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleRemoveSupplier(ps.supplierId)}
-                        disabled={loading}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+          <Typography variant="h6" gutterBottom>
+            Mevcut Tedarikçiler
+          </Typography>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Tedarikçi Adı</TableCell>
+                  <TableCell>Ürün Kodu</TableCell>
+                  <TableCell align="right">Son Alış Fiyatı</TableCell>
+                  <TableCell align="right">İşlemler</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {stock?.product.suppliers && stock.product.suppliers.length > 0 ? (
+                  stock.product.suppliers.map((ps) => (
+                    <TableRow key={ps.supplierId}>
+                      <TableCell>{ps.supplier.name}</TableCell>
+                      <TableCell>{ps.supplierProductCode || '-'}</TableCell>
+                      <TableCell align="right">
+                        {ps.lastPurchasePrice ? `₺${ps.lastPurchasePrice}` : '-'}
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDeleteClick(ps.supplierId)}
+                          disabled={loading}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} align="center">
+                      Henüz tedarikçi eklenmemiş
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    Henüz tedarikçi eklenmemiş
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Kapat</Button>
-      </DialogActions>
-    </Dialog>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Kapat</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Silme Onay Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => {
+          setDeleteConfirmOpen(false);
+          setSupplierToDelete(null);
+        }}
+      >
+        <DialogTitle>Tedarikçiyi Sil</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Bu tedarikçiyi ürünün tedarikçi listesinden kaldırmak istediğinize emin misiniz?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDeleteConfirmOpen(false);
+              setSupplierToDelete(null);
+            }}
+          >
+            İptal
+          </Button>
+          <Button
+            onClick={() => supplierToDelete && handleRemoveSupplier(supplierToDelete)}
+            color="error"
+            disabled={loading}
+          >
+            Sil
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 
