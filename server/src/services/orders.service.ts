@@ -301,33 +301,46 @@ export class OrdersService {
     // Toplam tutarı hesapla
     const totalAmount = orderItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
 
-    // Siparişi oluştur
-    const order = await prisma.order.create({
-      data: {
-        restaurantId: data.restaurantId,
-        branchId: data.branchId,
-        tableId: data.tableId,
-        customerId: data.customerId,
-        waiterId: data.waiterId,
-        customerCount: data.customerCount,
-        orderSource: data.orderSource,
-        orderNotes: data.notes,
-        totalAmount,
-        totalPriceBeforeDiscounts: totalAmount,
-        orderItems: {
-          create: orderItems
-        }
-      },
-      include: {
-        table: true,
-        customer: true,
-        waiter: true,
-        orderItems: {
-          include: {
-            product: true,
+    // Transaction ile siparişi oluştur ve masa durumunu güncelle
+    const order = await prisma.$transaction(async (tx) => {
+      // Siparişi oluştur
+      const createdOrder = await tx.order.create({
+        data: {
+          restaurantId: data.restaurantId,
+          branchId: data.branchId,
+          tableId: data.tableId,
+          customerId: data.customerId,
+          waiterId: data.waiterId,
+          customerCount: data.customerCount,
+          orderSource: data.orderSource,
+          orderNotes: data.notes,
+          totalAmount,
+          totalPriceBeforeDiscounts: totalAmount,
+          orderItems: {
+            create: orderItems
+          }
+        },
+        include: {
+          table: true,
+          customer: true,
+          waiter: true,
+          orderItems: {
+            include: {
+              product: true,
+            },
           },
         },
-      },
+      });
+
+      // Eğer masa siparişi ise masa durumunu güncelle
+      if (data.tableId) {
+        await tx.table.update({
+          where: { id: data.tableId },
+          data: { status: 'OCCUPIED' }
+        });
+      }
+
+      return createdOrder;
     });
 
     console.log('[OrdersService] Sipariş oluşturuldu:', {
