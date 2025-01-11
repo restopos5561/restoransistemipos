@@ -17,12 +17,17 @@ interface CategoryCreateData {
 
 const categoriesService = {
   getCategories: async (params: CategoryListParams = {}) => {
+    console.log('Categories Service - Request Params:', params);
+    console.log('Categories Service - Restaurant ID from localStorage:', localStorage.getItem('restaurantId'));
+    
     const response = await api.get(API_ENDPOINTS.CATEGORIES.LIST, {
       params: {
         ...params,
         restaurantId: params.restaurantId || localStorage.getItem('restaurantId'),
       },
     });
+    
+    console.log('Categories Service - API Response:', response.data);
     return Array.isArray(response.data) ? response.data : response.data.data || [];
   },
 

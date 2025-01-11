@@ -66,13 +66,33 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
   const { data: categories, isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => categoriesService.getCategories(),
+    queryFn: async () => {
+      try {
+        const restaurantId = localStorage.getItem('restaurantId');
+        console.log('ProductForm - Fetching categories with restaurantId:', restaurantId);
+        const result = await categoriesService.getCategories({
+          restaurantId: Number(restaurantId)
+        });
+        console.log('ProductForm - Categories result:', result);
+        if (!result || !Array.isArray(result)) {
+          console.error('ProductForm - Invalid categories response:', result);
+          return [];
+        }
+        return result;
+      } catch (error) {
+        console.error('ProductForm - Error fetching categories:', error);
+        return [];
+      }
+    }
   });
 
-  const handleChange = (field: string) => (
+  const handleChange = (field: keyof FormData) => (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const value = event.target.type === 'checkbox' ? (event.target as HTMLInputElement).checked : event.target.value;
+    const value =
+      event.target.type === 'checkbox'
+        ? (event.target as HTMLInputElement).checked
+        : event.target.value;
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -83,14 +103,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Dosya tipi kontrolü
-    if (!file.type.startsWith('image/')) {
-      toast.error('Lütfen geçerli bir resim dosyası seçin');
-      return;
-    }
-
     try {
-      // Resmi optimize et
       const base64String = await compressImage(file);
       setImagePreview(base64String);
       setFormData(prev => ({ ...prev, image: base64String }));
@@ -103,13 +116,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
   const handleRemoveImage = () => {
     setImagePreview(null);
     setFormData(prev => ({ ...prev, image: null }));
-    // Resmi hemen kaldır
-    if (initialData?.image) {
-      const imageElement = document.querySelector(`img[src*="${initialData.image}"]`) as HTMLImageElement;
-      if (imageElement) {
-        imageElement.src = '';
-      }
-    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -126,22 +132,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         stockQuantity: formData.stockQuantity ? parseInt(formData.stockQuantity) : undefined,
         taxRate: formData.taxRate ? parseFloat(formData.taxRate) : undefined,
       };
-
-      // Resim işleme
-      if (formData.image) {
-        if (formData.image.startsWith('data:')) {
-          // Yeni yüklenen base64 resim
-          productData.image = formData.image;
-        } else if (formData.image.startsWith('/uploads/')) {
-          // Mevcut resim, değişiklik yok
-          productData.image = formData.image;
-        } else {
-          // Resim yok
-          productData.image = null;
-        }
-      } else {
-        productData.image = null;
-      }
 
       await onSubmit(productData);
     } catch (error: any) {
@@ -255,7 +245,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
             disabled={categoriesLoading}
           >
             <MenuItem value="">Seçiniz</MenuItem>
-            {categories?.data?.map((category: { id: number; name: string }) => (
+            {categories?.map((category: { id: number; name: string }) => (
               <MenuItem key={category.id} value={category.id}>
                 {category.name}
               </MenuItem>
@@ -376,19 +366,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
         <Grid item xs={12}>
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button
-              variant="outlined"
-              onClick={onCancel}
-              disabled={loading}
-            >
+            <Button onClick={onCancel} variant="outlined">
               İptal
             </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={loading}
-            >
-              {loading ? 'Kaydediliyor...' : 'Kaydet'}
+            <Button type="submit" variant="contained" disabled={loading}>
+              {initialData ? 'Güncelle' : 'Oluştur'}
             </Button>
           </Box>
         </Grid>
