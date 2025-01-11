@@ -247,7 +247,17 @@ const StocksPage = () => {
                 <TableCell>{stock.product?.unit || "-"}</TableCell>
                 <TableCell>{stock.lowStockThreshold || '-'}</TableCell>
                 <TableCell>
-                  {stock.product.productSuppliers?.[0]?.supplier.name || '-'}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    {stock.product.productSuppliers?.map((ps) => (
+                      <Chip 
+                        key={ps.supplierId}
+                        label={ps.supplier.name}
+                        size="small"
+                        variant={ps.isPrimary ? "filled" : "outlined"}
+                        color={ps.isPrimary ? "primary" : "default"}
+                      />
+                    )) || '-'}
+                  </Box>
                 </TableCell>
                 <TableCell>{formatDate(stock.lastStockUpdate)}</TableCell>
                 <TableCell>
