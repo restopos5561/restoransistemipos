@@ -79,4 +79,19 @@ export class KitchenController {
       next(error);
     }
   }
+
+  async getRecipeByProductId(req: Request, res: Response, next: NextFunction) {
+    try {
+      const productId = parseInt(req.params.productId);
+      
+      if (isNaN(productId)) {
+        throw new Error('Geçersiz ürün ID\'si');
+      }
+
+      const recipe = await kitchenService.getRecipeByProductId(productId);
+      res.json(recipe);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

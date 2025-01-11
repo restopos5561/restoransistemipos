@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -11,6 +11,15 @@ import {
   alpha,
   Tooltip,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from '@mui/material';
 import {
   CheckCircle as ReadyIcon,
@@ -19,14 +28,23 @@ import {
   PriorityHigh as PriorityIcon,
   Info as InfoIcon,
   Warning as WarningIcon,
+  MenuBook as RecipeIcon,
 } from '@mui/icons-material';
 import { Order } from '../../types/order.types';
 import { OrderStatus, OrderSource } from '../../types/enums';
 import { formatDate } from '../../utils/date';
+import { useQuery } from '@tanstack/react-query';
+import { kitchenService } from '../../services/kitchen.service';
 
 interface OrderCardProps {
   order: Order;
   onStatusChange: (orderId: number, status: OrderStatus) => void;
+}
+
+interface RecipeIngredient {
+  name: string;
+  quantity: number;
+  unit: string;
 }
 
 const statusColors = {
@@ -42,6 +60,21 @@ const statusColors = {
 
 const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
   const theme = useTheme();
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+
+  const { data: recipeData } = useQuery({
+    queryKey: ['recipe', selectedProductId],
+    queryFn: () => selectedProductId ? kitchenService.getRecipeByProductId(selectedProductId) : null,
+    enabled: !!selectedProductId
+  });
+
+  const handleRecipeClick = (productId: number) => {
+    setSelectedProductId(productId);
+  };
+
+  const handleCloseRecipe = () => {
+    setSelectedProductId(null);
+  };
 
   // Detaylı veri kontrolü ve loglama
   console.warn('🔥 [OrderCard] Sipariş verisi:', {
@@ -156,9 +189,22 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
                       <Typography variant="body2" color="text.primary" sx={{ fontWeight: 'medium' }}>
                         {item.quantity}x {item.product?.name || 'Ürün adı bulunamadı'}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {item.unitPrice ? `₺${(item.quantity * Number(item.unitPrice)).toFixed(2)}` : ''}
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2" color="text.secondary">
+                          {item.product?.price ? `₺${(item.quantity * Number(item.product.price)).toFixed(2)}` : ''}
+                        </Typography>
+                        {item.product?.id && (
+                          <Tooltip title="Reçeteyi Görüntüle">
+                            <IconButton 
+                              size="small" 
+                              color="primary"
+                              onClick={() => handleRecipeClick(item.product.id)}
+                            >
+                              <RecipeIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Stack>
                     </Box>
                     
                     {item.product?.category && (
@@ -255,6 +301,47 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
           </Stack>
         </Stack>
       </CardContent>
+
+      {/* Recipe Dialog */}
+      <Dialog 
+        open={!!selectedProductId} 
+        onClose={handleCloseRecipe}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Ürün Reçetesi
+          {recipeData?.data?.product?.name && (
+            <Typography variant="subtitle1" color="text.secondary">
+              {recipeData.data.product.name}
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent>
+          {recipeData?.data?.ingredients ? (
+            <List>
+              {recipeData?.data?.ingredients.map((ingredient: RecipeIngredient, index: number) => (
+                <React.Fragment key={index}>
+                  <ListItem>
+                    <ListItemText
+                      primary={ingredient.name}
+                      secondary={`${ingredient.quantity} ${ingredient.unit}`}
+                    />
+                  </ListItem>
+                  {index < (recipeData?.data?.ingredients?.length || 0) - 1 && <Divider />}
+                </React.Fragment>
+              ))}
+            </List>
+          ) : (
+            <Typography color="text.secondary">
+              Bu ürün için reçete bulunamadı.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseRecipe}>Kapat</Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 };

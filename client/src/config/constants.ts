@@ -51,7 +51,8 @@ export const API_ENDPOINTS = {
     ORDER_STATUS: (id: string) => `/api/kitchen/orders/${id}/status`,
     ORDER_NOTES: (id: string) => `/api/kitchen/orders/${id}/notes`,
     QUEUE: '/api/kitchen/queue',
-    STATS: '/api/kitchen/stats'
+    STATS: '/api/kitchen/stats',
+    RECIPE: (productId: string) => `/api/kitchen/recipe/${productId}`
   },
   PRODUCTS: {
     LIST: '/api/products',

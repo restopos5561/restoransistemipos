@@ -3,6 +3,25 @@ import { API_ENDPOINTS } from '../config/constants';
 import { KitchenOrdersFilters, KitchenOrdersResponse, UpdateOrderStatusRequest, OrderStats, StatsResponse } from '../types/kitchen.types';
 import { Order } from '../types/order.types';
 
+interface Recipe {
+  id: number;
+  productId: number;
+  product: {
+    id: number;
+    name: string;
+  };
+  ingredients: Array<{
+    name: string;
+    quantity: number;
+    unit: string;
+  }>;
+}
+
+interface RecipeResponse {
+  success: boolean;
+  data: Recipe | null;
+}
+
 class KitchenService {
   async getOrders(filters: KitchenOrdersFilters): Promise<KitchenOrdersResponse> {
     try {
@@ -57,6 +76,11 @@ class KitchenService {
 
   async addNote(orderId: number, note: string): Promise<Order> {
     const response = await api.post(API_ENDPOINTS.KITCHEN.ORDER_NOTES(orderId.toString()), { note });
+    return response.data;
+  }
+
+  async getRecipeByProductId(productId: number): Promise<RecipeResponse> {
+    const response = await api.get(API_ENDPOINTS.RECIPES.BY_PRODUCT(productId.toString()));
     return response.data;
   }
 }

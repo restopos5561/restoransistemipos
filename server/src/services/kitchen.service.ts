@@ -1,8 +1,10 @@
-import { PrismaClient, OrderStatus, Prisma } from '@prisma/client';
+import { PrismaClient, OrderStatus, Prisma, Recipe, RecipeIngredient } from '@prisma/client';
 import { BadRequestError } from '../errors/bad-request-error';
 import { startOfDay, endOfDay } from 'date-fns';
+import { RecipesService } from './recipes.service';
 
 const prisma = new PrismaClient();
+const recipesService = new RecipesService();
 
 interface KitchenOrdersFilters {
   status?: OrderStatus[] | string;
@@ -240,6 +242,35 @@ export class KitchenService {
       pendingCount: pendingOrders,
       preparingCount: preparingOrders,
       completedToday: completedToday
+    };
+  }
+
+  async getRecipeByProductId(productId: number) {
+    if (!productId) {
+      throw new BadRequestError('Ürün ID\'si gereklidir.');
+    }
+
+    const recipe = await recipesService.getRecipeByProductId(productId) as Recipe & {
+      product: { id: number; name: string };
+      ingredients: RecipeIngredient[];
+    };
+    
+    if (!recipe) {
+      throw new BadRequestError('Bu ürün için reçete bulunamadı.');
+    }
+
+    return {
+      success: true,
+      data: {
+        id: recipe.id,
+        productId: recipe.productId,
+        product: recipe.product,
+        ingredients: (recipe.ingredients as RecipeIngredient[]).map(ingredient => ({
+          name: ingredient.name,
+          quantity: ingredient.quantity,
+          unit: ingredient.unit
+        }))
+      }
     };
   }
 }

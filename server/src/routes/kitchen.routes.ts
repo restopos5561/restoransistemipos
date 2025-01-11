@@ -29,4 +29,8 @@ router.get('/stats', (req, res, next) => {
   kitchenController.getStats(req, res, next);
 });
 
+router.get('/recipe/:productId', (req, res, next) => {
+  kitchenController.getRecipeByProductId(req, res, next);
+});
+
 export { router as kitchenRoutes };
