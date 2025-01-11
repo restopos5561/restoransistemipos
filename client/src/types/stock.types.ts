@@ -14,7 +14,7 @@ export interface Stock {
     name: string;
     unit: string;
     barcode?: string;
-    suppliers?: Array<{
+    productSuppliers?: Array<{
       supplierId: number;
       supplier: {
         id: number;

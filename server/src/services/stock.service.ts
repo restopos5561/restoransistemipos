@@ -57,12 +57,24 @@ export class StockService {
               name: true,
               unit: true,
               barcode: true,
+              productSuppliers: {
+                include: {
+                  supplier: {
+                    select: {
+                      id: true,
+                      name: true
+                    }
+                  }
+                }
+              }
             },
           },
         },
       }),
       prisma.stock.count({ where }),
     ]);
+
+    console.log('Stok verisi:', JSON.stringify(stocks, null, 2));
 
     return {
       stocks,

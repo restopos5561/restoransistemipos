@@ -81,6 +81,7 @@ const StocksPage = () => {
       setLoading(true);
       setError(null);
       const response = await stockService.getStocks(filters);
+      console.log('StocksPage response:', JSON.stringify(response, null, 2));
       setStocks(response.data.stocks);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Stoklar yüklenirken bir hata oluştu';
@@ -143,7 +144,7 @@ const StocksPage = () => {
 
   const handleStockCount = async (data: StockCountInput) => {
     try {
-      const result = await stockService.createStockCount(data);
+      const result = await stockService.countStock(data);
       
       if (!result?.success) {
         throw new Error('Sayım işlemi başarısız oldu');
@@ -246,7 +247,7 @@ const StocksPage = () => {
                 <TableCell>{stock.product?.unit || "-"}</TableCell>
                 <TableCell>{stock.lowStockThreshold || '-'}</TableCell>
                 <TableCell>
-                  {stock.product.suppliers?.[0]?.supplier.name || '-'}
+                  {stock.product.productSuppliers?.[0]?.supplier.name || '-'}
                 </TableCell>
                 <TableCell>{formatDate(stock.lastStockUpdate)}</TableCell>
                 <TableCell>
@@ -329,6 +330,7 @@ const StocksPage = () => {
           setSelectedStock(null);
         }}
         stock={selectedStock}
+        onUpdate={fetchStocks}
       />
     </Box>
   );

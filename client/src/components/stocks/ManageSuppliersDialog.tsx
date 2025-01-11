@@ -33,16 +33,19 @@ interface ManageSuppliersDialogProps {
   open: boolean;
   onClose: () => void;
   stock: Stock | null;
+  onUpdate?: () => void;
 }
 
 const ManageSuppliersDialog: React.FC<ManageSuppliersDialogProps> = ({
   open,
   onClose,
   stock,
+  onUpdate,
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [productSuppliers, setProductSuppliers] = useState<any[]>([]);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
   const [supplierProductCode, setSupplierProductCode] = useState<string>('');
   const [lastPurchasePrice, setLastPurchasePrice] = useState<string>('');
@@ -50,46 +53,42 @@ const ManageSuppliersDialog: React.FC<ManageSuppliersDialogProps> = ({
   const [supplierToDelete, setSupplierToDelete] = useState<number | null>(null);
   const { enqueueSnackbar } = useSnackbar();
 
-  useEffect(() => {
-    if (open && stock) {
-      loadSuppliers();
-      reloadSuppliers();
-    }
-  }, [open, stock]);
-
-  const loadSuppliers = async () => {
+  // Tüm tedarikçileri ve ürün tedarikçilerini yükle
+  const loadAllData = async () => {
+    if (!stock) return;
+    
     try {
       setLoading(true);
       setError(null);
-      console.log('Mevcut ürün tedarikçileri:', stock?.product.suppliers);
-      const response = await suppliersService.getSuppliers();
-      console.log('Backend tedarikçi yanıtı:', response);
-      setSuppliers(response.suppliers || []);
+      
+      // Her iki isteği paralel olarak yap
+      const [suppliersResponse, productSuppliersResponse] = await Promise.all([
+        suppliersService.getSuppliers(),
+        suppliersService.getSuppliersByProduct(stock.productId)
+      ]);
+      
+      console.log('ManageSuppliersDialog loadAllData:', {
+        suppliersResponse,
+        productSuppliersResponse
+      });
+      
+      setSuppliers(suppliersResponse.suppliers || []);
+      setProductSuppliers(productSuppliersResponse || []);
+      
     } catch (err) {
       setError('Tedarikçiler yüklenirken bir hata oluştu');
-      console.error('Tedarikçi yükleme hatası:', err);
+      console.error('Veri yükleme hatası:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const reloadSuppliers = async () => {
-    if (!stock) return;
-    
-    try {
-      const productSuppliers = await suppliersService.getSuppliersByProduct(stock.productId);
-      console.log('Ürünün tedarikçileri:', productSuppliers);
-      
-      // Stock nesnesini güncelle
-      if (stock.product) {
-        stock.product.suppliers = productSuppliers;
-      }
-      
-    } catch (err) {
-      console.error('Ürün tedarikçileri yüklenirken hata:', err);
-      setError('Tedarikçiler yüklenirken bir hata oluştu');
+  // Modal açıldığında verileri yükle
+  useEffect(() => {
+    if (open && stock) {
+      loadAllData();
     }
-  };
+  }, [open, stock]);
 
   const handleAddSupplier = async () => {
     if (!stock || !selectedSupplierId) return;
@@ -99,8 +98,7 @@ const ManageSuppliersDialog: React.FC<ManageSuppliersDialogProps> = ({
       setError(null);
 
       // Önce mevcut ilişkiyi kontrol et
-      const existingSuppliers = stock.product.suppliers || [];
-      const alreadyExists = existingSuppliers.some(
+      const alreadyExists = productSuppliers.some(
         ps => ps.supplierId === Number(selectedSupplierId)
       );
 
@@ -122,11 +120,9 @@ const ManageSuppliersDialog: React.FC<ManageSuppliersDialogProps> = ({
       setSupplierProductCode('');
       setLastPurchasePrice('');
       
-      // Tedarikçi listelerini yenile
-      await Promise.all([
-        loadSuppliers(),
-        reloadSuppliers()
-      ]);
+      // Verileri yeniden yükle
+      await loadAllData();
+      onUpdate?.();
 
     } catch (err) {
       setError('Tedarikçi eklenirken bir hata oluştu');
@@ -146,11 +142,9 @@ const ManageSuppliersDialog: React.FC<ManageSuppliersDialogProps> = ({
       await suppliersService.removeProduct(stock.productId, supplierId);
       enqueueSnackbar('Tedarikçi başarıyla kaldırıldı', { variant: 'success' });
       
-      // Tedarikçi listelerini yenile
-      await Promise.all([
-        loadSuppliers(),
-        reloadSuppliers()
-      ]);
+      // Verileri yeniden yükle
+      await loadAllData();
+      onUpdate?.();
 
     } catch (err) {
       setError('Tedarikçi kaldırılırken bir hata oluştu');
@@ -172,12 +166,18 @@ const ManageSuppliersDialog: React.FC<ManageSuppliersDialogProps> = ({
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle>Tedarikçi Yönetimi - {stock.product.name}</DialogTitle>
+        <DialogTitle>Tedarikçi Yönetimi - {stock?.product.name}</DialogTitle>
         <DialogContent>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
+          )}
+
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+              <CircularProgress />
+            </Box>
           )}
 
           <Box sx={{ mb: 3 }}>
@@ -236,8 +236,8 @@ const ManageSuppliersDialog: React.FC<ManageSuppliersDialogProps> = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {stock?.product.suppliers && stock.product.suppliers.length > 0 ? (
-                  stock.product.suppliers.map((ps) => (
+                {productSuppliers.length > 0 ? (
+                  productSuppliers.map((ps) => (
                     <TableRow key={ps.supplierId}>
                       <TableCell>{ps.supplier.name}</TableCell>
                       <TableCell>{ps.supplierProductCode || '-'}</TableCell>
@@ -249,7 +249,6 @@ const ManageSuppliersDialog: React.FC<ManageSuppliersDialogProps> = ({
                           size="small"
                           color="error"
                           onClick={() => handleDeleteClick(ps.supplierId)}
-                          disabled={loading}
                         >
                           <DeleteIcon />
                         </IconButton>

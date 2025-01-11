@@ -3,13 +3,20 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
-  TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Edit, Plus, Minus, Truck } from 'lucide-react';
+  Paper,
+  Button,
+  IconButton,
+  Chip,
+  Box
+} from '@mui/material';
+import {
+  Edit as EditIcon,
+  Add as AddIcon,
+  LocalShipping as TruckIcon
+} from '@mui/icons-material';
 import { Stock } from '@/types/stock.types';
 import { formatDate } from '@/lib/utils';
 
@@ -26,79 +33,74 @@ const StockList: React.FC<StockListProps> = ({
   onEdit,
   onManageSuppliers 
 }) => {
+  console.log('StockList stocks:', JSON.stringify(stocks, null, 2));
+
   return (
-    <div className="rounded-md border">
+    <TableContainer component={Paper}>
       <Table>
-        <TableHeader>
+        <TableHead>
           <TableRow>
-            <TableHead>Ürün Adı</TableHead>
-            <TableHead>Miktar</TableHead>
-            <TableHead>Birim</TableHead>
-            <TableHead>Alt Limit</TableHead>
-            <TableHead>Tedarikçi</TableHead>
-            <TableHead>Son Güncelleme</TableHead>
-            <TableHead>Son Kullanma</TableHead>
-            <TableHead className="text-right">İşlemler</TableHead>
+            <TableCell>Ürün Adı</TableCell>
+            <TableCell>Miktar</TableCell>
+            <TableCell>Birim</TableCell>
+            <TableCell>Alt Limit</TableCell>
+            <TableCell>Tedarikçi</TableCell>
+            <TableCell>Son Güncelleme</TableCell>
+            <TableCell>Son Kullanma</TableCell>
+            <TableCell align="right">İşlemler</TableCell>
           </TableRow>
-        </TableHeader>
+        </TableHead>
         <TableBody>
           {stocks.map((stock) => (
             <TableRow key={stock.id}>
-              <TableCell className="font-medium">{stock.product.name}</TableCell>
+              <TableCell>{stock.product.name}</TableCell>
               <TableCell>
-                <div className="flex items-center gap-2">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <span>{stock.quantity}</span>
                   {stock.lowStockThreshold && stock.quantity <= stock.lowStockThreshold && (
-                    <Badge variant="destructive">Düşük Stok</Badge>
+                    <Chip label="Düşük Stok" color="error" size="small" />
                   )}
-                </div>
+                </Box>
               </TableCell>
               <TableCell>{stock.product.unit}</TableCell>
               <TableCell>{stock.lowStockThreshold || '-'}</TableCell>
               <TableCell>
-                {stock.product.suppliers?.[0]?.supplier.name || '-'}
+                {stock.product.productSuppliers?.[0]?.supplier.name || '-'}
               </TableCell>
               <TableCell>{formatDate(stock.lastStockUpdate)}</TableCell>
               <TableCell>
-                {stock.expirationDate ? (
-                  formatDate(stock.expirationDate)
-                ) : (
-                  '-'
-                )}
+                {stock.expirationDate ? formatDate(stock.expirationDate) : '-'}
               </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
+              <TableCell align="right">
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <IconButton
+                    size="small"
                     onClick={() => onUpdateQuantity?.(stock)}
                     title="Stok Ekle/Çıkar"
                   >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
+                    <AddIcon />
+                  </IconButton>
+                  <IconButton
+                    size="small"
                     onClick={() => onEdit?.(stock)}
                     title="Düzenle"
                   >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton
+                    size="small"
                     onClick={() => onManageSuppliers?.(stock)}
                     title="Tedarikçileri Yönet"
                   >
-                    <Truck className="h-4 w-4" />
-                  </Button>
-                </div>
+                    <TruckIcon />
+                  </IconButton>
+                </Box>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-    </div>
+    </TableContainer>
   );
 };
 
