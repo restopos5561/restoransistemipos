@@ -43,3 +43,6 @@ junit.xml
 
 # Specific files
 .DS_Store
+*.sql
+*.toml
+*.toml
