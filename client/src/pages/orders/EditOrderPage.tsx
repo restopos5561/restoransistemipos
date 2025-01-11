@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useSocket } from '../../hooks/useSocket';
 import { toast } from 'react-toastify';
+import { SOCKET_EVENTS } from '../../services/socket/socket.events';
 import {
   Box,
   Paper,
@@ -139,6 +141,7 @@ const EditOrderPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isProfileLoading } = useAuth();
+  const { on } = useSocket();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
@@ -353,6 +356,68 @@ const EditOrderPage: React.FC = () => {
     };
   }, [id, user, isProfileLoading]);
 
+  // Socket.IO event listener
+  useEffect(() => {
+    if (!id || !user?.branchId) return;
+
+    console.log('🔌 [EditOrderPage] Socket.IO dinleyicileri ayarlanıyor:', {
+      orderId: id,
+      branchId: user.branchId
+    });
+
+    const handleOrderStatusChanged = (data: any) => {
+      // Sadece mevcut siparişin güncellemelerini dinle
+      if (data.orderId === Number(id)) {
+        console.log('🔌 [EditOrderPage] Sipariş durumu değişti:', {
+          event: SOCKET_EVENTS.ORDER_STATUS_CHANGED,
+          orderId: data.orderId,
+          status: data.status,
+          data
+        });
+
+        // Sipariş state'ini güncelle
+        setOrder(prev => prev ? { ...prev, status: data.status } : null);
+        
+        // Bildirim göster
+        let message = 'Sipariş durumu güncellendi';
+        let type: 'info' | 'success' | 'warning' = 'info';
+
+        switch (data.status) {
+          case 'PREPARING':
+            message = 'Sipariş hazırlanmaya başlandı';
+            type = 'info';
+            break;
+          case 'READY':
+            message = 'Sipariş hazır';
+            type = 'success';
+            break;
+          case 'CANCELLED':
+            message = 'Sipariş iptal edildi';
+            type = 'warning';
+            break;
+        }
+
+        toast[type](message, {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+    };
+
+    // Event dinleyicisini ekle
+    const unsubscribe = on(SOCKET_EVENTS.ORDER_STATUS_CHANGED, handleOrderStatusChanged);
+
+    // Cleanup
+    return () => {
+      console.log('🔌 [EditOrderPage] Socket.IO dinleyicileri temizleniyor');
+      unsubscribe?.();
+    };
+  }, [id, user?.branchId, on]);
+
   // Ürün ekleme
   const handleAddItem = () => {
     if (!selectedProduct) {
@@ -462,18 +527,13 @@ const EditOrderPage: React.FC = () => {
   // Add status update handler
   const handleStatusUpdate = async () => {
     try {
-      console.warn('🔥 [EditOrderPage] Durum güncelleme başladı:', {
-        orderId: order?.id,
-        currentStatus: order?.status,
-        newStatus,
-        orderData: order
-      });
-      
+      if (order?.status === 'READY' && newStatus === 'PENDING') {
+        toast.warning('Hazır durumundaki siparişi direkt beklemeye alamazsınız. Lütfen önce "Hazırlanıyor" durumuna alın.');
+        return;
+      }
+
       setLoading(true);
       await ordersService.updateOrderStatus(Number(order!.id), newStatus);
-      
-      console.warn('🔥 [EditOrderPage] Durum güncelleme başarılı');
-      
       setOrder(prev => prev ? { ...prev, status: newStatus } : null);
       setShowStatusDialog(false);
       toast.success('Sipariş durumu güncellendi');
