@@ -553,17 +553,13 @@ CREATE TABLE "UserBranch" (
 -- CreateTable
 CREATE TABLE "_PermissionToUserPermissions" (
     "A" INTEGER NOT NULL,
-    "B" INTEGER NOT NULL,
-
-    CONSTRAINT "_PermissionToUserPermissions_AB_pkey" PRIMARY KEY ("A","B")
+    "B" INTEGER NOT NULL
 );
 
 -- CreateTable
 CREATE TABLE "_OrderItemOptions" (
     "A" INTEGER NOT NULL,
-    "B" INTEGER NOT NULL,
-
-    CONSTRAINT "_OrderItemOptions_AB_pkey" PRIMARY KEY ("A","B")
+    "B" INTEGER NOT NULL
 );
 
 -- CreateIndex
@@ -618,7 +614,13 @@ CREATE INDEX "Discount_orderItemId_idx" ON "Discount"("orderItemId");
 CREATE UNIQUE INDEX "UserBranch_userId_branchId_key" ON "UserBranch"("userId", "branchId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "_PermissionToUserPermissions_AB_unique" ON "_PermissionToUserPermissions"("A", "B");
+
+-- CreateIndex
 CREATE INDEX "_PermissionToUserPermissions_B_index" ON "_PermissionToUserPermissions"("B");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "_OrderItemOptions_AB_unique" ON "_OrderItemOptions"("A", "B");
 
 -- CreateIndex
 CREATE INDEX "_OrderItemOptions_B_index" ON "_OrderItemOptions"("B");
