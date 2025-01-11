@@ -71,8 +71,11 @@ interface OrderItem {
 
 interface Table {
   id: number;
-  number: string;
+  tableNumber: string;
   status: 'EMPTY' | 'OCCUPIED' | 'RESERVED' | 'CLEANING';
+  capacity?: number;
+  location?: string | null;
+  branchId: number;
 }
 
 interface Customer {
@@ -149,7 +152,9 @@ const EditOrderPage: React.FC = () => {
       'READY': 'Hazır',
       'DELIVERED': 'Teslim Edildi',
       'COMPLETED': 'Tamamlandı',
-      'CANCELLED': 'İptal Edildi'
+      'CANCELLED': 'İptal Edildi',
+      'ITEM_ISSUE': 'Ürün Sorunu',
+      'PARTIALLY_PAID': 'Kısmi Ödeme'
     };
     return texts[status] || status;
   };
@@ -160,8 +165,10 @@ const EditOrderPage: React.FC = () => {
       'PREPARING': 'info',
       'READY': 'success',
       'DELIVERED': 'primary',
-      'COMPLETED': 'default',
-      'CANCELLED': 'error'
+      'COMPLETED': 'secondary',
+      'CANCELLED': 'error',
+      'ITEM_ISSUE': 'error',
+      'PARTIALLY_PAID': 'warning'
     };
     return colors[status] || 'default';
   };
@@ -230,6 +237,12 @@ const EditOrderPage: React.FC = () => {
         const restaurantId = user.restaurantId;
         const branchId = user.branchId;
 
+        console.log('[EditOrderPage] Veriler yükleniyor:', {
+          orderId,
+          restaurantId,
+          branchId
+        });
+
         // First fetch order details
         const orderResponse = await ordersService.getOrderById(orderId);
         if (!orderResponse.success || !orderResponse.data) {
@@ -249,74 +262,83 @@ const EditOrderPage: React.FC = () => {
           const [tablesResponse, customersResponse, productsResponse] = await Promise.all([
             branchService.getTables(branchId, restaurantId),
             branchService.getCustomers(restaurantId, branchId),
-            productsService.getProducts({ restaurantId }),
+            branchService.getProducts(restaurantId, { branchId: branchId.toString() })
           ]);
 
-          if (!isActive) return;
+          console.log('[EditOrderPage] Masalar yüklendi:', {
+            success: tablesResponse.success,
+            count: tablesResponse.data?.tables?.length || 0
+          });
 
-          if (!tablesResponse.success || !customersResponse.success || !productsResponse.success) {
-            throw new Error('Veriler alınamadı');
+          if (isActive) {
+            if (tablesResponse.success && tablesResponse.data) {
+              setTables(tablesResponse.data.tables || []);
+            } else {
+              console.error('[EditOrderPage] Masa listesi alınamadı:', tablesResponse);
+              toast.error('Masa listesi yüklenirken hata oluştu');
+            }
+
+            if (!tablesResponse.success || !customersResponse.success || !productsResponse.success) {
+              throw new Error('Veriler alınamadı');
+            }
+
+            const customers = customersResponse.data || [];
+            const products = productsResponse.data?.products || [];
+
+            console.log('Products response:', productsResponse);
+            console.log('Parsed products:', products);
+
+            setCustomers(customers);
+            setProducts(products);
+
+            // Validate table ID exists in tables array
+            const tableExists = orderData.table?.id ? Array.isArray(tables) && tables.some((t: Table) => t.id === orderData.table?.id) : false;
+            const customerExists = orderData.customer?.id ? Array.isArray(customers) && customers.some((c: Customer) => c.id === orderData.customer?.id) : false;
+
+            // Form state'ini doldur
+            const formState: FormState = {
+              orderSource: orderData.orderSource || OrderSource.IN_STORE,
+              tableId: tableExists ? orderData.table?.id || null : null,
+              customerId: customerExists ? orderData.customer?.id || null : null,
+              customerCount: orderData.customerCount || 1,
+              notes: orderData.notes || '',
+              priority: Boolean(orderData.priority),
+              discountAmount: orderData.discountAmount || 0,
+              discountType: orderData.discountType || null,
+              paymentStatus: orderData.paymentStatus || PaymentStatus.PENDING,
+              itemCount: orderData.items?.length || 0,
+            };
+
+            setOrder(orderData);
+            setFormData(formState);
+
+            // Sipariş kalemlerini map'le
+            const mappedItems = orderData.items?.map(item => ({
+              id: item.id,
+              productId: item.product.id,
+              product: {
+                id: item.product.id,
+                name: item.product.name,
+                price: Number(item.product.price)
+              },
+              quantity: Number(item.quantity),
+              notes: item.notes || '',
+              totalPrice: Number(item.quantity) * Number(item.product.price),
+              status: item.status
+            })) || [];
+
+            setOrderItems(mappedItems);
+
           }
-
-          const tables = tablesResponse.data.tables || [];
-          const customers = customersResponse.data || [];
-          const products = productsResponse.data?.products || [];
-
-          console.log('Products response:', productsResponse);
-          console.log('Parsed products:', products);
-
-          setTables(tables);
-          setCustomers(customers);
-          setProducts(products);
-
-          // Validate table ID exists in tables array
-          const tableExists = orderData.table?.id ? Array.isArray(tables) && tables.some((t: Table) => t.id === orderData.table?.id) : false;
-          const customerExists = orderData.customer?.id ? Array.isArray(customers) && customers.some((c: Customer) => c.id === orderData.customer?.id) : false;
-
-          // Form state'ini doldur
-          const formState: FormState = {
-            orderSource: orderData.orderSource || OrderSource.IN_STORE,
-            tableId: tableExists ? orderData.table?.id || null : null,
-            customerId: customerExists ? orderData.customer?.id || null : null,
-            customerCount: orderData.customerCount || 1,
-            notes: orderData.notes || '',
-            priority: Boolean(orderData.priority),
-            discountAmount: orderData.discountAmount || 0,
-            discountType: orderData.discountType || null,
-            paymentStatus: orderData.paymentStatus || PaymentStatus.PENDING,
-            itemCount: orderData.items?.length || 0,
-          };
-
-          setOrder(orderData);
-          setFormData(formState);
-
-          // Sipariş kalemlerini map'le
-          const mappedItems = orderData.items?.map(item => ({
-            id: item.id,
-            productId: item.product.id,
-            product: {
-              id: item.product.id,
-              name: item.product.name,
-              price: Number(item.product.price)
-            },
-            quantity: Number(item.quantity),
-            notes: item.notes || '',
-            totalPrice: Number(item.quantity) * Number(item.product.price),
-            status: item.status
-          })) || [];
-
-          setOrderItems(mappedItems);
-
         } catch (error) {
-          console.error('İlgili veriler yüklenirken hata:', error);
-          throw new Error('Masa, müşteri ve ürün bilgileri yüklenirken hata oluştu');
+          console.error('[EditOrderPage] Veri yükleme hatası:', error);
+          toast.error('Veriler yüklenirken hata oluştu');
+          setError('Veriler yüklenirken hata oluştu');
         }
-
-      } catch (error: any) {
-        if (isActive) {
-          console.error('Veri yüklenirken hata:', error);
-          setError(error.message || 'Veriler yüklenirken bir hata oluştu');
-        }
+      } catch (error) {
+        console.error('[EditOrderPage] Sipariş yükleme hatası:', error);
+        toast.error('Sipariş yüklenirken hata oluştu');
+        setError('Sipariş yüklenirken hata oluştu');
       } finally {
         if (isActive) {
           setLoading(false);
@@ -329,7 +351,7 @@ const EditOrderPage: React.FC = () => {
     return () => {
       isActive = false;
     };
-  }, [id, isProfileLoading, user]);
+  }, [id, user, isProfileLoading]);
 
   // Ürün ekleme
   const handleAddItem = () => {
@@ -526,6 +548,7 @@ const EditOrderPage: React.FC = () => {
           <Chip
             label={getStatusText(order?.status || 'PENDING')}
             color={getStatusColor(order?.status || 'PENDING')}
+            sx={{ minWidth: 100 }}
           />
           <Button
             variant="outlined"
@@ -588,7 +611,7 @@ const EditOrderPage: React.FC = () => {
                       <MenuItem value="">Seçiniz</MenuItem>
                       {Array.isArray(tables) && tables.map((table) => (
                         <MenuItem key={table.id} value={table.id}>
-                          Masa {table.number}
+                          Masa {table.tableNumber}
                         </MenuItem>
                       ))}
                     </Select>
@@ -668,7 +691,13 @@ const EditOrderPage: React.FC = () => {
                       <TableCell align="right">{item.quantity}</TableCell>
                       <TableCell align="right">₺{item.product.price.toFixed(2)}</TableCell>
                       <TableCell align="right">₺{item.totalPrice.toFixed(2)}</TableCell>
-                      <TableCell align="right">{item.status}</TableCell>
+                      <TableCell align="right">
+                        <Chip
+                          label={getStatusText(item.status)}
+                          color={getStatusColor(item.status)}
+                          size="small"
+                        />
+                      </TableCell>
                       <TableCell align="right">
                         <IconButton
                           color="error"

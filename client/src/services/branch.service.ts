@@ -3,17 +3,17 @@ import { API_ENDPOINTS } from '../config/constants';
 
 // Types
 export interface GetTablesParams {
-  branchId: string;
+  branchId: number;
   status?: 'EMPTY' | 'OCCUPIED' | 'RESERVED' | 'CLEANING';
 }
 
 export interface GetCustomersParams {
-  branchId: string;
+  branchId: number;
   search?: string;
 }
 
 export interface GetProductsParams {
-  branchId: string;
+  branchId: number;
   categoryId?: string;
   search?: string;
 }
@@ -37,7 +37,7 @@ interface BranchListResponse {
 
 const branchService = {
   // Masaları getir
-  getTables: async (restaurantId: number, branchId: number, params: GetTablesParams = { branchId: branchId.toString() }) => {
+  getTables: async (branchId: number, restaurantId: number) => {
     if (!restaurantId) {
       throw new Error('Restaurant ID gereklidir');
     }
@@ -54,7 +54,7 @@ const branchService = {
   },
 
   // Müşterileri getir
-  getCustomers: async (restaurantId: number, branchId: number, params: GetCustomersParams = { branchId: branchId.toString() }) => {
+  getCustomers: async (restaurantId: number, branchId: number) => {
     if (!restaurantId) {
       throw new Error('Restaurant ID gereklidir');
     }
@@ -71,7 +71,7 @@ const branchService = {
   },
 
   // Ürünleri getir
-  getProducts: async (restaurantId: number, params: GetProductsParams = { branchId: '' }) => {
+  getProducts: async (restaurantId: number, params: GetProductsParams) => {
     if (!restaurantId) {
       throw new Error('Restaurant ID gereklidir');
     }
