@@ -1,5 +1,7 @@
-import { PrismaClient, StockTransactionType } from '@prisma/client';
+import { PrismaClient, StockTransactionType, Prisma } from '@prisma/client';
 import { BadRequestError } from '../errors/bad-request-error';
+import { SocketService } from '../socket/socket.service';
+import { SOCKET_EVENTS } from '../socket/socket.events';
 
 interface TransferStockInput {
   fromBranchId: number;
@@ -100,51 +102,74 @@ export class StockService {
     return stock;
   }
 
-  async updateStockQuantity(
-    id: number,
-    data: {
-      quantity: number;
-      type: StockTransactionType;
-      notes?: string;
-    }
-  ) {
+  async updateStockQuantity(stockId: number, data: { quantity: number; type: 'IN' | 'OUT'; notes?: string }) {
     const stock = await prisma.stock.findUnique({
-      where: { id },
+      where: { id: stockId },
       include: {
         product: true,
-      },
+        branch: true
+      }
     });
 
     if (!stock) {
-      throw new BadRequestError('Stock not found');
+      throw new BadRequestError('Stok bulunamadı');
     }
 
-    return prisma.$transaction(async (tx) => {
+    // Stok güncelleme işlemi
+    const updatedStock = await prisma.$transaction(async (tx) => {
       // Stok miktarını güncelle
-      const updatedStock = await tx.stock.update({
-        where: { id },
+      const updated = await tx.stock.update({
+        where: { id: stockId },
         data: {
-          quantity:
-            data.type === 'OUT' ? stock.quantity - data.quantity : stock.quantity + data.quantity,
-          lastStockUpdate: new Date(),
+          quantity: data.type === 'IN' 
+            ? { increment: data.quantity }
+            : { decrement: data.quantity }
         },
+        include: {
+          product: true,
+          branch: true
+        }
       });
 
-      // Stok hareketini kaydet
+      // Stok hareketi oluştur
       await tx.stockHistory.create({
         data: {
-          stockId: id,
+          stockId: stockId,
           productId: stock.productId,
           restaurantId: stock.product.restaurantId,
+          type: data.type === 'IN' ? StockTransactionType.IN : StockTransactionType.OUT,
           quantity: data.quantity,
-          type: data.type,
           notes: data.notes,
-          date: new Date(),
-        },
+          date: new Date()
+        }
       });
 
-      return updatedStock;
+      return updated;
     });
+
+    // Socket event'lerini gönder
+    if (stock.branch) {
+      SocketService.emitToRoom(`branch_${stock.branch.id}`, SOCKET_EVENTS.STOCK_QUANTITY_CHANGED, {
+        stockId: stock.id,
+        productId: stock.productId,
+        newQuantity: updatedStock.quantity,
+        type: data.type,
+        productName: stock.product.name
+      });
+
+      // Eğer stok kritik seviyenin altındaysa uyarı gönder
+      if (stock.lowStockThreshold && updatedStock.quantity <= stock.lowStockThreshold) {
+        SocketService.emitToRoom(`branch_${stock.branch.id}`, SOCKET_EVENTS.STOCK_ALERT, {
+          stockId: stock.id,
+          productId: stock.productId,
+          currentQuantity: updatedStock.quantity,
+          threshold: stock.lowStockThreshold,
+          productName: stock.product.name
+        });
+      }
+    }
+
+    return updatedStock;
   }
 
   async getStockHistory(stockId: number) {
@@ -438,61 +463,104 @@ export class StockService {
   }
 
   async transferStock(data: TransferStockInput) {
-    console.log('Transfer isteği alındı:', data);
+    const { fromBranchId, toBranchId, productId, quantity, transferBy, notes } = data;
 
-    return prisma.$transaction(async (tx) => {
-      const sourceStock = await tx.stock.findFirst({
-        where: {
-          AND: [{ productId: data.productId }, { branchId: data.fromBranchId }],
-        },
-        include: { product: true },
-      });
-
-      console.log('Kaynak stok:', sourceStock);
-
-      if (!sourceStock) throw new BadRequestError('Kaynak stok bulunamadı');
-      if (sourceStock.quantity < data.quantity) throw new BadRequestError('Yetersiz stok');
-
-      // Önce hedef stoku bul
-      const existingTargetStock = await tx.stock.findFirst({
-        where: {
-          AND: [{ productId: data.productId }, { branchId: data.toBranchId }],
-        },
-      });
-
-      console.log('Mevcut hedef stok:', existingTargetStock);
-
-      // Varsa güncelle, yoksa oluştur
-      const targetStock = existingTargetStock
-        ? await tx.stock.update({
-            where: { id: existingTargetStock.id },
-            data: { quantity: { increment: data.quantity } },
-          })
-        : await tx.stock.create({
-            data: {
-              productId: data.productId,
-              branchId: data.toBranchId,
-              quantity: data.quantity,
-              lowStockThreshold: 0,
-              idealStockLevel: 0,
-              lastStockUpdate: new Date(),
-            },
-          });
-
-      await tx.stock.update({
-        where: { id: sourceStock.id },
-        data: { quantity: { decrement: data.quantity } },
-      });
-
-      return tx.stockTransfer.create({
-        data: {
-          fromStock: { connect: { id: sourceStock.id } },
-          toStock: { connect: { id: targetStock.id } },
-          quantity: data.quantity,
-          notes: data.notes,
-        },
-      });
+    const sourceStock = await prisma.stock.findFirst({
+      where: { branchId: fromBranchId, productId },
+      include: { 
+        product: true,
+        branch: true
+      }
     });
+
+    if (!sourceStock) {
+      throw new BadRequestError('Kaynak şubede stok bulunamadı');
+    }
+
+    if (sourceStock.quantity < quantity) {
+      throw new BadRequestError('Yetersiz stok miktarı');
+    }
+
+    const targetStock = await prisma.stock.findFirst({
+      where: { branchId: toBranchId, productId },
+      include: {
+        branch: true
+      }
+    });
+
+    if (!targetStock) {
+      throw new BadRequestError('Hedef şubede stok kaydı bulunamadı');
+    }
+
+    // Transaction ile stok transferini gerçekleştir
+    const transfer = await prisma.$transaction(async (tx) => {
+      // Kaynak stoktan düş
+      const updatedSourceStock = await tx.stock.update({
+        where: { id: sourceStock.id },
+        data: {
+          quantity: { decrement: quantity }
+        }
+      });
+
+      // Kaynak stok hareketi
+      await tx.stockHistory.create({
+        data: {
+          stockId: sourceStock.id,
+          productId: sourceStock.productId,
+          restaurantId: sourceStock.product.restaurantId,
+          type: StockTransactionType.TRANSFER,
+          quantity: quantity,
+          notes: notes || `Transfer to Branch #${toBranchId}`,
+          date: new Date()
+        }
+      });
+
+      // Hedef stoğa ekle
+      const updatedTargetStock = await tx.stock.update({
+        where: { id: targetStock.id },
+        data: {
+          quantity: { increment: quantity }
+        }
+      });
+
+      // Hedef stok hareketi
+      await tx.stockHistory.create({
+        data: {
+          stockId: targetStock.id,
+          productId: targetStock.productId,
+          restaurantId: sourceStock.product.restaurantId,
+          type: StockTransactionType.TRANSFER,
+          quantity: quantity,
+          notes: notes || `Transfer from Branch #${fromBranchId}`,
+          date: new Date()
+        }
+      });
+
+      return { updatedSourceStock, updatedTargetStock };
+    });
+
+    // Transfer sonrası socket event'lerini gönder
+    SocketService.emitToRoom(`branch_${fromBranchId}`, SOCKET_EVENTS.STOCK_TRANSFER, {
+      type: 'OUT',
+      stockId: sourceStock.id,
+      productId,
+      quantity,
+      fromBranchId,
+      toBranchId,
+      productName: sourceStock.product.name
+    });
+
+    SocketService.emitToRoom(`branch_${toBranchId}`, SOCKET_EVENTS.STOCK_TRANSFER, {
+      type: 'IN',
+      stockId: targetStock.id,
+      productId,
+      quantity,
+      fromBranchId,
+      toBranchId,
+      productName: sourceStock.product.name
+    });
+
+    return transfer;
   }
 
   async createStockCount(data: {
@@ -704,6 +772,107 @@ export class StockService {
     });
 
     return summary;
+  }
+
+  async handleOrderCompletion(orderId: number) {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        orderItems: {
+          include: {
+            product: true
+          }
+        },
+        branch: true
+      }
+    });
+
+    if (!order || !order.branchId) {
+      throw new BadRequestError('Sipariş bulunamadı veya şube bilgisi eksik');
+    }
+
+    // Her ürün için stok düşme işlemi
+    for (const item of order.orderItems) {
+      if (item.product.stockTracking) {
+        const stock = await prisma.stock.findFirst({
+          where: {
+            productId: item.productId,
+            branchId: order.branchId
+          }
+        });
+
+        if (!stock) {
+          throw new BadRequestError(`${item.product.name} için stok kaydı bulunamadı`);
+        }
+
+        await this.updateStockQuantity(stock.id, {
+          quantity: Number(item.quantity),
+          type: 'OUT',
+          notes: `Sipariş tamamlandı: #${order.id}`
+        });
+
+        // Stok güncellemesi sonrası event gönder
+        SocketService.emitToRoom(`branch_${order.branchId}`, SOCKET_EVENTS.STOCK_UPDATED, {
+          stockId: stock.id,
+          productId: item.productId,
+          orderId: order.id,
+          type: 'OUT',
+          quantity: Number(item.quantity)
+        });
+      }
+    }
+  }
+
+  async handleOrderCancellation(orderId: number, itemIds?: number[]) {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        orderItems: {
+          include: {
+            product: true
+          }
+        },
+        branch: true
+      }
+    });
+
+    if (!order || !order.branchId) {
+      throw new BadRequestError('Sipariş bulunamadı veya şube bilgisi eksik');
+    }
+
+    const itemsToProcess = itemIds 
+      ? order.orderItems.filter(item => itemIds.includes(item.id))
+      : order.orderItems;
+
+    for (const item of itemsToProcess) {
+      if (item.product.stockTracking) {
+        const stock = await prisma.stock.findFirst({
+          where: {
+            productId: item.productId,
+            branchId: order.branchId
+          }
+        });
+
+        if (!stock) {
+          throw new BadRequestError(`${item.product.name} için stok kaydı bulunamadı`);
+        }
+
+        await this.updateStockQuantity(stock.id, {
+          quantity: Number(item.quantity),
+          type: 'IN',
+          notes: `Sipariş iptali: #${order.id}`
+        });
+
+        // Stok güncellemesi sonrası event gönder
+        SocketService.emitToRoom(`branch_${order.branchId}`, SOCKET_EVENTS.STOCK_UPDATED, {
+          stockId: stock.id,
+          productId: item.productId,
+          orderId: order.id,
+          type: 'IN',
+          quantity: Number(item.quantity)
+        });
+      }
+    }
   }
 
   // Diğer metodlar (threshold alerts, expiring stock, movements vb.)

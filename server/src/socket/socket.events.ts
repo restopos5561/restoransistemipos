@@ -20,6 +20,12 @@ export const SOCKET_EVENTS = {
   BAR_ORDER_READY: 'bar:orderReady',
   BAR_ORDER_PREPARING: 'bar:orderPreparing',
   
+  // Stock Events
+  STOCK_UPDATED: 'stock:updated',
+  STOCK_QUANTITY_CHANGED: 'stock:quantityChanged',
+  STOCK_ALERT: 'stock:alert',
+  STOCK_TRANSFER: 'stock:transfer',
+  
   // Room Events
   JOIN_ROOM: 'room:join',
   LEAVE_ROOM: 'room:leave'

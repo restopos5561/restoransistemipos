@@ -3,8 +3,10 @@ import { BadRequestError } from '../errors/bad-request-error';
 import { OrderNotFoundError, OrderItemNotFoundError } from '../errors/order-errors';
 import { SocketService } from '../socket/socket.service';
 import { SOCKET_EVENTS } from '../socket/socket.events';
+import { StockService } from './stock.service';
 
 const prisma = new PrismaClient();
+const stockService = new StockService();
 
 interface CreateOrderInput {
   restaurantId: number;
@@ -359,62 +361,34 @@ export class OrdersService {
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
-        table: true,
-        orderItems: {
-          include: {
-            product: true,
-            selectedOptions: true,
-          },
-        },
-      },
+        orderItems: true
+      }
     });
 
     if (!order) {
       throw new BadRequestError('Sipariş bulunamadı');
     }
 
-    if (!this.canUpdateStatus(order.status, status)) {
-      throw new BadRequestError('Bu durum güncellemesi yapılamaz');
+    // Sipariş tamamlandığında stok düşme işlemi
+    if (status === 'COMPLETED' && order.status !== 'COMPLETED') {
+      await stockService.handleOrderCompletion(id);
     }
 
-    const updatedOrder = await prisma.order.update({
+    // Sipariş iptal edildiğinde stok iade işlemi
+    if (status === 'CANCELLED' && order.status !== 'CANCELLED') {
+      await stockService.handleOrderCancellation(id);
+    }
+
+    return prisma.order.update({
       where: { id },
-      data: {
-        status,
-        ...(status === OrderStatus.PREPARING && {
-          preparationStartTime: new Date(),
-        }),
-        ...(status === OrderStatus.READY && {
-          preparationEndTime: new Date(),
-        }),
-      },
+      data: { status },
       include: {
+        orderItems: true,
         table: true,
-        orderItems: {
-          include: {
-            product: true,
-            selectedOptions: true,
-          },
-        },
-      },
+        customer: true,
+        waiter: true
+      }
     });
-
-    // Socket.IO event'lerini gönder
-    SocketService.emitToRoom(`branch_${updatedOrder.branchId}`, SOCKET_EVENTS.ORDER_STATUS_CHANGED, {
-      orderId: id,
-      status,
-      order: updatedOrder
-    });
-
-    // Eğer masa varsa, masanın durumunu da broadcast et
-    if (updatedOrder.table) {
-      SocketService.emitToRoom(`branch_${updatedOrder.branchId}`, SOCKET_EVENTS.TABLE_UPDATED, {
-        tableId: updatedOrder.table.id,
-        order: updatedOrder
-      });
-    }
-
-    return updatedOrder;
   }
 
   private canUpdateStatus(currentStatus: OrderStatus, newStatus: OrderStatus): boolean {
@@ -1047,6 +1021,37 @@ export class OrdersService {
         paymentMethod: order.payment?.paymentMethod || 'Ödeme Bekliyor',
         notes: order.orderNotes || ''
       };
+    });
+  }
+
+  async updateOrderItemStatus(orderId: number, itemId: number, status: OrderItemStatus) {
+    const orderItem = await prisma.orderItem.findFirst({
+      where: {
+        id: itemId,
+        orderId
+      }
+    });
+
+    if (!orderItem) {
+      throw new BadRequestError('Sipariş kalemi bulunamadı');
+    }
+
+    // Eğer ürün iptal ediliyorsa (VOID olarak işaretlenirse) stok iade işlemi
+    if (orderItem.type !== 'VOID') {
+      await prisma.orderItem.update({
+        where: { id: itemId },
+        data: { 
+          type: 'VOID',
+          orderItemStatus: status 
+        }
+      });
+      
+      await stockService.handleOrderCancellation(orderId, [itemId]);
+    }
+
+    return prisma.orderItem.update({
+      where: { id: itemId },
+      data: { orderItemStatus: status }
     });
   }
 }

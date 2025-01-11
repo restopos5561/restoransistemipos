@@ -33,6 +33,11 @@ import TransferStockDialog from '@/components/stocks/TransferStockDialog';
 import StockCountDialog from '@/components/stocks/StockCountDialog';
 import ManageSuppliersDialog from '@/components/stocks/ManageSuppliersDialog';
 import StockFiltersComponent from '@/components/stocks/StockFilters';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { useSocket } from '@/hooks/useSocket';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
+import { toast } from 'react-toastify';
 
 const StocksPage = () => {
   const theme = useTheme();
@@ -51,6 +56,9 @@ const StocksPage = () => {
     page: 1,
     limit: 10,
   });
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { on } = useSocket();
 
   useEffect(() => {
     const branchId = localStorage.getItem('branchId');
@@ -157,6 +165,56 @@ const StocksPage = () => {
       throw err;
     }
   };
+
+  // Socket event dinleyicileri
+  useEffect(() => {
+    if (!user?.branchId) return;
+
+    // Stok miktarı değiştiğinde
+    const handleStockQuantityChanged = (data: any) => {
+      console.log('🔌 [Stock] Stok miktarı değişti:', data);
+      queryClient.invalidateQueries({ queryKey: ['stocks'] });
+      toast.info(`${data.productName} stok miktarı güncellendi`);
+    };
+
+    // Stok transferi olduğunda
+    const handleStockTransfer = (data: any) => {
+      console.log('🔌 [Stock] Stok transferi:', data);
+      queryClient.invalidateQueries({ queryKey: ['stocks'] });
+      
+      const message = data.type === 'IN' 
+        ? `${data.productName} ürününden ${data.quantity} adet transfer alındı`
+        : `${data.productName} ürününden ${data.quantity} adet transfer gönderildi`;
+      
+      toast.info(message);
+    };
+
+    // Stok uyarısı geldiğinde
+    const handleStockAlert = (data: any) => {
+      console.log('🔌 [Stock] Stok uyarısı:', data);
+      toast.warning(`${data.productName} stok seviyesi kritik: ${data.currentQuantity}`);
+    };
+
+    // Genel stok güncellemesi
+    const handleStockUpdated = (data: any) => {
+      console.log('🔌 [Stock] Stok güncellendi:', data);
+      queryClient.invalidateQueries({ queryKey: ['stocks'] });
+    };
+
+    // Event dinleyicilerini ekle
+    const unsubscribeQuantity = on(SOCKET_EVENTS.STOCK_QUANTITY_CHANGED, handleStockQuantityChanged);
+    const unsubscribeTransfer = on(SOCKET_EVENTS.STOCK_TRANSFER, handleStockTransfer);
+    const unsubscribeAlert = on(SOCKET_EVENTS.STOCK_ALERT, handleStockAlert);
+    const unsubscribeUpdate = on(SOCKET_EVENTS.STOCK_UPDATED, handleStockUpdated);
+
+    // Cleanup
+    return () => {
+      unsubscribeQuantity?.();
+      unsubscribeTransfer?.();
+      unsubscribeAlert?.();
+      unsubscribeUpdate?.();
+    };
+  }, [on, queryClient, user?.branchId]);
 
   if (loading) {
     return (
