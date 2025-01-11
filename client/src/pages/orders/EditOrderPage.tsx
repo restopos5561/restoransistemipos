@@ -262,7 +262,7 @@ const EditOrderPage: React.FC = () => {
           const [tablesResponse, customersResponse, productsResponse] = await Promise.all([
             branchService.getTables(branchId, restaurantId),
             branchService.getCustomers(restaurantId, branchId),
-            branchService.getProducts(restaurantId, { branchId: branchId.toString() })
+            branchService.getProducts(restaurantId, { branchId })
           ]);
 
           console.log('[EditOrderPage] Masalar yüklendi:', {
