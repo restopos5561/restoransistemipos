@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, Plus, Minus } from 'lucide-react';
+import { Edit, Plus, Minus, Truck } from 'lucide-react';
 import { Stock } from '@/types/stock.types';
 import { formatDate } from '@/lib/utils';
 
@@ -17,9 +17,15 @@ interface StockListProps {
   stocks: Stock[];
   onUpdateQuantity?: (stock: Stock) => void;
   onEdit?: (stock: Stock) => void;
+  onManageSuppliers?: (stock: Stock) => void;
 }
 
-const StockList: React.FC<StockListProps> = ({ stocks, onUpdateQuantity, onEdit }) => {
+const StockList: React.FC<StockListProps> = ({ 
+  stocks, 
+  onUpdateQuantity, 
+  onEdit,
+  onManageSuppliers 
+}) => {
   return (
     <div className="rounded-md border">
       <Table>
@@ -29,6 +35,7 @@ const StockList: React.FC<StockListProps> = ({ stocks, onUpdateQuantity, onEdit 
             <TableHead>Miktar</TableHead>
             <TableHead>Birim</TableHead>
             <TableHead>Alt Limit</TableHead>
+            <TableHead>Tedarikçi</TableHead>
             <TableHead>Son Güncelleme</TableHead>
             <TableHead>Son Kullanma</TableHead>
             <TableHead className="text-right">İşlemler</TableHead>
@@ -48,6 +55,9 @@ const StockList: React.FC<StockListProps> = ({ stocks, onUpdateQuantity, onEdit 
               </TableCell>
               <TableCell>{stock.product.unit}</TableCell>
               <TableCell>{stock.lowStockThreshold || '-'}</TableCell>
+              <TableCell>
+                {stock.product.suppliers?.[0]?.supplier.name || '-'}
+              </TableCell>
               <TableCell>{formatDate(stock.lastStockUpdate)}</TableCell>
               <TableCell>
                 {stock.expirationDate ? (
@@ -73,6 +83,14 @@ const StockList: React.FC<StockListProps> = ({ stocks, onUpdateQuantity, onEdit 
                     title="Düzenle"
                   >
                     <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onManageSuppliers?.(stock)}
+                    title="Tedarikçileri Yönet"
+                  >
+                    <Truck className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>

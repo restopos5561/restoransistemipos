@@ -3,9 +3,11 @@ import { ProductsController } from '../controllers/products.controller';
 import { validateRequest } from '../middleware/validate-request';
 import { requireAuth } from '../middleware/auth.middleware';
 import { ProductSchema } from '../schemas/product.schema';
+import { ProductSupplierController } from '../controllers/product.supplier.controller';
 
 const router = Router();
 const controller = new ProductsController();
+const productSupplierController = new ProductSupplierController();
 
 // Ana CRUD rotaları
 router.get('/', requireAuth, controller.getProducts);
@@ -13,6 +15,9 @@ router.get('/:id', requireAuth, controller.getProductById);
 router.post('/', requireAuth, validateRequest(ProductSchema.create), controller.createProduct);
 router.put('/:id', requireAuth, validateRequest(ProductSchema.update), controller.updateProduct);
 router.delete('/:id', requireAuth, controller.deleteProduct);
+
+// Tedarikçi rotaları
+router.get('/:productId/suppliers', requireAuth, productSupplierController.getSuppliersByProductId);
 
 // Varyant rotaları
 router.get('/:id/variants', requireAuth, controller.getProductVariants);

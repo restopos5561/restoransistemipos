@@ -14,6 +14,16 @@ export interface Stock {
     name: string;
     unit: string;
     barcode?: string;
+    suppliers?: Array<{
+      supplierId: number;
+      supplier: {
+        id: number;
+        name: string;
+      };
+      supplierProductCode?: string;
+      lastPurchasePrice?: number;
+      isPrimary: boolean;
+    }>;
   };
   branch?: {
     name: string;

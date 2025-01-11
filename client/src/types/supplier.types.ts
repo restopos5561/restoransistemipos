@@ -2,25 +2,31 @@ export interface Supplier {
   id: number;
   restaurantId: number;
   name: string;
-  contactName?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  createdAt: string;
-  updatedAt: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  taxNumber?: string;
+  taxOffice?: string;
+  notes?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface SupplierProduct {
-  id: number;
   supplierId: number;
   productId: number;
+  supplierProductCode?: string;
+  lastPurchasePrice?: number;
   isPrimary: boolean;
-  lastPurchasePrice?: number | null;
-  supplierProductCode?: string | null;
+  supplier: {
+    id: number;
+    name: string;
+  };
   product: {
     id: number;
     name: string;
-    description?: string | null;
-    price: number;
   };
 }
 
@@ -38,6 +44,10 @@ export interface CreateSupplierInput {
   contactName?: string;
   phone?: string;
   email?: string;
+  address?: string;
+  taxNumber?: string;
+  taxOffice?: string;
+  notes?: string;
 }
 
 export interface UpdateSupplierInput {
@@ -45,11 +55,16 @@ export interface UpdateSupplierInput {
   contactName?: string;
   phone?: string;
   email?: string;
+  address?: string;
+  taxNumber?: string;
+  taxOffice?: string;
+  notes?: string;
+  isActive?: boolean;
 }
 
 export interface AddProductInput {
   productId: number;
-  isPrimary?: boolean;
-  lastPurchasePrice?: number;
   supplierProductCode?: string;
+  lastPurchasePrice?: number;
+  isPrimary?: boolean;
 } 

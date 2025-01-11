@@ -31,6 +31,7 @@ import { useSnackbar } from 'notistack';
 import UpdateStockDialog from '@/components/stocks/UpdateStockDialog';
 import TransferStockDialog from '@/components/stocks/TransferStockDialog';
 import StockCountDialog from '@/components/stocks/StockCountDialog';
+import ManageSuppliersDialog from '@/components/stocks/ManageSuppliersDialog';
 import StockFiltersComponent from '@/components/stocks/StockFilters';
 
 const StocksPage = () => {
@@ -42,6 +43,7 @@ const StocksPage = () => {
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [countDialogOpen, setCountDialogOpen] = useState(false);
+  const [suppliersDialogOpen, setSuppliersDialogOpen] = useState(false);
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const [currentBranchId, setCurrentBranchId] = useState<number>(0);
   const [filters, setFilters] = useState<StockFilters>({
@@ -98,7 +100,7 @@ const StocksPage = () => {
     setFilters(prev => ({
       ...prev,
       ...newFilters,
-      page: 1, // Filtreler değiştiğinde sayfa numarasını sıfırla
+      page: 1,
     }));
   };
 
@@ -110,6 +112,11 @@ const StocksPage = () => {
   const handleTransferClick = (stock: Stock) => {
     setSelectedStock(stock);
     setTransferDialogOpen(true);
+  };
+
+  const handleManageSuppliers = (stock: Stock) => {
+    setSelectedStock(stock);
+    setSuppliersDialogOpen(true);
   };
 
   const handleUpdateStock = async (id: number, data: UpdateStockQuantityInput) => {
@@ -220,6 +227,10 @@ const StocksPage = () => {
               <TableCell>Ürün Adı</TableCell>
               <TableCell>Miktar</TableCell>
               <TableCell>Birim</TableCell>
+              <TableCell>Alt Limit</TableCell>
+              <TableCell>Tedarikçi</TableCell>
+              <TableCell>Son Güncelleme</TableCell>
+              <TableCell>Son Kullanma</TableCell>
               <TableCell>İşlemler</TableCell>
             </TableRow>
           </TableHead>
@@ -233,6 +244,18 @@ const StocksPage = () => {
                   </Typography>
                 </TableCell>
                 <TableCell>{stock.product?.unit || "-"}</TableCell>
+                <TableCell>{stock.lowStockThreshold || '-'}</TableCell>
+                <TableCell>
+                  {stock.product.suppliers?.[0]?.supplier.name || '-'}
+                </TableCell>
+                <TableCell>{formatDate(stock.lastStockUpdate)}</TableCell>
+                <TableCell>
+                  {stock.expirationDate ? (
+                    formatDate(stock.expirationDate)
+                  ) : (
+                    '-'
+                  )}
+                </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button
@@ -250,6 +273,14 @@ const StocksPage = () => {
                       onClick={() => handleTransferClick(stock)}
                     >
                       Transfer
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<EditIcon />}
+                      onClick={() => handleManageSuppliers(stock)}
+                    >
+                      Tedarikçiler
                     </Button>
                   </Box>
                 </TableCell>
@@ -290,6 +321,15 @@ const StocksPage = () => {
           fetchStocks={fetchStocks}
         />
       )}
+
+      <ManageSuppliersDialog
+        open={suppliersDialogOpen}
+        onClose={() => {
+          setSuppliersDialogOpen(false);
+          setSelectedStock(null);
+        }}
+        stock={selectedStock}
+      />
     </Box>
   );
 };
