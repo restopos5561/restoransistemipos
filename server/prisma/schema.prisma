@@ -52,6 +52,7 @@ model Branch {
   stockCounts    StockCount[]
   purchaseOrders PurchaseOrder[]
   userBranches   UserBranch[]    // Çoklu şube ilişkisi
+  reservations   Reservation[]   // Şubeye ait rezervasyonlar
 }
 
 // Şube Ayarları Modeli
@@ -410,18 +411,28 @@ model CardPayment {
 
 // Rezervasyon Modeli
 model Reservation {
-  id                 Int               @id @default(autoincrement())
-  restaurantId       Int
-  restaurant         Restaurant        @relation(fields: [restaurantId], references: [id])
-  customerId         Int
-  customer           Customer          @relation(fields: [customerId], references: [id])
+  id                  Int               @id @default(autoincrement())
+  restaurantId        Int
+  customerId          Int
   tableId            Int?
-  table              Table?            @relation(fields: [tableId], references: [id])
-  reservationTime    DateTime
-  partySize          Int? // Kişi sayısı
+  branchId           Int               // Branch ilişkisi için eklendi
+  reservationStartTime DateTime         
+  reservationEndTime   DateTime         
+  partySize          Int
   notes              String?
-  status             ReservationStatus @default(PENDING)
+  status             ReservationStatus  @default(PENDING)
   cancellationReason String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  restaurant         Restaurant        @relation(fields: [restaurantId], references: [id])
+  customer           Customer          @relation(fields: [customerId], references: [id])
+  table              Table?            @relation(fields: [tableId], references: [id])
+  branch             Branch            @relation(fields: [branchId], references: [id]) // Branch ilişkisi eklendi
+
+  @@index([restaurantId])
+  @@index([customerId])
+  @@index([tableId])
+  @@index([branchId])
 }
 
 // Rezervasyon Durumları

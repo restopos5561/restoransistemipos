@@ -30,6 +30,11 @@ export class ReservationsController {
   async updateReservation(req: Request, res: Response) {
     const { id } = req.params;
     const data: UpdateReservationInput = req.body;
+    console.log('Backend - Gelen güncelleme verisi:', {
+      params: req.params,
+      body: req.body,
+      query: req.query
+    });
     const reservation = await this.reservationsService.updateReservation(Number(id), data);
     res.json({ success: true, data: reservation });
   }

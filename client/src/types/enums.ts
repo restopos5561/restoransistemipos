@@ -31,4 +31,11 @@ export enum PaymentMethod {
   OTHER = 'OTHER',
   GIFT_CERTIFICATE = 'GIFT_CERTIFICATE',
   LOYALTY_POINTS = 'LOYALTY_POINTS'
+}
+
+export enum ReservationStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED',
+  COMPLETED = 'COMPLETED'
 } 

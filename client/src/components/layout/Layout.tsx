@@ -14,7 +14,8 @@ import {
     Inventory as InventoryIcon,
     People as PeopleIcon,
     LocalShipping as SupplierIcon,
-    AccountBalance as AccountIcon
+    AccountBalance as AccountIcon,
+    EventAvailable as EventAvailableIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -26,6 +27,7 @@ const DRAWER_WIDTH = 280;
 const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Siparişler', icon: <ReceiptIcon />, path: '/orders', roles: ['ADMIN', 'MANAGER', 'CHEF', 'WAITER', 'CASHIER'] },
+    { text: 'Rezervasyonlar', icon: <EventAvailableIcon />, path: '/reservations', roles: ['ADMIN', 'MANAGER', 'WAITER', 'CASHIER'] },
     { text: 'Mutfak', icon: <KitchenIcon />, path: '/kitchen', roles: ['ADMIN', 'CHEF'] },
     { text: 'Bar', icon: <BarIcon />, path: '/bar', roles: ['ADMIN', 'BAR', 'BAR_STAFF', 'CHEF'] },
     { text: 'Masalar', icon: <TableIcon />, path: '/tables', roles: ['ADMIN', 'WAITER', 'CASHIER', 'CHEF'] },

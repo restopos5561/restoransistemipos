@@ -2,9 +2,9 @@ import { Router } from 'express';
 import { ReservationsController } from '../controllers/reservations.controller';
 import { validateRequest } from '../middleware/validate-request';
 import {
-  createReservationSchema,
-  updateReservationSchema,
-  updateReservationStatusSchema,
+  createReservationRequestSchema,
+  updateReservationRequestSchema,
+  updateReservationStatusRequestSchema,
 } from '../schemas/reservation.schema';
 import { requireAuth } from '../middleware/auth.middleware';
 
@@ -16,7 +16,7 @@ router.get('/', requireAuth, reservationsController.getReservations.bind(reserva
 router.post(
   '/',
   requireAuth,
-  validateRequest(createReservationSchema),
+  validateRequest(createReservationRequestSchema),
   reservationsController.createReservation.bind(reservationsController)
 );
 router.get(
@@ -27,7 +27,7 @@ router.get(
 router.put(
   '/:id',
   requireAuth,
-  validateRequest(updateReservationSchema),
+  validateRequest(updateReservationRequestSchema),
   reservationsController.updateReservation.bind(reservationsController)
 );
 router.delete(
@@ -40,7 +40,7 @@ router.delete(
 router.patch(
   '/:id/status',
   requireAuth,
-  validateRequest(updateReservationStatusSchema),
+  validateRequest(updateReservationStatusRequestSchema),
   reservationsController.updateReservationStatus.bind(reservationsController)
 );
 router.get(

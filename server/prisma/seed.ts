@@ -620,7 +620,9 @@ async function main() {
                 customerId: customer.id,
                 tableId: tables[0].id,
                 restaurantId: restaurant.id,
-                reservationTime: new Date('2024-03-20T19:00:00Z'),
+                branchId: branches[0].id, // Ana şube için
+                reservationStartTime: new Date('2024-03-20T19:00:00Z'),
+                reservationEndTime: new Date('2024-03-20T21:00:00Z'), // 2 saatlik rezervasyon
                 partySize: 4,
                 status: 'PENDING',
                 notes: 'Pencere kenarı tercih edilir'

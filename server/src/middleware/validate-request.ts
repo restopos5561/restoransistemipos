@@ -11,21 +11,18 @@ export const validateRequest = (schema: AnyZodObject) => {
         params: req.params,
       });
 
-      const dataToValidate = {
+      const validatedData = await schema.parseAsync({
         body: req.body,
         query: req.query,
         params: req.params,
-      };
-
-      console.log('Validasyon için hazırlanan veri:', dataToValidate);
-
-      const validatedData = await schema.parseAsync(dataToValidate);
+      });
       
       console.log('Validasyon sonrası veri:', validatedData);
 
-      if (validatedData.body) {
-        req.body = validatedData.body;
-      }
+      // Validated verileri request'e ata
+      req.body = validatedData.body;
+      req.query = validatedData.query as any;
+      req.params = validatedData.params as any;
 
       next();
     } catch (error) {

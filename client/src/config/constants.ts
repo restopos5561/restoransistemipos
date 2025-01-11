@@ -157,4 +157,16 @@ export const API_ENDPOINTS = {
   PRODUCT_SUPPLIERS: {
     DELETE: (productId: string, supplierId: string) => `/api/product-suppliers/${productId}/${supplierId}`,
   },
+  RESERVATIONS: {
+    LIST: '/reservations',
+    DETAIL: (id: string) => `/reservations/${id}`,
+    CREATE: '/reservations',
+    UPDATE: (id: string) => `/reservations/${id}`,
+    DELETE: (id: string) => `/reservations/${id}`,
+    STATUS: (id: string) => `/reservations/${id}/status`,
+    BY_DATE: (date: string) => `/reservations/date/${date}`,
+    BY_CUSTOMER: (customerId: string) => `/reservations/customer/${customerId}`,
+    BY_TABLE: (tableId: string) => `/reservations/table/${tableId}`,
+    BY_BRANCH: (branchId: string) => `/reservations/branch/${branchId}`,
+  },
 } as const;

@@ -44,6 +44,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { tr } from 'date-fns/locale';
 import theme from './theme/theme';
 import { useConfirm } from './hooks/useConfirm';
+import ReservationsPage from './pages/reservations/ReservationsPage';
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,9 @@ const App: React.FC = () => {
 
                                         {/* Tables Route */}
                                         <Route path="/tables" element={<TablesPage />} />
+
+                                        {/* Reservations Route */}
+                                        <Route path="/reservations" element={<ReservationsPage />} />
 
                                         {/* Products Route */}
                                         <Route path="/products" element={<ProductsPage />} />

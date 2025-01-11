@@ -65,27 +65,10 @@ class TablesService {
     }
   }
 
-  async getTableById(id: number): Promise<TableResponse> {
+  async getTableById(id: number) {
     console.log('🔵 [TablesService] Masa detayı getiriliyor:', { tableId: id });
-
-    try {
-      const response = await api.get(API_ENDPOINTS.TABLES.DETAIL(id.toString()));
-      
-      console.log('✅ [TablesService] Masa detayı getirildi:', {
-        tableId: id,
-        hasOrders: response.data.data.activeOrders?.length > 0,
-        orderCount: response.data.data.activeOrders?.length
-      });
-
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ [TablesService] Masa detayı getirilirken hata:', {
-        error,
-        response: error.response?.data,
-        tableId: id
-      });
-      throw error;
-    }
+    const response = await api.get(API_ENDPOINTS.TABLES.DETAIL(id.toString()));
+    return response.data.data;
   }
 
   async createTable(data: CreateTableInput): Promise<TableResponse> {

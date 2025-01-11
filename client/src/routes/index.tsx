@@ -25,6 +25,7 @@ import CustomersPage from '@/pages/customers/CustomersPage';
 import SuppliersPage from '@/pages/suppliers/SuppliersPage';
 import AccountsPage from '@/pages/accounts/AccountsPage';
 import SettingsPage from '@/pages/settings/SettingsPage';
+import ReservationsPage from '@/pages/reservations/ReservationsPage';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -88,6 +89,9 @@ const AppRoutes: React.FC = () => {
           <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'CHEF']} />}>
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
+
+          {/* Reservations Route */}
+          <Route path="/reservations" element={<ReservationsPage />} />
         </Route>
       </Route>
 
