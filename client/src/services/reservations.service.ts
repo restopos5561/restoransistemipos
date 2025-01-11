@@ -10,7 +10,32 @@ import {
 
 class ReservationsService {
   async getReservations(filters: ReservationFilters = {}) {
-    const response = await api.get(API_ENDPOINTS.RESERVATIONS.LIST, { params: filters });
+    const restaurantId = localStorage.getItem('restaurantId');
+    const branchId = localStorage.getItem('branchId');
+
+    if (!restaurantId) {
+      throw new Error('Restaurant ID bulunamadı');
+    }
+
+    if (!branchId) {
+      throw new Error('Branch ID bulunamadı');
+    }
+
+    const params = {
+      ...filters,
+      restaurantId: Number(restaurantId),
+      branchId: Number(branchId)
+    };
+
+    console.log('🔵 [ReservationsService] Rezervasyonlar getiriliyor:', { 
+      params,
+      endpoint: API_ENDPOINTS.RESERVATIONS.LIST
+    });
+
+    const response = await api.get(API_ENDPOINTS.RESERVATIONS.LIST, { params });
+
+    console.log('✅ [ReservationsService] Ham backend yanıtı:', response.data);
+
     return response.data;
   }
 

@@ -7,7 +7,9 @@ import { ReservationStatus } from '../../types/enums';
 import { useReservations } from '../../hooks/useReservations';
 import { useAuth } from '../../hooks/useAuth';
 import customersService from '../../services/customers.service';
+import tablesService from '../../services/tables.service';
 import { Customer, CustomerListResponse } from '../../types/customer.types';
+import { Table } from '../../types/table.types';
 
 interface ReservationDialogProps {
   open: boolean;
@@ -19,13 +21,17 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
   const { createReservation, updateReservation } = useReservations();
   const { user } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [tables, setTables] = useState<Table[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingTables, setLoadingTables] = useState(false);
 
   const [formData, setFormData] = useState<CreateReservationInput>({
     restaurantId: user?.restaurantId || 0,
     customerId: 0,
     branchId: user?.branchId || 0,
+    tableId: 0,
     reservationStartTime: new Date().toISOString(),
     reservationEndTime: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     partySize: 1,
@@ -56,6 +62,31 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
     }
   }, [open, user?.restaurantId]);
 
+  useEffect(() => {
+    const fetchTables = async () => {
+      try {
+        setLoadingTables(true);
+        if (user?.branchId && user?.restaurantId) {
+          const response = await tablesService.getTables({
+            branchId: user.branchId,
+            restaurantId: user.restaurantId
+          });
+          if (response.success && response.data.tables) {
+            setTables(response.data.tables);
+          }
+        }
+      } catch (error) {
+        console.error('Masalar yüklenirken hata:', error);
+      } finally {
+        setLoadingTables(false);
+      }
+    };
+
+    if (open) {
+      fetchTables();
+    }
+  }, [open, user?.branchId, user?.restaurantId]);
+
   const handleStartTimeChange = (newValue: Date | null) => {
     if (newValue) {
       setFormData(prev => ({
@@ -83,9 +114,22 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
     }));
   };
 
+  const handleTableChange = (_event: any, newValue: Table | null) => {
+    setSelectedTable(newValue);
+    setFormData(prev => ({
+      ...prev,
+      tableId: newValue?.id || 0
+    }));
+  };
+
   const handleSubmit = async () => {
     if (!selectedCustomer) {
       alert('Lütfen bir müşteri seçin');
+      return;
+    }
+
+    if (!selectedTable) {
+      alert('Lütfen bir masa seçin');
       return;
     }
 
@@ -95,6 +139,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
           reservationStartTime: formData.reservationStartTime,
           reservationEndTime: formData.reservationEndTime,
           partySize: formData.partySize,
+          tableId: formData.tableId,
           notes: formData.notes
         });
       } else {
@@ -178,6 +223,23 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
                 helperText: !isValid(new Date(formData.reservationEndTime)) ? 'Geçersiz tarih' : undefined,
               },
             }}
+          />
+
+          <Autocomplete
+            options={tables}
+            getOptionLabel={(option) => `Masa ${option.tableNumber}`}
+            value={selectedTable}
+            onChange={handleTableChange}
+            loading={loadingTables}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Masa Seç"
+                required
+                error={!selectedTable}
+                helperText={!selectedTable ? 'Masa seçimi zorunludur' : ''}
+              />
+            )}
           />
 
           <TextField
