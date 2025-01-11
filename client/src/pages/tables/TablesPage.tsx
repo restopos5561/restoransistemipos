@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -35,13 +35,17 @@ import {
   TableLayout,
 } from '../../components/tables';
 import { useConfirm } from '../../hooks';
+import { useAuth } from '@/hooks/useAuth';
+import { SocketService } from '@/services/socket';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
 
 type ViewMode = 'list' | 'grid' | 'layout';
 
-const TablesPage: React.FC = () => {
+const TablesPage = (): JSX.Element => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const confirm = useConfirm();
+  const { user } = useAuth();
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -250,6 +254,53 @@ const TablesPage: React.FC = () => {
   const handleTableMove = (tableId: number, position: { x: number; y: number }) => {
     updatePositionMutation.mutate({ id: tableId, position });
   };
+
+  // Socket.IO event dinleyicileri
+  useEffect(() => {
+    const socket = SocketService.getSocket();
+
+    if (!socket || !user?.branchId) {
+      console.error('🔌 [TablesPage] Socket bağlantısı veya kullanıcı bilgisi bulunamadı!');
+      return;
+    }
+
+    console.log('🔌 [TablesPage] Socket.IO dinleyicileri ayarlanıyor');
+
+    // Masa durumu değiştiğinde
+    const handleTableStatusChanged = (data: any) => {
+      console.log('🔌 [TablesPage] Masa durumu değişti:', {
+        event: SOCKET_EVENTS.TABLE_STATUS_CHANGED,
+        tableId: data.tableId,
+        status: data.status
+      });
+
+      // Verileri yenile
+      queryClient.invalidateQueries({ queryKey: ['tables'] });
+    };
+
+    // Masa güncellendiğinde
+    const handleTableUpdated = (data: any) => {
+      console.log('🔌 [TablesPage] Masa güncellendi:', {
+        event: SOCKET_EVENTS.TABLE_UPDATED,
+        tableId: data.tableId
+      });
+
+      // Verileri yenile
+      queryClient.invalidateQueries({ queryKey: ['tables'] });
+    };
+
+    // Event dinleyicilerini ekle
+    socket.on(SOCKET_EVENTS.TABLE_STATUS_CHANGED, handleTableStatusChanged);
+    socket.on(SOCKET_EVENTS.TABLE_UPDATED, handleTableUpdated);
+
+    // Cleanup function
+    return () => {
+      if (socket) {
+        socket.off(SOCKET_EVENTS.TABLE_STATUS_CHANGED, handleTableStatusChanged);
+        socket.off(SOCKET_EVENTS.TABLE_UPDATED, handleTableUpdated);
+      }
+    };
+  }, [queryClient, user?.branchId]);
 
   if (isLoading || !selectedBranch) {
     return (

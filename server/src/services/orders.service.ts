@@ -1,4 +1,4 @@
-import { PrismaClient, Order, OrderStatus, OrderSource, OrderItemStatus, Prisma, PaymentStatus } from '@prisma/client';
+import { PrismaClient, Order, OrderStatus, OrderSource, OrderItemStatus, Prisma, PaymentStatus, TableStatus } from '@prisma/client';
 import { BadRequestError } from '../errors/bad-request-error';
 import { OrderNotFoundError, OrderItemNotFoundError } from '../errors/order-errors';
 import { SocketService } from '../socket/socket.service';
@@ -321,7 +321,11 @@ export class OrdersService {
           }
         },
         include: {
-          table: true,
+          table: {
+            include: {
+              branch: true
+            }
+          },
           customer: true,
           waiter: true,
           orderItems: {
@@ -334,38 +338,55 @@ export class OrdersService {
 
       // Eğer masa siparişi ise masa durumunu güncelle
       if (data.tableId) {
-        await tx.table.update({
+        const updatedTable = await tx.table.update({
           where: { id: data.tableId },
-          data: { status: 'OCCUPIED' }
+          data: { status: TableStatus.OCCUPIED },
+          include: {
+            branch: true
+          }
         });
+
+        // Masa durumu değişikliği için socket event'i gönder
+        if (updatedTable.branch) {
+          SocketService.emitToRoom(
+            `branch_${updatedTable.branch.id}`,
+            SOCKET_EVENTS.TABLE_STATUS_CHANGED,
+            {
+              tableId: updatedTable.id,
+              status: updatedTable.status,
+              branchId: updatedTable.branch.id
+            }
+          );
+        }
       }
 
       return createdOrder;
     });
 
-    console.log('[OrdersService] Sipariş oluşturuldu:', {
-      orderId: order.id,
-      status: order.status
-    });
-
-    // Socket.IO event'i gönder
-    SocketService.emitToRoom(`branch_${order.branchId}`, SOCKET_EVENTS.ORDER_CREATED, {
-      orderId: order.id,
-      order: {
-        id: order.id,
-        status: order.status,
-        items: order.orderItems.map(item => ({
-          id: item.id,
-          productId: item.productId,
-          product: {
-            id: item.product.id,
-            name: item.product.name
-          },
-          quantity: item.quantity,
-          note: item.note
-        }))
+    // Sipariş oluşturuldu event'ini gönder
+    SocketService.emitToRoom(
+      `branch_${order.branchId}`,
+      SOCKET_EVENTS.ORDER_CREATED,
+      {
+        orderId: order.id,
+        tableId: order.tableId,
+        branchId: order.branchId,
+        order: {
+          id: order.id,
+          status: order.status,
+          items: order.orderItems.map(item => ({
+            id: item.id,
+            productId: item.productId,
+            product: {
+              id: item.product.id,
+              name: item.product.name
+            },
+            quantity: item.quantity,
+            note: item.note
+          }))
+        }
       }
-    });
+    );
 
     return order;
   }

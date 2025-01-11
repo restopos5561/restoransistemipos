@@ -5,6 +5,12 @@ CREATE TYPE "TableStatus" AS ENUM ('IDLE', 'OCCUPIED', 'RESERVED');
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'MANAGER', 'STAFF', 'CASHIER', 'WAITER', 'CHEF', 'RUNNER', 'BAR');
 
 -- CreateEnum
+CREATE TYPE "ProductType" AS ENUM ('RAW_MATERIAL', 'PREPARED_FOOD', 'READY_TO_SERVE');
+
+-- CreateEnum
+CREATE TYPE "CategoryType" AS ENUM ('FOOD', 'BEVERAGE', 'OTHER');
+
+-- CreateEnum
 CREATE TYPE "StockTransactionType" AS ENUM ('IN', 'OUT', 'ADJUSTMENT', 'TRANSFER', 'WASTE');
 
 -- CreateEnum
@@ -152,6 +158,7 @@ CREATE TABLE "Product" (
     "price" DOUBLE PRECISION NOT NULL,
     "image" TEXT,
     "categoryId" INTEGER,
+    "type" "ProductType" NOT NULL DEFAULT 'PREPARED_FOOD',
     "barcode" TEXT,
     "cost" DOUBLE PRECISION,
     "taxRate" DOUBLE PRECISION,
@@ -169,6 +176,7 @@ CREATE TABLE "Category" (
     "restaurantId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
+    "type" "CategoryType" NOT NULL DEFAULT 'FOOD',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT "Category_pkey" PRIMARY KEY ("id")
@@ -266,8 +274,11 @@ CREATE TABLE "Customer" (
     "id" SERIAL NOT NULL,
     "restaurantId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
-    "phoneNumber" TEXT,
     "email" TEXT,
+    "phoneNumber" TEXT,
+    "address" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Customer_pkey" PRIMARY KEY ("id")
 );
@@ -542,13 +553,17 @@ CREATE TABLE "UserBranch" (
 -- CreateTable
 CREATE TABLE "_PermissionToUserPermissions" (
     "A" INTEGER NOT NULL,
-    "B" INTEGER NOT NULL
+    "B" INTEGER NOT NULL,
+
+    CONSTRAINT "_PermissionToUserPermissions_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateTable
 CREATE TABLE "_OrderItemOptions" (
     "A" INTEGER NOT NULL,
-    "B" INTEGER NOT NULL
+    "B" INTEGER NOT NULL,
+
+    CONSTRAINT "_OrderItemOptions_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateIndex
@@ -603,13 +618,7 @@ CREATE INDEX "Discount_orderItemId_idx" ON "Discount"("orderItemId");
 CREATE UNIQUE INDEX "UserBranch_userId_branchId_key" ON "UserBranch"("userId", "branchId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "_PermissionToUserPermissions_AB_unique" ON "_PermissionToUserPermissions"("A", "B");
-
--- CreateIndex
 CREATE INDEX "_PermissionToUserPermissions_B_index" ON "_PermissionToUserPermissions"("B");
-
--- CreateIndex
-CREATE UNIQUE INDEX "_OrderItemOptions_AB_unique" ON "_OrderItemOptions"("A", "B");
 
 -- CreateIndex
 CREATE INDEX "_OrderItemOptions_B_index" ON "_OrderItemOptions"("B");

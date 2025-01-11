@@ -1,6 +1,8 @@
 import { PrismaClient, Table, TableStatus, OrderStatus } from '@prisma/client';
 import { BadRequestError } from '../errors/bad-request-error';
 import { TableNotFoundError, TableOperationError } from '../errors/table-errors';
+import { SocketService } from '../socket/socket.service';
+import { SOCKET_EVENTS } from '../socket/socket.events';
 
 const prisma = new PrismaClient();
 
@@ -175,13 +177,28 @@ export class TablesService {
       throw new TableOperationError('Aktif siparişi olan masa boş duruma alınamaz');
     }
 
-    return prisma.table.update({
+    const updatedTable = await prisma.table.update({
       where: { id },
       data: { status },
       include: {
         branch: true,
       },
     });
+
+    // Socket event'ini gönder
+    if (updatedTable.branch) {
+      SocketService.emitToRoom(
+        `branch_${updatedTable.branch.id}`,
+        SOCKET_EVENTS.TABLE_STATUS_CHANGED,
+        {
+          tableId: updatedTable.id,
+          status: updatedTable.status,
+          branchId: updatedTable.branch.id
+        }
+      );
+    }
+
+    return updatedTable;
   }
 
   async mergeTables(mainTableId: number, tableIdsToMerge: number[]): Promise<Table> {
