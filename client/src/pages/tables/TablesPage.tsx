@@ -90,7 +90,24 @@ const TablesPage = (): JSX.Element => {
       if (!filters.branchId) {
         return Promise.reject(new Error('Şube seçilmedi'));
       }
-      return tablesService.getTables(filters);
+      console.log('🔵 [TablesPage] Masalar getiriliyor:', { filters });
+      return tablesService.getTables(filters).then(response => {
+        console.log('✅ [TablesPage] Masalar:', {
+          tables: response.data.tables.map(table => ({
+            id: table.id,
+            tableNumber: table.tableNumber,
+            status: table.status,
+            activeOrders: table.activeOrders?.map(order => ({
+              id: order.id,
+              orderNumber: order.orderNumber,
+              status: order.status,
+              totalAmount: order.totalAmount,
+              itemCount: order.orderItems?.length
+            }))
+          }))
+        });
+        return response;
+      });
     },
     refetchInterval: 30000,
     enabled: filters.branchId > 0

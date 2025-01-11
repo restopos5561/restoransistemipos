@@ -19,6 +19,11 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
+  Table,
+  TableHead,
+  TableBody,
+  TableCell,
+  TableRow,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
@@ -30,6 +35,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CallMergeIcon from '@mui/icons-material/CallMerge';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import { Table as TableType, TableStatus, Order, TableHistory } from '../../types/table.types';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 interface TableDetailDialogProps {
   open: boolean;
@@ -143,6 +150,22 @@ const TableDetailDialog: React.FC<TableDetailDialogProps> = ({
   React.useEffect(() => {
     if (table) {
       setNotes(table.notes || '');
+      console.log('🔵 [TableDetailDialog] Masa detayları:', {
+        tableId: table.id,
+        tableNumber: table.tableNumber,
+        status: table.status,
+        activeOrders: table.activeOrders?.map(order => ({
+          orderNumber: order.orderNumber,
+          status: order.status,
+          totalAmount: order.totalAmount,
+          items: order.orderItems?.map(item => ({
+            productName: item.product.name,
+            quantity: item.quantity,
+            price: item.product.price,
+            totalPrice: item.quantity * item.product.price
+          }))
+        }))
+      });
     }
   }, [table]);
 
@@ -324,74 +347,82 @@ const TableDetailDialog: React.FC<TableDetailDialogProps> = ({
 
           {/* Adisyonlar Sekmesi */}
           {activeTab === 1 && (
-            <Stack spacing={2}>
+            <Box>
               {table.activeOrders && table.activeOrders.length > 0 ? (
-                table.activeOrders.map((order) => (
-                  <Paper key={order.id} variant="outlined" sx={{ p: 2 }}>
-                    <Stack spacing={2}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="subtitle1">
-                          Adisyon #{order.orderNumber}
-                        </Typography>
-                        <Chip
-                          size="small"
-                          label={getOrderStatusText(order.status)}
-                          color={getOrderStatusColor(order.status)}
-                        />
+                <List>
+                  {table.activeOrders.map((order) => (
+                    <Paper key={order.id} sx={{ mb: 2, p: 2 }}>
+                      <Stack spacing={2}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="subtitle1">
+                            Sipariş #{order.orderNumber}
+                          </Typography>
+                          <Chip
+                            label={getOrderStatusText(order.status)}
+                            color={getOrderStatusColor(order.status) as any}
+                            size="small"
+                          />
+                        </Stack>
+
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Ürün</TableCell>
+                              <TableCell align="right">Adet</TableCell>
+                              <TableCell align="right">Fiyat</TableCell>
+                              <TableCell align="right">Toplam</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {order.orderItems?.map((item) => (
+                              <TableRow key={item.id}>
+                                <TableCell>{item.product.name}</TableCell>
+                                <TableCell align="right">{item.quantity}</TableCell>
+                                <TableCell align="right">
+                                  {item.product.price.toLocaleString('tr-TR', {
+                                    style: 'currency',
+                                    currency: 'TRY'
+                                  })}
+                                </TableCell>
+                                <TableCell align="right">
+                                  {(item.quantity * item.product.price).toLocaleString('tr-TR', {
+                                    style: 'currency',
+                                    currency: 'TRY'
+                                  })}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow>
+                              <TableCell colSpan={3} align="right">
+                                <Typography variant="subtitle2">Toplam</Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="subtitle2">
+                                  {order.totalAmount.toLocaleString('tr-TR', {
+                                    style: 'currency',
+                                    currency: 'TRY'
+                                  })}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Typography variant="caption" color="text.secondary">
+                            Sipariş Zamanı: {format(new Date(order.orderTime || order.createdAt), 'dd MMMM yyyy HH:mm', { locale: tr })}
+                          </Typography>
+                        </Stack>
                       </Stack>
-                      
-                      <Divider />
-                      
-                      <Stack spacing={1}>
-                        {order.items?.map((item) => (
-                          <Stack
-                            key={item.id}
-                            direction="row"
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
-                            <Stack direction="row" spacing={1} alignItems="center">
-                              <Typography>{item.product.name}</Typography>
-                              <Typography color="text.secondary">
-                                x{item.quantity}
-                              </Typography>
-                            </Stack>
-                            <Typography>
-                              {item.totalPrice.toLocaleString('tr-TR', {
-                                style: 'currency',
-                                currency: 'TRY',
-                              })}
-                            </Typography>
-                          </Stack>
-                        ))}
-                      </Stack>
-                      
-                      <Divider />
-                      
-                      <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="subtitle2">Toplam Tutar</Typography>
-                        <Typography variant="subtitle1">
-                          {order.totalAmount.toLocaleString('tr-TR', {
-                            style: 'currency',
-                            currency: 'TRY',
-                          })}
-                        </Typography>
-                      </Stack>
-                      
-                      <Typography variant="caption" color="text.secondary">
-                        Açılış: {new Date(order.openingTime).toLocaleString('tr-TR')}
-                      </Typography>
-                    </Stack>
-                  </Paper>
-                ))
+                    </Paper>
+                  ))}
+                </List>
               ) : (
-                <Box sx={{ textAlign: 'center', py: 3 }}>
-                  <Typography color="text.secondary">
-                    Aktif adisyon bulunmuyor
-                  </Typography>
-                </Box>
+                <Typography variant="body2" color="text.secondary" align="center">
+                  Bu masada aktif adisyon bulunmuyor.
+                </Typography>
               )}
-            </Stack>
+            </Box>
           )}
 
           {/* Geçmiş Sekmesi */}

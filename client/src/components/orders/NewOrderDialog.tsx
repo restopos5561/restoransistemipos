@@ -22,13 +22,14 @@ import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import { OrderSource } from '../../types/enums';
 import { useAuth } from '../../hooks/useAuth';
 import ordersService from '../../services/orders.service';
-import { tablesService } from '../../services/tables.service';
+import tablesService from '../../services/tables.service';
 import productsService from '../../services/products.service';
 import customersService from '../../services/customers.service';
 import { toast } from 'react-hot-toast';
 import { User } from '../../types/auth.types';
 import { Customer } from '../../types/customer.types';
 import branchService from '../../services/branch.service';
+import { TableStatus, UpdateTableStatusInput } from '../../types/table.types';
 
 interface NewOrderDialogProps {
   open: boolean;
@@ -157,12 +158,45 @@ const NewOrderDialog: React.FC<NewOrderDialogProps> = ({ open, onClose, onOrderC
         }))
       };
 
-      await ordersService.createOrder(orderData);
+      console.log('🔵 [NewOrderDialog] Sipariş oluşturma isteği:', {
+        orderData,
+        orderSource,
+        tableId,
+        customerId
+      });
+
+      const orderResponse = await ordersService.createOrder(orderData);
+      
+      console.log('✅ [NewOrderDialog] Sipariş başarıyla oluşturuldu:', {
+        response: orderResponse
+      });
+
+      // Masa durumunu güncelle
+      if (orderSource === OrderSource.IN_STORE && tableId) {
+        console.log('🔵 [NewOrderDialog] Masa durumu güncelleniyor:', {
+          tableId,
+          newStatus: TableStatus.OCCUPIED
+        });
+
+        const tableResponse = await tablesService.updateTableStatus(tableId, { status: TableStatus.OCCUPIED });
+        
+        console.log('✅ [NewOrderDialog] Masa durumu güncellendi:', {
+          response: tableResponse
+        });
+      }
+
       onOrderCreated?.();
       onClose();
       toast.success('Sipariş başarıyla oluşturuldu');
     } catch (error: any) {
-      console.error('Sipariş oluşturulurken hata:', error);
+      console.error('❌ [NewOrderDialog] Hata:', {
+        error,
+        response: error.response?.data,
+        message: error.message,
+        orderSource,
+        tableId,
+        customerId
+      });
       setError(error.response?.data?.message || 'Sipariş oluşturulurken bir hata oluştu');
     } finally {
       setLoading(false);

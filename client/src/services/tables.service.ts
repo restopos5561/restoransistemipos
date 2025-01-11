@@ -10,18 +10,82 @@ import {
   UpdateTableStatusInput,
   MergeTablesInput,
   TransferTableInput,
-  TableStatus
+  TableStatus,
+  Order
 } from '../types/table.types';
 
 class TablesService {
   async getTables(filters: TableFilters): Promise<TablesResponse> {
-    const response = await api.get(API_ENDPOINTS.TABLES.LIST, { params: filters });
-    return response.data;
+    console.log('🔵 [TablesService] Masalar getiriliyor:', { filters });
+
+    try {
+      const response = await api.get(API_ENDPOINTS.TABLES.LIST, { params: filters });
+      
+      // Backend'den gelen orders verisini activeOrders olarak map'le
+      const tables = response.data.data.tables.map((table: any) => ({
+        ...table,
+        activeOrders: table.orders
+      }));
+      response.data.data.tables = tables;
+      
+      // Adisyon detaylarını logla
+      const tablesWithOrders = tables.filter((t: Table) => t.activeOrders && t.activeOrders.length > 0);
+      
+      console.log('✅ [TablesService] Masalar ve adisyonlar:', {
+        totalTables: response.data.data.total,
+        returnedTables: tables.length,
+        tablesWithOrders: tablesWithOrders.length,
+        orderDetails: tablesWithOrders.map((table: Table) => ({
+          tableNumber: table.tableNumber,
+          orderCount: table.activeOrders?.length,
+          orders: table.activeOrders?.map((order: Order) => ({
+            id: order.id,
+            orderNumber: order.orderNumber,
+            status: order.status,
+            totalAmount: order.totalAmount,
+            itemCount: order.orderItems?.length,
+            items: order.orderItems?.map(item => ({
+              productName: item.product.name,
+              quantity: item.quantity,
+              price: item.product.price,
+              totalPrice: item.quantity * item.product.price
+            }))
+          }))
+        }))
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [TablesService] Masalar getirilirken hata:', {
+        error,
+        response: error.response?.data,
+        filters
+      });
+      throw error;
+    }
   }
 
   async getTableById(id: number): Promise<TableResponse> {
-    const response = await api.get(API_ENDPOINTS.TABLES.DETAIL(id.toString()));
-    return response.data;
+    console.log('🔵 [TablesService] Masa detayı getiriliyor:', { tableId: id });
+
+    try {
+      const response = await api.get(API_ENDPOINTS.TABLES.DETAIL(id.toString()));
+      
+      console.log('✅ [TablesService] Masa detayı getirildi:', {
+        tableId: id,
+        hasOrders: response.data.data.activeOrders?.length > 0,
+        orderCount: response.data.data.activeOrders?.length
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [TablesService] Masa detayı getirilirken hata:', {
+        error,
+        response: error.response?.data,
+        tableId: id
+      });
+      throw error;
+    }
   }
 
   async createTable(data: CreateTableInput): Promise<TableResponse> {
@@ -39,8 +103,31 @@ class TablesService {
   }
 
   async updateTableStatus(id: number, data: UpdateTableStatusInput): Promise<TableResponse> {
-    const response = await api.patch(API_ENDPOINTS.TABLES.STATUS(id.toString()), data);
-    return response.data;
+    console.log('🔵 [TablesService] Masa durumu güncelleniyor:', {
+      tableId: id,
+      newStatus: data.status,
+      endpoint: API_ENDPOINTS.TABLES.STATUS(id.toString())
+    });
+
+    try {
+      const response = await api.patch(API_ENDPOINTS.TABLES.STATUS(id.toString()), data);
+      
+      console.log('✅ [TablesService] Masa durumu güncellendi:', {
+        tableId: id,
+        status: response.data.data.status,
+        hasOrders: response.data.data.activeOrders?.length > 0
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [TablesService] Masa durumu güncellenirken hata:', {
+        error,
+        response: error.response?.data,
+        tableId: id,
+        data
+      });
+      throw error;
+    }
   }
 
   async mergeTables(data: MergeTablesInput): Promise<TableResponse> {
@@ -54,18 +141,49 @@ class TablesService {
   }
 
   async getTablesByBranch(branchId: number): Promise<TablesResponse> {
+    console.log('🔵 [TablesService] Şubeye ait masalar getiriliyor:', { branchId });
+
     const restaurantId = localStorage.getItem('restaurantId');
     if (!restaurantId) {
       throw new Error('Restaurant ID bulunamadı');
     }
 
-    const response = await api.get(API_ENDPOINTS.TABLES.BY_BRANCH(branchId.toString()), {
-      params: {
-        restaurantId: Number(restaurantId),
+    try {
+      const response = await api.get(API_ENDPOINTS.TABLES.BY_BRANCH(branchId.toString()), {
+        params: {
+          restaurantId: Number(restaurantId),
+          branchId
+        }
+      });
+
+      // Adisyon detaylarını logla
+      const tablesWithOrders = response.data.data.tables.filter((t: Table) => t.activeOrders && t.activeOrders.length > 0);
+      
+      console.log('✅ [TablesService] Şube masaları ve adisyonlar:', {
+        branchId,
+        totalTables: response.data.data.tables.length,
+        tablesWithOrders: tablesWithOrders.length,
+        orderDetails: tablesWithOrders.map((table: Table) => ({
+          tableNumber: table.tableNumber,
+          orderCount: table.activeOrders?.length,
+          orders: table.activeOrders?.map((order: Order) => ({
+            orderNumber: order.orderNumber,
+            status: order.status,
+            totalAmount: order.totalAmount,
+            itemCount: order.orderItems?.length
+          }))
+        }))
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [TablesService] Şube masaları getirilirken hata:', {
+        error,
+        response: error.response?.data,
         branchId
-      }
-    });
-    return response.data;
+      });
+      throw error;
+    }
   }
 }
 

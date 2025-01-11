@@ -32,6 +32,17 @@ export class TablesService {
     page?: number;
     limit?: number;
   }) {
+    console.log('🔵 [TablesService] Masalar getiriliyor:', {
+      filters,
+      where: {
+        branchId: filters.branchId,
+        ...(filters.status && { status: filters.status }),
+        ...(filters.location && { location: filters.location }),
+        ...(filters.capacity && { capacity: filters.capacity }),
+        ...(filters.isActive !== undefined && { isActive: filters.isActive }),
+      }
+    });
+
     if (!filters.branchId) {
       throw new BadRequestError('Şube ID zorunludur');
     }
@@ -56,12 +67,70 @@ export class TablesService {
               status: {
                 in: [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY],
               },
+              closingTime: null
             },
+            include: {
+              orderItems: {
+                include: {
+                  product: true
+                }
+              },
+              payment: true
+            },
+            orderBy: {
+              orderTime: 'desc'
+            }
           },
         },
       }),
       prisma.table.count({ where }),
     ]);
+
+    // Her masanın adisyon detaylarını logla
+    tables.forEach(table => {
+      console.log('🔍 [TablesService] Masa detayları:', {
+        tableId: table.id,
+        tableNumber: table.tableNumber,
+        status: table.status,
+        ordersCount: table.orders?.length,
+        orders: table.orders?.map(order => ({
+          id: order.id,
+          status: order.status,
+          orderTime: order.orderTime,
+          closingTime: order.closingTime,
+          itemCount: order.orderItems?.length,
+          items: order.orderItems?.map(item => ({
+            productName: item.product.name,
+            quantity: item.quantity,
+            price: item.product.price
+          }))
+        }))
+      });
+    });
+
+    console.log('✅ [TablesService] Masalar ve adisyonlar:', {
+      totalTables: total,
+      returnedTables: tables.length,
+      tablesWithOrders: tables.filter(t => t.orders && t.orders.length > 0).length,
+      orderDetails: tables
+        .filter(t => t.orders && t.orders.length > 0)
+        .map(table => ({
+          tableNumber: table.tableNumber,
+          orderCount: table.orders?.length,
+          orders: table.orders?.map(order => ({
+            id: order.id,
+            status: order.status,
+            totalAmount: order.totalAmount,
+            itemCount: order.orderItems?.length,
+            items: order.orderItems?.map(item => ({
+              productName: item.product.name,
+              quantity: item.quantity,
+              price: item.product.price,
+              totalPrice: item.quantity * item.product.price
+            }))
+          }))
+        }))
+    });
 
     return {
       tables,
@@ -82,7 +151,19 @@ export class TablesService {
             status: {
               in: [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY],
             },
+            closingTime: null
           },
+          include: {
+            orderItems: {
+              include: {
+                product: true
+              }
+            },
+            payment: true
+          },
+          orderBy: {
+            orderTime: 'desc'
+          }
         },
       },
     });
@@ -164,7 +245,19 @@ export class TablesService {
             status: {
               in: [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY],
             },
+            closingTime: null
           },
+          include: {
+            orderItems: {
+              include: {
+                product: true
+              }
+            },
+            payment: true
+          },
+          orderBy: {
+            orderTime: 'desc'
+          }
         },
       },
     });
@@ -177,12 +270,54 @@ export class TablesService {
       throw new TableOperationError('Aktif siparişi olan masa boş duruma alınamaz');
     }
 
+    console.log('🔵 [TablesService] Masa durumu güncelleniyor:', {
+      tableId: id,
+      currentStatus: table.status,
+      newStatus: status,
+      activeOrders: table.orders?.map(order => ({
+        id: order.id,
+        status: order.status,
+        orderTime: order.orderTime,
+        itemCount: order.orderItems?.length
+      }))
+    });
+
     const updatedTable = await prisma.table.update({
       where: { id },
       data: { status },
       include: {
         branch: true,
+        orders: {
+          where: {
+            status: {
+              in: [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY],
+            },
+            closingTime: null
+          },
+          include: {
+            orderItems: {
+              include: {
+                product: true
+              }
+            },
+            payment: true
+          },
+          orderBy: {
+            orderTime: 'desc'
+          }
+        },
       },
+    });
+
+    console.log('✅ [TablesService] Masa durumu güncellendi:', {
+      tableId: id,
+      status: updatedTable.status,
+      activeOrders: updatedTable.orders?.map(order => ({
+        id: order.id,
+        status: order.status,
+        orderTime: order.orderTime,
+        itemCount: order.orderItems?.length
+      }))
     });
 
     // Socket event'ini gönder
@@ -193,7 +328,8 @@ export class TablesService {
         {
           tableId: updatedTable.id,
           status: updatedTable.status,
-          branchId: updatedTable.branch.id
+          branchId: updatedTable.branch.id,
+          orders: updatedTable.orders
         }
       );
     }

@@ -11,7 +11,7 @@ export interface Order {
   orderNumber: string;
   status: OrderStatus;
   totalAmount: number;
-  items: Array<{
+  orderItems: Array<{
     id: number;
     productId: number;
     product: {
@@ -25,6 +25,7 @@ export interface Order {
     status: OrderStatus;
   }>;
   openingTime: string;
+  orderTime?: string;
   createdAt: string;
 }
 
@@ -53,6 +54,7 @@ export interface Table {
   positionX?: number;
   positionY?: number;
   activeOrders?: Order[];
+  orders?: Order[];
   history?: TableHistory[];
   branch?: {
     id: number;
