@@ -310,6 +310,14 @@ const OrderDetailPage: React.FC = () => {
     }
   };
 
+  const handleEditClick = () => {
+    if (order?.status === 'COMPLETED') {
+      toast.error('Tamamlanmış siparişler düzenlenemez.');
+      return;
+    }
+    navigate(`/orders/${order?.id}/edit`);
+  };
+
   if (loading && !order) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -369,7 +377,7 @@ const OrderDetailPage: React.FC = () => {
               <Button
                 startIcon={<EditIcon />}
                 variant="contained"
-                onClick={() => navigate(`/orders/${id}/edit`)}
+                onClick={handleEditClick}
               >
                 Düzenle
               </Button>

@@ -527,6 +527,11 @@ const EditOrderPage: React.FC = () => {
   // Add status update handler
   const handleStatusUpdate = async () => {
     try {
+      if (order?.status === 'COMPLETED') {
+        toast.error('Tamamlanmış siparişler düzenlenemez.');
+        return;
+      }
+
       if (order?.status === 'READY' && newStatus === 'PENDING') {
         toast.warning('Hazır durumundaki siparişi direkt beklemeye alamazsınız. Lütfen önce "Hazırlanıyor" durumuna alın.');
         return;
