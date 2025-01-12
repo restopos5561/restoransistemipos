@@ -15,9 +15,10 @@ interface ReservationDialogProps {
   open: boolean;
   onClose: () => void;
   initialData?: Reservation;
+  onSuccess?: () => void;
 }
 
-const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, initialData }) => {
+const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, initialData, onSuccess }) => {
   const { createReservation, updateReservation } = useReservations();
   const { user } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -133,6 +134,53 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
       return;
     }
 
+    const now = new Date();
+    const startTime = new Date(formData.reservationStartTime);
+    const endTime = new Date(formData.reservationEndTime);
+
+    // Şu anki zamanı al (saat:dakika)
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTotal = currentHour * 60 + currentMinute;
+
+    // Seçilen başlangıç zamanını al (saat:dakika)
+    const startHour = startTime.getHours();
+    const startMinute = startTime.getMinutes();
+    const startTotal = startHour * 60 + startMinute;
+
+    // Seçilen bitiş zamanını al (saat:dakika)
+    const endHour = endTime.getHours();
+    const endMinute = endTime.getMinutes();
+    const endTotal = endHour * 60 + endMinute;
+
+    // Tarih kontrolü (yıl-ay-gün)
+    const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startDate = new Date(startTime.getFullYear(), startTime.getMonth(), startTime.getDate());
+
+    // Eğer bugünün tarihiyse ve saat geçmişse
+    if (startDate.getTime() === nowDate.getTime() && startTotal < currentTotal) {
+      alert('Başlangıç saati geçmiş bir saat olamaz');
+      return;
+    }
+
+    // Geçmiş tarih kontrolü
+    if (startDate < nowDate) {
+      alert('Başlangıç tarihi geçmiş bir tarih olamaz');
+      return;
+    }
+
+    // Aynı gün içinde başlangıç ve bitiş saati kontrolü
+    if (startTime.getTime() === endTime.getTime()) {
+      alert('Başlangıç ve bitiş saati aynı olamaz');
+      return;
+    }
+
+    // Bitiş saati başlangıç saatinden önce olamaz
+    if (startDate.getTime() === new Date(endTime.getFullYear(), endTime.getMonth(), endTime.getDate()).getTime() && endTotal <= startTotal) {
+      alert('Bitiş saati başlangıç saatinden sonra olmalıdır');
+      return;
+    }
+
     try {
       if (initialData) {
         await updateReservation(initialData.id, {
@@ -145,6 +193,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
       } else {
         await createReservation(formData);
       }
+      onSuccess?.();
       onClose();
     } catch (error) {
       console.error('Rezervasyon işlemi başarısız:', error);
@@ -200,6 +249,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
             onChange={handleStartTimeChange}
             format="dd MMMM yyyy HH:mm"
             ampm={false}
+            minDateTime={new Date()}
             slotProps={{
               textField: {
                 fullWidth: true,

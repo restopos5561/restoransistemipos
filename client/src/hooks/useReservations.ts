@@ -63,8 +63,15 @@ export const useReservations = () => {
       console.log('✅ [useReservations] Rezervasyon oluşturuldu:', response);
 
       if (response.success && response.data) {
+        // Yeni rezervasyonu listeye ekle ve sırala
         const newReservation = response.data;
-        setReservations(prev => [...prev, newReservation]);
+        setReservations(prev => {
+          const updated = [...prev, newReservation];
+          // Tarihe göre sırala (en yeni en üstte)
+          return updated.sort((a, b) => 
+            new Date(b.reservationStartTime).getTime() - new Date(a.reservationStartTime).getTime()
+          );
+        });
         return newReservation;
       }
       throw new Error('Rezervasyon oluşturulamadı');
@@ -86,11 +93,16 @@ export const useReservations = () => {
       console.log('✅ [useReservations] Rezervasyon güncellendi:', response);
 
       if (response.success && response.data) {
-        setReservations(prev =>
-          prev.map(reservation =>
+        // Güncellenmiş rezervasyonu listede güncelle ve sırala
+        setReservations(prev => {
+          const updated = prev.map(reservation =>
             reservation.id === id ? response.data : reservation
-          )
-        );
+          );
+          // Tarihe göre sırala (en yeni en üstte)
+          return updated.sort((a, b) => 
+            new Date(b.reservationStartTime).getTime() - new Date(a.reservationStartTime).getTime()
+          );
+        });
         return response.data;
       }
       throw new Error('Rezervasyon güncellenemedi');
@@ -112,17 +124,67 @@ export const useReservations = () => {
       console.log('✅ [useReservations] Rezervasyon durumu güncellendi:', response);
 
       if (response.success && response.data) {
-        setReservations(prev =>
-          prev.map(reservation =>
+        // Güncellenmiş rezervasyonu listede güncelle ve sırala
+        setReservations(prev => {
+          const updated = prev.map(reservation =>
             reservation.id === id ? response.data : reservation
-          )
-        );
+          );
+          // Tarihe göre sırala (en yeni en üstte)
+          return updated.sort((a, b) => 
+            new Date(b.reservationStartTime).getTime() - new Date(a.reservationStartTime).getTime()
+          );
+        });
         return response.data;
       }
       throw new Error('Rezervasyon durumu güncellenemedi');
     } catch (err) {
       console.error('❌ [useReservations] Rezervasyon durumu güncellenirken hata:', err);
       setError(err instanceof Error ? err.message : 'Rezervasyon durumu güncellenirken bir hata oluştu');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteReservation = async (id: number) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Aktif şube kontrolü
+      const branchId = localStorage.getItem('branchId');
+      if (!branchId) {
+        throw new Error('Aktif şube bulunamadı');
+      }
+
+      console.log('🔵 [useReservations] Rezervasyon silme isteği:', { id, branchId });
+      
+      const response = await reservationsService.deleteReservation(id);
+      console.log('✅ [useReservations] Rezervasyon silme yanıtı:', response);
+
+      // Silinen rezervasyonu listeden kaldır
+      setReservations(prev => prev.filter(reservation => reservation.id !== id));
+      
+      // Listeyi yenile
+      try {
+        const refreshResponse = await reservationsService.getReservations();
+        console.log('🔄 [useReservations] Liste yenileme yanıtı:', refreshResponse);
+        
+        if (refreshResponse.success) {
+          if (Array.isArray(refreshResponse.data)) {
+            setReservations(refreshResponse.data);
+          } else if (refreshResponse.data?.reservations) {
+            setReservations(refreshResponse.data.reservations);
+          }
+        }
+      } catch (refreshError) {
+        console.error('❌ [useReservations] Liste yenilenirken hata:', refreshError);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('❌ [useReservations] Rezervasyon silinirken hata:', err);
+      setError(err instanceof Error ? err.message : 'Rezervasyon silinirken bir hata oluştu');
       throw err;
     } finally {
       setIsLoading(false);
@@ -172,6 +234,7 @@ export const useReservations = () => {
     fetchReservations,
     createReservation,
     updateReservation,
-    updateReservationStatus
+    updateReservationStatus,
+    deleteReservation
   };
 }; 

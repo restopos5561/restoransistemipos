@@ -3,6 +3,9 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Reservation } from '../../types/reservation.types';
 import { ReservationStatus } from '../../types/enums';
+import { useReservations } from '../../hooks/useReservations';
+import { toast } from 'react-hot-toast';
+import { useState } from 'react';
 
 interface ReservationDetailDialogProps {
   open: boolean;
@@ -24,8 +27,29 @@ const ReservationDetailDialog: React.FC<ReservationDetailDialogProps> = ({
   reservation,
   onStatusChange
 }) => {
+  const { deleteReservation } = useReservations();
+  const [isLoading, setIsLoading] = useState(false);
+
   const formatDate = (date: string) => {
     return format(new Date(date), 'dd MMMM yyyy HH:mm', { locale: tr });
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Bu rezervasyonu silmek istediğinize emin misiniz?')) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await deleteReservation(reservation.id);
+      toast.success('Rezervasyon başarıyla silindi');
+      onClose();
+    } catch (error) {
+      console.error('Rezervasyon silme hatası:', error);
+      toast.error(error instanceof Error ? error.message : 'Rezervasyon silinirken bir hata oluştu');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -67,17 +91,26 @@ const ReservationDetailDialog: React.FC<ReservationDetailDialogProps> = ({
         </Stack>
       </DialogContent>
       <DialogActions>
+        <Button 
+          onClick={handleDelete} 
+          color="error"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Siliniyor...' : 'Sil'}
+        </Button>
         {reservation.status === ReservationStatus.PENDING && onStatusChange && (
           <>
             <Button
               onClick={() => onStatusChange(ReservationStatus.CANCELLED)}
               color="error"
+              disabled={isLoading}
             >
               İptal Et
             </Button>
             <Button
               onClick={() => onStatusChange(ReservationStatus.CONFIRMED)}
               color="success"
+              disabled={isLoading}
             >
               Onayla
             </Button>
@@ -87,11 +120,12 @@ const ReservationDetailDialog: React.FC<ReservationDetailDialogProps> = ({
           <Button
             onClick={() => onStatusChange(ReservationStatus.COMPLETED)}
             color="info"
+            disabled={isLoading}
           >
             Tamamla
           </Button>
         )}
-        <Button onClick={onClose}>Kapat</Button>
+        <Button onClick={onClose} disabled={isLoading}>Kapat</Button>
       </DialogActions>
     </Dialog>
   );

@@ -133,12 +133,16 @@ const ReservationsPage = () => {
       <ReservationDialog
         open={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
+        onSuccess={fetchReservations}
       />
 
       {selectedReservation && (
         <ReservationDetailDialog
           open={isDetailDialogOpen}
-          onClose={() => setIsDetailDialogOpen(false)}
+          onClose={() => {
+            setIsDetailDialogOpen(false);
+            fetchReservations();
+          }}
           reservation={selectedReservation}
           onStatusChange={handleStatusChange}
         />
