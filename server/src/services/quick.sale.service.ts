@@ -77,7 +77,7 @@ export class QuickSaleService {
     });
   }
 
-  async searchProducts(query: string, branchId: number) {
+  async searchProducts(query: string, branchId: number, categoryId?: number | null) {
     return prisma.product.findMany({
       where: {
         OR: [
@@ -85,7 +85,8 @@ export class QuickSaleService {
           { barcode: { equals: query } }
         ],
         AND: [
-          { isActive: true }
+          { isActive: true },
+          ...(categoryId ? [{ categoryId }] : [])
         ]
       },
       include: {
@@ -97,44 +98,83 @@ export class QuickSaleService {
     });
   }
 
-  async getPopularProducts(branchId: number, limit: number = 10) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30); // Son 30 günün popüler ürünleri
+  async getPopularProducts(branchId: number, categoryId: number | null = null, showPopularOnly: boolean = false, limit: number = 10) {
+    console.log('Debug - Raw categoryId:', categoryId);
+    console.log('Debug - Raw categoryId type:', typeof categoryId);
+    console.log('Debug - Parsed categoryId:', categoryId);
+    console.log('Debug - Show Popular Only:', showPopularOnly);
 
-    const popularProducts = await prisma.orderItem.groupBy({
-      by: ['productId'],
-      where: {
-        order: {
-          branchId,
-          orderTime: {
-            gte: startDate
-          }
-        }
-      },
-      _count: {
-        productId: true
-      },
-      orderBy: {
-        _count: {
-          productId: 'desc'
-        }
-      },
-      take: limit
-    });
+    // Önce aktif ürünleri filtrele
+    const where: any = {
+      isActive: true
+    };
 
-    return prisma.product.findMany({
-      where: {
-        id: {
-          in: popularProducts.map(p => p.productId)
-        }
-      },
-      include: {
-        stocks: {
-          where: { branchId }
+    if (categoryId) {
+      where.categoryId = categoryId;
+    }
+
+    console.log('Debug - Products Query:', JSON.stringify({ where }, null, 2));
+
+    if (showPopularOnly) {
+      // Son 30 günde sipariş verilen popüler ürünleri getir
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+
+      const popularProducts = await prisma.orderItem.groupBy({
+        by: ['productId'],
+        where: {
+          order: {
+            branchId,
+            orderTime: {
+              gte: startDate
+            }
+          },
+          product: where
         },
-        category: true
-      }
-    });
+        _count: {
+          productId: true
+        },
+        orderBy: {
+          _count: {
+            productId: 'desc'
+          }
+        },
+        take: limit
+      });
+
+      // Popüler ürünlerin detaylarını getir
+      return prisma.product.findMany({
+        where: {
+          id: {
+            in: popularProducts.map(p => p.productId)
+          }
+        },
+        include: {
+          stocks: {
+            where: {
+              branchId
+            }
+          },
+          category: true
+        }
+      });
+    } else {
+      // Tüm aktif ürünleri getir
+      return prisma.product.findMany({
+        where,
+        include: {
+          stocks: {
+            where: {
+              branchId
+            }
+          },
+          category: true
+        },
+        orderBy: {
+          name: 'asc'
+        }
+      });
+    }
   }
 
   async validateBarcode(barcode: string) {

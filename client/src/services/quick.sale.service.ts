@@ -1,66 +1,56 @@
 import api from './api';
 import { API_ENDPOINTS } from '../config/constants';
 
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  barcode?: string;
-  category?: {
-    id: number;
-    name: string;
-  };
-  stocks?: {
-    quantity: number;
-  }[];
-}
-
 interface QuickSaleItem {
-  productId: number;
+  id: number;
   quantity: number;
-  note?: string;
+  price: number;
 }
 
 interface QuickSaleInput {
-  branchId: number;
-  restaurantId: number;
   items: QuickSaleItem[];
   customerId?: number;
-  paymentMethod: 'CASH' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'MEAL_CARD';
-  receivedAmount?: number;
-  cardPayment?: {
-    cardType: string;
-    lastFourDigits: string;
-    transactionId?: string;
-  };
+  branchId: number;
+  paymentMethod: string;
+  paymentAmount: number;
 }
 
-class QuickSaleService {
-  async processQuickSale(data: QuickSaleInput) {
+const quickSaleService = {
+  processQuickSale: async (data: QuickSaleInput) => {
     const response = await api.post(API_ENDPOINTS.QUICK_SALE.PROCESS, data);
     return response.data;
-  }
+  },
 
-  async searchProducts(query: string, branchId: number): Promise<Product[]> {
+  searchProducts: async (query: string, branchId: number, categoryId?: number | null) => {
     const response = await api.get(API_ENDPOINTS.QUICK_SALE.SEARCH_PRODUCTS, {
-      params: { q: query, branchId }
+      params: {
+        query,
+        branchId,
+        categoryId,
+      },
     });
     return response.data;
-  }
+  },
 
-  async getPopularProducts(branchId: number, limit?: number): Promise<Product[]> {
+  getPopularProducts: async (branchId: number, categoryId?: number | null, showPopularOnly: boolean = false) => {
     const response = await api.get(API_ENDPOINTS.QUICK_SALE.POPULAR_PRODUCTS, {
-      params: { branchId, limit }
+      params: {
+        branchId,
+        categoryId,
+        showPopularOnly
+      },
     });
     return response.data;
-  }
+  },
 
-  async validateBarcode(barcode: string, branchId: number): Promise<Product> {
+  validateBarcode: async (barcode: string, branchId: number) => {
     const response = await api.get(API_ENDPOINTS.QUICK_SALE.VALIDATE_BARCODE(barcode), {
-      params: { branchId }
+      params: {
+        branchId,
+      },
     });
     return response.data;
-  }
-}
+  },
+};
 
-export default new QuickSaleService(); 
+export default quickSaleService; 

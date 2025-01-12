@@ -13,6 +13,8 @@ import {
   InputAdornment,
   Divider,
   Chip,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -33,6 +35,7 @@ import quickSaleService from '@/services/quick.sale.service';
 import CustomerSelectModal from '@/components/customers/CustomerSelectModal';
 import NumericKeypadModal from '@/components/common/NumericKeypadModal';
 import { Customer } from '@/types/customer.types';
+import CategorySelector from '@/components/quick-sale/CategorySelector';
 
 interface CartItem {
   id: number;
@@ -48,20 +51,26 @@ const QuickSalePage: React.FC = () => {
   const theme = useTheme();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [keypadMode, setKeypadMode] = useState<KeypadMode>('quantity');
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+  const [showPopularOnly, setShowPopularOnly] = useState(false);
 
   // Toplam tutarı hesapla
   const total = cart.reduce((sum, item) => sum + item.total, 0);
 
   // Popüler ürünleri getir
   const { data: popularProducts } = useQuery({
-    queryKey: ['popular-products', user?.branchId],
-    queryFn: () => quickSaleService.getPopularProducts(Number(user?.branchId)),
+    queryKey: ['popular-products', user?.branchId, selectedCategoryId, showPopularOnly],
+    queryFn: () => quickSaleService.getPopularProducts(
+      Number(user?.branchId),
+      selectedCategoryId,
+      showPopularOnly
+    ),
     enabled: !!user?.branchId,
   });
 
@@ -261,11 +270,25 @@ const QuickSalePage: React.FC = () => {
               flexDirection: 'column'
             }}
           >
-            {/* Kategoriler ve Ürünler buraya gelecek */}
+            {/* Kategori Seçici */}
+            <CategorySelector
+              selectedCategoryId={selectedCategoryId}
+              onSelectCategory={setSelectedCategoryId}
+            />
+
+            {/* Kategoriler ve Ürünler */}
             <Box sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Popüler Ürünler
-              </Typography>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={showPopularOnly}
+                      onChange={(e) => setShowPopularOnly(e.target.checked)}
+                    />
+                  }
+                  label="Sadece Popüler Ürünler"
+                />
+              </Stack>
               <Grid container spacing={1}>
                 {popularProducts?.map((product: any) => (
                   <Grid item xs={6} sm={4} md={3} key={product.id}>

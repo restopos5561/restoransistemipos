@@ -58,9 +58,14 @@ export class QuickSaleController {
   }
 
   async getPopularProducts(req: Request, res: Response) {
-    const { branchId, limit } = req.query;
+    const { branchId, categoryId, showPopularOnly, limit } = req.query;
+    console.log('Debug - Controller categoryId:', categoryId);
+    console.log('Debug - Controller showPopularOnly:', showPopularOnly);
+    
     const products = await quickSaleService.getPopularProducts(
       Number(branchId),
+      categoryId ? Number(categoryId) : null,
+      showPopularOnly === 'true',
       limit ? Number(limit) : undefined
     );
     res.json(products);

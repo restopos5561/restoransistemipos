@@ -22,8 +22,8 @@
 - ✅ Ürün arama ve sepet yönetimi
 - ✅ Müşteri işlemleri
 - ✅ Sayısal tuş takımı
+- ✅ Kategori yönetimi ve filtreleme
 - ❌ Barkod okuyucu entegrasyonu
-- ❌ Kategori yönetimi
 - ❌ Hızlı ürün seçimi
 - ❌ İndirim uygulama
 - ❌ Ücretsiz ürün ekleme
@@ -45,16 +45,16 @@
 
 ### API Endpoints
 - ✅ POST /api/quick-sale/process
-- ✅ GET /api/quick-sale/products/search
-- ✅ GET /api/quick-sale/products/popular
+- ✅ GET /api/quick-sale/products/search?categoryId=:categoryId
+- ✅ GET /api/quick-sale/products/popular?categoryId=:categoryId
 - ✅ GET /api/quick-sale/products/barcode/:barcode
-- ❌ POST /api/quick-sale/categories
+- ✅ GET /api/quick-sale/categories
 - ❌ POST /api/quick-sale/promotions
 - ❌ POST /api/quick-sale/print
 - ❌ POST /api/quick-sale/discount
 
 ### Veritabanı İlişkileri
-- ❌ Kategoriler (categories)
+- ✅ Kategoriler (categories)
 - ❌ Varyantlar (variants)
 - ❌ Özel fiyatlar (special_prices)
 - ❌ Sadakat puanları (loyalty_points)
