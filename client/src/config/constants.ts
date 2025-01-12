@@ -170,4 +170,10 @@ export const API_ENDPOINTS = {
     BY_TABLE: (tableId: string) => `/reservations/table/${tableId}`,
     BY_BRANCH: (branchId: string) => `/reservations/branch/${branchId}`,
   },
+  QUICK_SALE: {
+    PROCESS: '/api/quick-sale/process',
+    SEARCH_PRODUCTS: '/api/quick-sale/products/search',
+    POPULAR_PRODUCTS: '/api/quick-sale/products/popular',
+    VALIDATE_BARCODE: (barcode: string) => `/api/quick-sale/products/barcode/${barcode}`
+  },
 } as const;

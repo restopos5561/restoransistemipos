@@ -22,6 +22,8 @@ interface CreateOrderInput {
     note?: string;
   }[];
   notes?: string;
+  status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
 }
 
 interface UpdateOrderInput {

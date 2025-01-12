@@ -45,6 +45,7 @@ import { tr } from 'date-fns/locale';
 import theme from './theme/theme';
 import { useConfirm } from './hooks/useConfirm';
 import ReservationsPage from './pages/reservations/ReservationsPage';
+import QuickSalePage from './pages/quick-sale/QuickSalePage';
 
 const queryClient = new QueryClient();
 
@@ -114,6 +115,9 @@ const App: React.FC = () => {
                                         {/* Accounts Route */}
                                         <Route path="/accounts" element={<AccountsPage />} />
                                         <Route path="/accounts/:id" element={<AccountDetailPage />} />
+
+                                        {/* Quick Sale Route */}
+                                        <Route path="/quick-sale" element={<QuickSalePage />} />
                                     </Route>
                                 </Route>
 

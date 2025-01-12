@@ -1,13 +1,5 @@
 import { z } from 'zod';
-import { OrderStatus, OrderSource } from '@prisma/client';
-
-export enum PaymentStatus {
-  PENDING = 'PENDING',
-  PARTIALLY_PAID = 'PARTIALLY_PAID',
-  PAID = 'PAID',
-  REFUNDED = 'REFUNDED',
-  CANCELLED = 'CANCELLED'
-}
+import { OrderStatus, OrderSource, PaymentStatus } from '@prisma/client';
 
 export const OrderSchema = {
   create: z.object({
@@ -28,6 +20,8 @@ export const OrderSchema = {
       customerId: z.number().nullable().optional(),
       customerCount: z.number().nullable().optional(),
       notes: z.string().optional(),
+      status: z.nativeEnum(OrderStatus).optional(),
+      paymentStatus: z.nativeEnum(PaymentStatus).optional(),
       items: z.array(
         z.object({
           productId: z.number({
@@ -45,27 +39,26 @@ export const OrderSchema = {
   }),
 
   update: z.object({
-    params: z.object({
-      id: z.string({
-        required_error: 'Sipariş ID gereklidir'
-      })
-    }),
     body: z.object({
       branchId: z.number().optional(),
-      orderSource: z.nativeEnum(OrderSource).optional(),
       tableId: z.number().nullable().optional(),
       customerId: z.number().nullable().optional(),
       customerCount: z.number().optional(),
       notes: z.string().optional(),
+      orderNotes: z.string().optional(),
       priority: z.boolean().optional(),
+      status: z.nativeEnum(OrderStatus).optional(),
       discountAmount: z.number().optional(),
       discountType: z.string().nullable().optional(),
       paymentStatus: z.nativeEnum(PaymentStatus).optional(),
       items: z.array(
         z.object({
+          id: z.number().optional(),
           productId: z.number(),
-          quantity: z.number().min(1, 'Miktar en az 1 olmalıdır'),
-          notes: z.string().optional()
+          quantity: z.number().min(1),
+          notes: z.string().optional(),
+          status: z.nativeEnum(OrderStatus).optional(),
+          selectedOptions: z.array(z.number()).optional()
         })
       ).optional()
     })
@@ -75,21 +68,11 @@ export const OrderSchema = {
     body: z.object({
       status: z.nativeEnum(OrderStatus),
     }),
-  }),
-
-  updateNotes: z.object({
-    orderNotes: z.string(),
-  }),
-
-  bulkDelete: z.object({
-    body: z.object({
-      orderIds: z.array(z.number()).min(1),
+    params: z.object({
+      id: z.string({
+        required_error: 'Sipariş ID gereklidir'
+      })
     })
-  }),
-
-  bulkUpdateStatus: z.object({
-    orderIds: z.array(z.number()).min(1),
-    status: z.nativeEnum(OrderStatus),
   }),
 
   print: z.object({
@@ -106,6 +89,30 @@ export const OrderSchema = {
         selectedOptions: z.array(z.number()).optional()
       })
     ).min(1)
+  }),
+
+  updateNotes: z.object({
+    body: z.object({
+      notes: z.string({
+        required_error: 'Not alanı gereklidir'
+      })
+    }),
+    params: z.object({
+      id: z.string({
+        required_error: 'Sipariş ID gereklidir'
+      })
+    })
+  }),
+
+  bulkDelete: z.object({
+    orderIds: z.array(z.number()).min(1, 'En az bir sipariş seçilmelidir')
+  }),
+
+  bulkUpdateStatus: z.object({
+    orderIds: z.array(z.number()).min(1, 'En az bir sipariş seçilmelidir'),
+    status: z.nativeEnum(OrderStatus, {
+      required_error: 'Sipariş durumu gereklidir'
+    })
   }),
 };
 

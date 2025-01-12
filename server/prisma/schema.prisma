@@ -32,6 +32,7 @@ model Restaurant {
   printers       Printer[]
   stockHistory   StockHistory[]
   purchaseOrders PurchaseOrder[]
+  promotions     Promotion[]
 }
 
 // Restoran Şubesi Modeli
@@ -107,6 +108,7 @@ model User {
   orders           Order[]
   refreshTokens    RefreshToken[]
   userBranches     UserBranch[]
+  refundedOrders   OrderItem[]      @relation("RefundedBy")
 }
 
 // RefreshToken Modeli
@@ -178,7 +180,7 @@ model Product {
   variants           ProductVariant[] // Ürün varyantları (boyut, renk vb.)
   orderItems         OrderItem[] // Ürünün dahil olduğu sipariş kalemleri
   recipe             Recipe? // Ürün reçetesi
-  barcode            String?
+  barcode            String?              @unique
   cost               Float?
   taxRate            Float?
   unit               String? // Adet, Kg, Gram, Porsiyon vb.
@@ -192,6 +194,7 @@ model Product {
   stockTracking      Boolean              @default(false) // Stok takibi yapılsın mı?
   stockCountItems    StockCountItem[]
   productOptions     ProductOption[]      // İlişki adı "productOptions" olarak kalsın
+  customPrices       CustomPrice[]
 }
 
 // Kategori Türleri
@@ -344,6 +347,11 @@ model OrderItem {
   preparationEndTime   DateTime?
   selectedOptions      ProductOption[]  @relation("OrderItemOptions")
   discounts            Discount[]       @relation("OrderItemDiscount")
+  isRefunded           Boolean            @default(false)
+  refundReason         String?
+  refundDate           DateTime?
+  refundedBy           Int?
+  refundedUser         User?            @relation("RefundedBy", fields: [refundedBy], references: [id])
 }
 
 // Sipariş Kalem Türleri (Satış, İkram, İptal)
@@ -374,6 +382,8 @@ model Customer {
   accounts     Account[]     @relation("CustomerAccounts")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  loyaltyProgram LoyaltyProgram?
+  customPrices   CustomPrice[]
 }
 
 // Ödeme Modeli
@@ -735,4 +745,60 @@ enum PaymentStatus {
   PAID
   REFUNDED
   CANCELLED
+}
+
+// Müşteri sadakat programı
+model LoyaltyProgram {
+  id          Int      @id @default(autoincrement())
+  customerId  Int      @unique
+  points      Int      @default(0)
+  customer    Customer @relation(fields: [customerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  giftCards   GiftCard[]
+}
+
+// Hediye kartları
+model GiftCard {
+  id            Int      @id @default(autoincrement())
+  code          String   @unique
+  amount        Float
+  balance       Float
+  isUsed        Boolean  @default(false)
+  expiryDate    DateTime?
+  loyaltyId     Int?
+  loyalty       LoyaltyProgram? @relation(fields: [loyaltyId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Promosyonlar
+model Promotion {
+  id            Int      @id @default(autoincrement())
+  name          String
+  description   String?
+  type          String   // BUY_X_GET_Y, DISCOUNT_PERCENT, FIXED_AMOUNT
+  conditions    Json     // Promosyon koşulları
+  rewards       Json     // Promosyon ödülleri
+  startDate     DateTime
+  endDate       DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  restaurantId  Int
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+}
+
+// Özel fiyatlar
+model CustomPrice {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  customerId  Int?
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  price       Float
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

@@ -42,6 +42,7 @@ import { settingsRouter } from './routes/settings.routes';
 import optionsRouter from './routes/options.routes';
 import path from 'path';
 import { reservationScheduler } from './services/reservation-scheduler.service';
+import { quickSaleRouter } from './routes/quick.sale.routes';
 
 // Initialize logger
 const logger = pino({
@@ -180,6 +181,7 @@ app.use('/api/purchase-order-items', purchaseOrderItemsRouter);
 app.use('/api/product-suppliers', productSupplierRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api', optionsRouter);
+app.use('/api/quick-sale', quickSaleRouter);
 
 // Error handling
 app.use(errorHandler);

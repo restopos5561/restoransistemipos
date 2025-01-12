@@ -1,4 +1,4 @@
-import { OrderSource } from '@prisma/client';
+import { OrderSource, OrderStatus, PaymentStatus } from '@prisma/client';
 
 export interface CreateOrderInput {
   branchId: number;
@@ -13,6 +13,8 @@ export interface CreateOrderInput {
     notes?: string;
   }[];
   notes?: string;
+  status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
 }
 
 export interface OrderListParams {
