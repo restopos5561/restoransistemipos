@@ -73,7 +73,7 @@ export class TablesService {
           orders: {
             where: {
               status: {
-                notIn: ['COMPLETED', 'CANCELLED']
+                in: [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY]
               }
             },
             include: {
@@ -107,7 +107,7 @@ export class TablesService {
             orders: {
               where: {
                 status: {
-                  notIn: ['COMPLETED', 'CANCELLED']
+                  in: [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY]
                 }
               },
               include: {

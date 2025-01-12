@@ -80,6 +80,16 @@ const getOrderStatusColor = (status: Order['status']) => {
       return 'warning';
     case 'PENDING':
       return 'info';
+    case 'DELIVERED':
+      return 'primary';
+    case 'COMPLETED':
+      return 'success';
+    case 'CANCELLED':
+      return 'error';
+    case 'ITEM_ISSUE':
+      return 'error';
+    case 'PARTIALLY_PAID':
+      return 'warning';
     default:
       return 'default';
   }
@@ -93,10 +103,16 @@ const getOrderStatusText = (status: Order['status']) => {
       return 'Hazırlanıyor';
     case 'PENDING':
       return 'Beklemede';
+    case 'DELIVERED':
+      return 'Teslim Edildi';
     case 'COMPLETED':
       return 'Tamamlandı';
     case 'CANCELLED':
       return 'İptal Edildi';
+    case 'ITEM_ISSUE':
+      return 'Ürün Sorunu';
+    case 'PARTIALLY_PAID':
+      return 'Kısmi Ödeme';
     default:
       return 'Bilinmiyor';
   }
