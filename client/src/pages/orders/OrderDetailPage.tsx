@@ -32,8 +32,6 @@ import {
   Receipt as ReceiptIcon,
   Print as PrintIcon,
   Edit as EditIcon,
-  Visibility as VisibilityIcon,
-  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -218,7 +216,7 @@ const OrderDetailPage: React.FC = () => {
             product: { id: number; name: string; price: number };
             quantity: number;
             notes?: string;
-            totalPrice?: number;
+            unitPrice: number;
             status: OrderStatus;
           }) => ({
             id: item.id,
@@ -226,7 +224,7 @@ const OrderDetailPage: React.FC = () => {
             product: item.product,
             quantity: item.quantity,
             notes: item.notes || '',
-            totalPrice: item.totalPrice || (item.quantity * item.product.price),
+            totalPrice: item.quantity * Number(item.unitPrice),
             status: item.status || OrderStatus.PENDING
           })) : [],
           totalAmount: response.data.totalAmount || 0,

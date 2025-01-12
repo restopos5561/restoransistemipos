@@ -191,7 +191,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
                       </Typography>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="body2" color="text.secondary">
-                          {item.product?.price ? `₺${(item.quantity * Number(item.product.price)).toFixed(2)}` : ''}
+                          {`₺${(item.totalPrice || 0).toFixed(2)}`}
                         </Typography>
                         {item.product?.id && (
                           <Tooltip title="Reçeteyi Görüntüle">
