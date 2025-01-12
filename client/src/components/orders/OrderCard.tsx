@@ -319,14 +319,14 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>
-          Ürün Reçetesi
-          {recipeData?.data?.product?.name && (
+        <DialogTitle sx={{ pb: 0 }}>Ürün Reçetesi</DialogTitle>
+        {recipeData?.data?.product?.name && (
+          <DialogContent sx={{ pt: 1, pb: 0 }}>
             <Typography variant="subtitle1" color="text.secondary">
               {recipeData.data.product.name}
             </Typography>
-          )}
-        </DialogTitle>
+          </DialogContent>
+        )}
         <DialogContent>
           {recipeData?.data?.ingredients ? (
             <List>
