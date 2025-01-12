@@ -12,11 +12,18 @@ export const TableSchema = {
   }),
 
   update: z.object({
+    params: z.object({
+      id: z.coerce.number({
+        required_error: 'Masa ID gereklidir'
+      })
+    }),
     body: z.object({
       tableNumber: z.string().min(1).optional(),
       capacity: z.number().int().positive().optional(),
       location: z.string().optional(),
       isActive: z.boolean().optional(),
+      positionX: z.number().optional(),
+      positionY: z.number().optional(),
     }),
   }),
 
@@ -28,6 +35,18 @@ export const TableSchema = {
     }),
     body: z.object({
       status: z.nativeEnum(TableStatus),
+    }),
+  }),
+
+  updatePosition: z.object({
+    params: z.object({
+      id: z.coerce.number({
+        required_error: 'Masa ID gereklidir'
+      })
+    }),
+    body: z.object({
+      x: z.number(),
+      y: z.number()
     }),
   }),
 

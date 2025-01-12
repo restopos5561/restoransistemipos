@@ -395,7 +395,8 @@ export class OrdersService {
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
-        orderItems: true
+        orderItems: true,
+        table: true
       }
     });
 
@@ -406,11 +407,27 @@ export class OrdersService {
     // Sipariş tamamlandığında stok düşme işlemi
     if (status === 'COMPLETED' && order.status !== 'COMPLETED') {
       await stockService.handleOrderCompletion(id);
+      
+      // Masa varsa durumunu IDLE yap
+      if (order.table) {
+        await prisma.table.update({
+          where: { id: order.table.id },
+          data: { status: TableStatus.IDLE }
+        });
+      }
     }
 
     // Sipariş iptal edildiğinde stok iade işlemi
     if (status === 'CANCELLED' && order.status !== 'CANCELLED') {
       await stockService.handleOrderCancellation(id);
+      
+      // Masa varsa durumunu IDLE yap
+      if (order.table) {
+        await prisma.table.update({
+          where: { id: order.table.id },
+          data: { status: TableStatus.IDLE }
+        });
+      }
     }
 
     return prisma.order.update({

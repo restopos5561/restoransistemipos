@@ -31,6 +31,13 @@ router.post(
   controller.transferTable
 );
 
+router.patch(
+  '/:id/position',
+  requireAuth,
+  validateRequest(TableSchema.updatePosition),
+  controller.updateTablePosition
+);
+
 // Şube ve konum bazlı sorgulama rotaları
 router.get('/branch/:branchId', requireAuth, controller.getTables);
 router.get('/location/:location', requireAuth, controller.getTables);

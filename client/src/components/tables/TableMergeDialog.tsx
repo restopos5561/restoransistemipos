@@ -1,152 +1,142 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { LoadingButton } from '@mui/lab';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
-  FormControl,
-  InputLabel,
   Select,
   MenuItem,
-  Typography,
+  FormControl,
+  InputLabel,
   Box,
   Chip,
   Stack,
+  Alert,
+  Checkbox,
+  ListItemText,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
-import { useMutation } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
+
 import { tablesService } from '../../services/tables.service';
-import { Table, MergeTablesInput, TableStatus } from '../../types/table.types';
+import { Table, TableStatus } from '../../types/table.types';
 
 interface TableMergeDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
-  mainTable: Table | undefined;
   tables: Table[];
 }
 
-const TableMergeDialog: React.FC<TableMergeDialogProps> = ({
-  open,
-  onClose,
-  onSuccess,
-  mainTable,
-  tables,
-}) => {
-  const { control, handleSubmit, reset, watch } = useForm<{ tableIdsToMerge: number[] }>({
-    defaultValues: {
-      tableIdsToMerge: [],
-    },
-  });
+interface MergeTablesFormInput {
+  tableIds: string[];
+}
 
-  const mergeMutation = useMutation({
-    mutationFn: (data: MergeTablesInput) => tablesService.mergeTables(data),
-    onSuccess: () => {
-      reset();
-      onSuccess();
-    },
-    onError: () => {
-      toast.error('Masa birleştirme sırasında bir hata oluştu');
-    },
-  });
+export const TableMergeDialog: React.FC<TableMergeDialogProps> = ({ open, onClose, tables }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { control, handleSubmit, watch, formState: { errors } } = useForm<MergeTablesFormInput>();
+  const selectedTables = watch('tableIds') || [];
 
-  const onSubmit = (data: { tableIdsToMerge: number[] }) => {
-    if (!mainTable) return;
+  const handleMergeTables = async (data: MergeTablesFormInput) => {
+    if (selectedTables.length < 2) {
+      setError('En az 2 masa seçmelisiniz');
+      return;
+    }
 
-    mergeMutation.mutate({
-      mainTableId: mainTable.id,
-      tableIdsToMerge: data.tableIdsToMerge,
-    });
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (!data.tableIds?.[0]) {
+        throw new Error('Ana masa seçilmedi');
+      }
+      const mainTableId = parseInt(data.tableIds[0]);
+      const tableIdsToMerge = data.tableIds
+        .slice(1)
+        .map(id => parseInt(id))
+        .filter((id): id is number => !isNaN(id));
+
+      if (isNaN(mainTableId)) {
+        throw new Error('Geçersiz ana masa ID');
+      }
+
+      await tablesService.mergeTables({
+        mainTableId,
+        tableIdsToMerge
+      });
+      toast.success('Masalar başarıyla birleştirildi');
+      onClose();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Masalar birleştirilirken bir hata oluştu');
+      toast.error('Masalar birleştirilirken bir hata oluştu');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  // Birleştirilebilir masaları filtrele
-  const availableTables = tables.filter(
-    (table) =>
-      table.id !== mainTable?.id && // Ana masa olmamalı
-      table.status === TableStatus.OCCUPIED && // Dolu olmalı
-      table.isActive // Aktif olmalı
-  );
-
-  const selectedTableIds = watch('tableIdsToMerge');
-
-  if (!mainTable) return null;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogTitle>Masa Birleştirme</DialogTitle>
+      <DialogTitle>Masaları Birleştir</DialogTitle>
+      <form onSubmit={handleSubmit(handleMergeTables)}>
         <DialogContent>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ana Masa
-            </Typography>
-            <Typography>
-              {mainTable.tableNumber}
-              {mainTable.location ? ` (${mainTable.location})` : ''}
-            </Typography>
-          </Box>
-
-          <FormControl fullWidth>
-            <InputLabel>Birleştirilecek Masalar</InputLabel>
-            <Controller
-              name="tableIdsToMerge"
-              control={control}
-              rules={{ required: 'En az bir masa seçilmeli' }}
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  multiple
-                  label="Birleştirilecek Masalar"
-                  disabled={availableTables.length === 0}
-                  renderValue={(selected) => (
-                    <Stack direction="row" spacing={0.5} flexWrap="wrap" gap={0.5}>
-                      {selected.map((value) => {
-                        const table = tables.find((t) => t.id === value);
-                        return (
-                          <Chip
-                            key={value}
-                            label={`${table?.tableNumber}${
-                              table?.location ? ` (${table.location})` : ''
-                            }`}
-                            size="small"
-                          />
-                        );
-                      })}
-                    </Stack>
-                  )}
-                >
-                  {availableTables.length === 0 ? (
-                    <MenuItem value={0} disabled>
-                      Uygun masa bulunamadı
-                    </MenuItem>
-                  ) : (
-                    availableTables.map((table) => (
-                      <MenuItem key={table.id} value={table.id}>
-                        {table.tableNumber}
-                        {table.location ? ` (${table.location})` : ''}
-                      </MenuItem>
-                    ))
-                  )}
-                </Select>
-              )}
-            />
-          </FormControl>
+          <Stack spacing={2}>
+            {error && (
+              <Alert severity="error" onClose={() => setError(null)}>
+                {error}
+              </Alert>
+            )}
+            <FormControl fullWidth error={!!errors.tableIds}>
+              <InputLabel>Masalar</InputLabel>
+              <Controller
+                name="tableIds"
+                control={control}
+                rules={{ required: 'En az 2 masa seçmelisiniz' }}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    multiple
+                    renderValue={(selected: string[]) => (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {selected.map((value) => {
+                          const table = tables.find((t) => t.id.toString() === value);
+                          return table ? (
+                            <Chip
+                              key={value}
+                              label={`Masa ${table.tableNumber}`}
+                              color="primary"
+                              variant="outlined"
+                            />
+                          ) : null;
+                        })}
+                      </Box>
+                    )}
+                  >
+                    {tables
+                      .filter((table) => table.status === TableStatus.IDLE)
+                      .map((table) => (
+                        <MenuItem key={table.id} value={table.id.toString()}>
+                          <Checkbox checked={selectedTables.includes(table.id.toString())} />
+                          <ListItemText primary={`Masa ${table.tableNumber}`} />
+                        </MenuItem>
+                      ))}
+                  </Select>
+                )}
+              />
+            </FormControl>
+          </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>İptal</Button>
-          <Button
+          <LoadingButton
             type="submit"
             variant="contained"
-            disabled={
-              mergeMutation.isPending ||
-              availableTables.length === 0 ||
-              selectedTableIds.length === 0
-            }
+            loading={loading}
+            disabled={selectedTables.length < 2}
           >
-            {mergeMutation.isPending ? 'Birleştiriliyor...' : 'Birleştir'}
-          </Button>
+            Birleştir
+          </LoadingButton>
         </DialogActions>
       </form>
     </Dialog>

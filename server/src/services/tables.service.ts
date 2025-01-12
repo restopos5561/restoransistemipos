@@ -247,34 +247,22 @@ export class TablesService {
     const table = await prisma.table.findUnique({
       where: { id },
       include: {
-        branch: true,
         orders: {
           where: {
             status: {
-              in: [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY],
-            },
-            closingTime: null
-          },
-          include: {
-            orderItems: {
-              include: {
-                product: true
-              }
-            },
-            payment: true
-          },
-          orderBy: {
-            orderTime: 'desc'
+              notIn: ['COMPLETED', 'CANCELLED']
+            }
           }
-        },
-      },
+        }
+      }
     });
 
     if (!table) {
       throw new TableNotFoundError(id);
     }
 
-    if (status === TableStatus.IDLE && table.orders && table.orders.length > 0) {
+    // Eğer masada aktif sipariş varsa ve masa boş duruma alınmaya çalışılıyorsa
+    if (status === TableStatus.IDLE && table.orders.length > 0) {
       return {
         success: false,
         error: {
@@ -283,69 +271,10 @@ export class TablesService {
       };
     }
 
-    console.log('🔵 [TablesService] Masa durumu güncelleniyor:', {
-      tableId: id,
-      currentStatus: table.status,
-      newStatus: status,
-      activeOrders: table.orders?.map(order => ({
-        id: order.id,
-        status: order.status,
-        orderTime: order.orderTime,
-        itemCount: order.orderItems?.length
-      }))
-    });
-
     const updatedTable = await prisma.table.update({
       where: { id },
-      data: { status },
-      include: {
-        branch: true,
-        orders: {
-          where: {
-            status: {
-              in: [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY],
-            },
-            closingTime: null
-          },
-          include: {
-            orderItems: {
-              include: {
-                product: true
-              }
-            },
-            payment: true
-          },
-          orderBy: {
-            orderTime: 'desc'
-          }
-        },
-      },
+      data: { status }
     });
-
-    console.log('✅ [TablesService] Masa durumu güncellendi:', {
-      tableId: id,
-      status: updatedTable.status,
-      activeOrders: updatedTable.orders?.map(order => ({
-        id: order.id,
-        status: order.status,
-        orderTime: order.orderTime,
-        itemCount: order.orderItems?.length
-      }))
-    });
-
-    // Socket event'ini gönder
-    if (updatedTable.branch) {
-      SocketService.emitToRoom(
-        `branch_${updatedTable.branch.id}`,
-        SOCKET_EVENTS.TABLE_STATUS_CHANGED,
-        {
-          tableId: updatedTable.id,
-          status: updatedTable.status,
-          branchId: updatedTable.branch.id,
-          orders: updatedTable.orders
-        }
-      );
-    }
 
     return {
       success: true,

@@ -109,6 +109,21 @@ export class TablesController {
     });
   };
 
+  updateTablePosition = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { x, y } = req.body;
+
+    const table = await this.tablesService.updateTable(Number(id), {
+      positionX: x,
+      positionY: y
+    });
+
+    res.status(200).json({
+      success: true,
+      data: table,
+    });
+  };
+
   deleteTable = async (req: Request, res: Response) => {
     const { id } = req.params;
 
