@@ -3,6 +3,7 @@ import { BadRequestError } from '../errors/common-errors';
 import { ReservationNotFoundError } from '../errors/reservation-errors';
 import { Prisma, ReservationStatus } from '@prisma/client';
 import { format } from 'date-fns';
+import { reservationScheduler } from './reservation-scheduler.service';
 
 type UpdateReservationInput = {
   tableId?: number;
@@ -119,46 +120,106 @@ export class ReservationsService {
     notes?: string;
     status: ReservationStatus;
   }) {
-    // branchId kontrolü
-    if (!data.branchId) {
-      throw new BadRequestError('Şube ID zorunludur');
-    }
+    try {
+      // branchId kontrolü
+      if (!data.branchId) {
+        throw new BadRequestError('Şube ID zorunludur');
+      }
 
-    // Masa müsaitlik kontrolü
-    if (data.tableId) {
-      // Önce masanın şubeye ait olup olmadığını kontrol et
-      const table = await prisma.table.findUnique({
-        where: { id: data.tableId }
+      // Masa müsaitlik kontrolü
+      if (data.tableId) {
+        // Önce masanın şubeye ait olup olmadığını kontrol et
+        const table = await prisma.table.findUnique({
+          where: { id: data.tableId },
+          include: {
+            branch: true
+          }
+        });
+
+        if (!table) {
+          throw new BadRequestError('Masa bulunamadı');
+        }
+
+        if (table.branchId !== data.branchId) {
+          throw new BadRequestError(`Seçilen masa ${table.branch?.name || 'başka bir'} şubeye ait`);
+        }
+
+        // Seçilen zaman diliminde başka rezervasyon var mı kontrol et
+        const startTime = new Date(data.reservationStartTime);
+        const endTime = new Date(data.reservationEndTime);
+
+        const existingReservation = await prisma.reservation.findFirst({
+          where: {
+            tableId: data.tableId,
+            status: {
+              in: ['CONFIRMED', 'PENDING']
+            },
+            OR: [
+              {
+                AND: [
+                  { reservationStartTime: { lte: startTime } },
+                  { reservationEndTime: { gt: startTime } }
+                ]
+              },
+              {
+                AND: [
+                  { reservationStartTime: { lt: endTime } },
+                  { reservationEndTime: { gte: endTime } }
+                ]
+              }
+            ]
+          },
+          include: {
+            customer: true
+          }
+        });
+
+        if (existingReservation) {
+          throw new BadRequestError(
+            `Bu masa ${format(startTime, 'HH:mm')} - ${format(endTime, 'HH:mm')} saatleri arasında ${existingReservation.customer?.name || 'başka bir müşteri'} adına rezerve edilmiş`
+          );
+        }
+      }
+
+      // Rezervasyonu oluştur
+      const reservation = await prisma.reservation.create({
+        data: {
+          ...data,
+          status: 'PENDING'
+        },
+        include: {
+          customer: true,
+          table: {
+            include: {
+              branch: true
+            }
+          }
+        }
       });
 
-      if (!table) {
-        throw new BadRequestError('Masa bulunamadı');
+      console.log('✅ [ReservationsService] Rezervasyon oluşturuldu:', {
+        id: reservation.id,
+        startTime: reservation.reservationStartTime,
+        endTime: reservation.reservationEndTime,
+        tableId: reservation.tableId
+      });
+
+      // Zamanlayıcıyı başlat
+      await reservationScheduler.scheduleReservation(reservation);
+
+      return {
+        success: true,
+        data: reservation
+      };
+    } catch (error) {
+      console.error('❌ [ReservationsService] Rezervasyon oluşturulurken hata:', error);
+      
+      if (error instanceof BadRequestError) {
+        throw error;
       }
 
-      if (table.branchId !== data.branchId) {
-        throw new BadRequestError('Seçilen masa bu şubeye ait değil');
-      }
-
-      // Seçilen zaman diliminde başka rezervasyon var mı kontrol et
-      const startTime = new Date(data.reservationStartTime);
-      const endTime = new Date(data.reservationEndTime);
-
-      const isAvailable = await checkTableAvailability(data.tableId, startTime, endTime);
-
-      if (!isAvailable) {
-        throw new BadRequestError(
-          `Bu masa ${format(startTime, 'HH:mm')} - ${format(endTime, 'HH:mm')} saatleri arasında rezerve edilmiş`
-        );
-      }
+      throw new Error('Rezervasyon oluşturulurken bir hata oluştu');
     }
-
-    return prisma.reservation.create({
-      data,
-      include: {
-        customer: true,
-        table: true
-      },
-    });
   }
 
   async getReservationById(id: number) {
@@ -208,7 +269,11 @@ export class ReservationsService {
       }
     }
 
-    return prisma.reservation.update({
+    // Mevcut zamanlayıcıyı iptal et
+    reservationScheduler.cancelScheduledTasks(id);
+
+    // Rezervasyonu güncelle
+    const updatedReservation = await prisma.reservation.update({
       where: { id },
       data,
       include: {
@@ -216,6 +281,11 @@ export class ReservationsService {
         table: true,
       },
     });
+
+    // Yeni zamanlayıcı oluştur
+    await reservationScheduler.scheduleReservation(updatedReservation);
+
+    return updatedReservation;
   }
 
   async deleteReservation(id: number) {

@@ -41,6 +41,7 @@ import { productSupplierRouter } from './routes/product.supplier.routes';
 import { settingsRouter } from './routes/settings.routes';
 import optionsRouter from './routes/options.routes';
 import path from 'path';
+import { reservationScheduler } from './services/reservation-scheduler.service';
 
 // Initialize logger
 const logger = pino({
@@ -182,5 +183,9 @@ app.use('/api', optionsRouter);
 
 // Error handling
 app.use(errorHandler);
+
+// Initialize reservation scheduler
+console.log('🕒 [App] Rezervasyon zamanlayıcısı başlatılıyor...');
+reservationScheduler;
 
 export { app, httpServer, logger, prisma };

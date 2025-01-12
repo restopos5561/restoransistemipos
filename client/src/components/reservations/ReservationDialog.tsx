@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack, TextField, Autocomplete } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack, TextField, Autocomplete, CircularProgress } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers';
 import { isValid } from 'date-fns';
-import { CreateReservationInput, Reservation } from '../../types/reservation.types';
+import { 
+  CreateReservationInput, 
+  Reservation, 
+  UpdateReservationResponse,
+  CreateReservationResponse 
+} from '../../types/reservation.types';
 import { ReservationStatus } from '../../types/enums';
 import { useReservations } from '../../hooks/useReservations';
 import { useAuth } from '../../hooks/useAuth';
 import customersService from '../../services/customers.service';
 import tablesService from '../../services/tables.service';
-import { Customer, CustomerListResponse } from '../../types/customer.types';
+import { Customer } from '../../types/customer.types';
 import { Table } from '../../types/table.types';
 import { toast } from 'react-hot-toast';
 
@@ -28,6 +33,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingTables, setLoadingTables] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<CreateReservationInput>({
     restaurantId: user?.restaurantId || 0,
@@ -53,7 +59,8 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
           setCustomers(response.data.customers);
         }
       } catch (error) {
-        console.error('Müşteriler yüklenirken hata:', error);
+        console.error('❌ [ReservationDialog] Müşteriler yüklenirken hata:', error);
+        toast.error('Müşteriler yüklenirken bir hata oluştu');
       } finally {
         setLoading(false);
       }
@@ -78,7 +85,8 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
           }
         }
       } catch (error) {
-        console.error('Masalar yüklenirken hata:', error);
+        console.error('❌ [ReservationDialog] Masalar yüklenirken hata:', error);
+        toast.error('Masalar yüklenirken bir hata oluştu');
       } finally {
         setLoadingTables(false);
       }
@@ -89,22 +97,55 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
     }
   }, [open, user?.branchId, user?.restaurantId]);
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!selectedCustomer) {
+      errors.customer = 'Müşteri seçimi zorunludur';
+    }
+
+    if (!selectedTable) {
+      errors.table = 'Masa seçimi zorunludur';
+    }
+
+    if (!isValid(new Date(formData.reservationStartTime))) {
+      errors.startTime = 'Geçerli bir başlangıç zamanı seçiniz';
+    }
+
+    if (!isValid(new Date(formData.reservationEndTime))) {
+      errors.endTime = 'Geçerli bir bitiş zamanı seçiniz';
+    }
+
+    if (new Date(formData.reservationEndTime) <= new Date(formData.reservationStartTime)) {
+      errors.endTime = 'Bitiş zamanı başlangıç zamanından sonra olmalıdır';
+    }
+
+    if (formData.partySize < 1) {
+      errors.partySize = 'Kişi sayısı en az 1 olmalıdır';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleStartTimeChange = (newValue: Date | null) => {
-    if (newValue) {
+    if (newValue && isValid(newValue)) {
       setFormData(prev => ({
         ...prev,
         reservationStartTime: newValue.toISOString(),
         reservationEndTime: new Date(newValue.getTime() + 60 * 60 * 1000).toISOString()
       }));
+      setFormErrors(prev => ({ ...prev, startTime: '' }));
     }
   };
 
   const handleEndTimeChange = (newValue: Date | null) => {
-    if (newValue) {
+    if (newValue && isValid(newValue)) {
       setFormData(prev => ({
         ...prev,
         reservationEndTime: newValue.toISOString()
       }));
+      setFormErrors(prev => ({ ...prev, endTime: '' }));
     }
   };
 
@@ -114,6 +155,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
       ...prev,
       customerId: newValue?.id || 0
     }));
+    setFormErrors(prev => ({ ...prev, customer: '' }));
   };
 
   const handleTableChange = (_event: any, newValue: Table | null) => {
@@ -122,88 +164,45 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
       ...prev,
       tableId: newValue?.id || 0
     }));
+    setFormErrors(prev => ({ ...prev, table: '' }));
   };
 
   const handleSubmit = async () => {
-    if (!selectedCustomer) {
-      alert('Lütfen bir müşteri seçin');
-      return;
-    }
-
-    if (!selectedTable) {
-      alert('Lütfen bir masa seçin');
-      return;
-    }
-
-    const now = new Date();
-    const startTime = new Date(formData.reservationStartTime);
-    const endTime = new Date(formData.reservationEndTime);
-
-    // Şu anki zamanı al (saat:dakika)
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTotal = currentHour * 60 + currentMinute;
-
-    // Seçilen başlangıç zamanını al (saat:dakika)
-    const startHour = startTime.getHours();
-    const startMinute = startTime.getMinutes();
-    const startTotal = startHour * 60 + startMinute;
-
-    // Seçilen bitiş zamanını al (saat:dakika)
-    const endHour = endTime.getHours();
-    const endMinute = endTime.getMinutes();
-    const endTotal = endHour * 60 + endMinute;
-
-    // Tarih kontrolü (yıl-ay-gün)
-    const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startDate = new Date(startTime.getFullYear(), startTime.getMonth(), startTime.getDate());
-
-    // Eğer bugünün tarihiyse ve saat geçmişse
-    if (startDate.getTime() === nowDate.getTime() && startTotal < currentTotal) {
-      alert('Başlangıç saati geçmiş bir saat olamaz');
-      return;
-    }
-
-    // Geçmiş tarih kontrolü
-    if (startDate < nowDate) {
-      alert('Başlangıç tarihi geçmiş bir tarih olamaz');
-      return;
-    }
-
-    // Aynı gün içinde başlangıç ve bitiş saati kontrolü
-    if (startTime.getTime() === endTime.getTime()) {
-      alert('Başlangıç ve bitiş saati aynı olamaz');
-      return;
-    }
-
-    // Bitiş saati başlangıç saatinden önce olamaz
-    if (startDate.getTime() === new Date(endTime.getFullYear(), endTime.getMonth(), endTime.getDate()).getTime() && endTotal <= startTotal) {
-      alert('Bitiş saati başlangıç saatinden sonra olmalıdır');
-      return;
-    }
-
     try {
+      if (!validateForm()) {
+        return;
+      }
+
+      setLoading(true);
+      console.log('🔵 [ReservationDialog] Form gönderiliyor:', formData);
+
       if (initialData && 'id' in initialData) {
-        console.log('🔵 [ReservationDialog] Rezervasyon güncelleniyor:', {
-          id: initialData.id,
-          data: formData
-        });
-        await updateReservation(initialData.id, {
+        const response = await updateReservation(initialData.id, {
+          tableId: formData.tableId,
           reservationStartTime: formData.reservationStartTime,
           reservationEndTime: formData.reservationEndTime,
           partySize: formData.partySize,
-          tableId: formData.tableId,
           notes: formData.notes
-        });
+        }) as UpdateReservationResponse;
+
+        if (response.success && response.data) {
+          toast.success('Rezervasyon başarıyla güncellendi');
+          onSuccess?.();
+          onClose();
+        }
       } else {
-        console.log('🔵 [ReservationDialog] Yeni rezervasyon oluşturuluyor:', formData);
-        await createReservation(formData);
+        const response = await createReservation(formData) as CreateReservationResponse;
+        if (response.success && response.data) {
+          toast.success('Rezervasyon başarıyla oluşturuldu');
+          onSuccess?.();
+          onClose();
+        }
       }
-      onSuccess?.();
-      onClose();
     } catch (error) {
-      console.error('❌ [ReservationDialog] Rezervasyon işlemi başarısız:', error);
+      console.error('❌ [ReservationDialog] Form gönderilirken hata:', error);
       toast.error(error instanceof Error ? error.message : 'Rezervasyon işlemi sırasında bir hata oluştu');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -213,7 +212,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
         restaurantId: initialData.restaurantId,
         customerId: initialData.customerId,
         branchId: initialData.branchId,
-        tableId: initialData.tableId,
+        tableId: initialData.tableId || 0,
         reservationStartTime: initialData.reservationStartTime,
         reservationEndTime: initialData.reservationEndTime,
         partySize: initialData.partySize,
@@ -223,8 +222,11 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
 
       const customer = customers.find(c => c.id === initialData.customerId);
       setSelectedCustomer(customer || null);
+
+      const table = tables.find(t => t.id === initialData.tableId);
+      setSelectedTable(table || null);
     }
-  }, [initialData, customers]);
+  }, [initialData, customers, tables]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -244,8 +246,17 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
                 {...params}
                 label="Müşteri Seç"
                 required
-                error={!selectedCustomer}
-                helperText={!selectedCustomer ? 'Müşteri seçimi zorunludur' : ''}
+                error={!!formErrors.customer}
+                helperText={formErrors.customer}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
               />
             )}
           />
@@ -260,8 +271,8 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
             slotProps={{
               textField: {
                 fullWidth: true,
-                error: !isValid(new Date(formData.reservationStartTime)),
-                helperText: !isValid(new Date(formData.reservationStartTime)) ? 'Geçersiz tarih' : undefined,
+                error: !!formErrors.startTime,
+                helperText: formErrors.startTime,
               },
             }}
           />
@@ -276,8 +287,8 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
             slotProps={{
               textField: {
                 fullWidth: true,
-                error: !isValid(new Date(formData.reservationEndTime)),
-                helperText: !isValid(new Date(formData.reservationEndTime)) ? 'Geçersiz tarih' : undefined,
+                error: !!formErrors.endTime,
+                helperText: formErrors.endTime,
               },
             }}
           />
@@ -293,8 +304,17 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
                 {...params}
                 label="Masa Seç"
                 required
-                error={!selectedTable}
-                helperText={!selectedTable ? 'Masa seçimi zorunludur' : ''}
+                error={!!formErrors.table}
+                helperText={formErrors.table}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingTables ? <CircularProgress color="inherit" size={20} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
               />
             )}
           />
@@ -303,10 +323,16 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
             label="Kişi Sayısı"
             type="number"
             value={formData.partySize}
-            onChange={(e) => setFormData(prev => ({
-              ...prev,
-              partySize: parseInt(e.target.value)
-            }))}
+            onChange={(e) => {
+              const value = parseInt(e.target.value);
+              setFormData((prevData) => ({
+                ...prevData,
+                partySize: value
+              }));
+              setFormErrors((prevErrors) => ({ ...prevErrors, partySize: '' }));
+            }}
+            error={!!formErrors.partySize}
+            helperText={formErrors.partySize}
             InputProps={{ inputProps: { min: 1 } }}
             fullWidth
           />
@@ -325,9 +351,14 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>İptal</Button>
-        <Button onClick={handleSubmit} variant="contained">
-          {initialData ? 'Güncelle' : 'Oluştur'}
+        <Button onClick={onClose} disabled={loading}>İptal</Button>
+        <Button 
+          onClick={handleSubmit} 
+          variant="contained" 
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={20} /> : null}
+        >
+          {loading ? 'İşleniyor...' : (initialData ? 'Güncelle' : 'Oluştur')}
         </Button>
       </DialogActions>
     </Dialog>

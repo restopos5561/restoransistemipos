@@ -16,9 +16,24 @@ export class ReservationsController {
   }
 
   async createReservation(req: Request, res: Response) {
-    const data: CreateReservationInput = req.body;
-    const reservation = await this.reservationsService.createReservation(data);
-    res.status(201).json({ success: true, data: reservation });
+    try {
+      const reservation = await this.reservationsService.createReservation(req.body);
+      res.status(201).json(reservation);
+    } catch (error) {
+      console.error('❌ [ReservationsController] Rezervasyon oluşturulurken hata:', error);
+      
+      if (error instanceof BadRequestError) {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Rezervasyon oluşturulurken bir hata oluştu'
+      });
+    }
   }
 
   async getReservationById(req: Request, res: Response) {

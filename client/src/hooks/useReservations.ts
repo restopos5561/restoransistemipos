@@ -1,10 +1,19 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Reservation, CreateReservationInput, UpdateReservationInput } from '../types/reservation.types';
+import { 
+  Reservation, 
+  CreateReservationInput, 
+  UpdateReservationInput,
+  CreateReservationResponse,
+  UpdateReservationResponse 
+} from '../types/reservation.types';
 import { ReservationStatus } from '../types/enums';
 import reservationsService from '../services/reservations.service';
 
 export const useReservations = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [total, setTotal] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeBranchId, setActiveBranchId] = useState<string | null>(localStorage.getItem('branchId'));
@@ -24,24 +33,42 @@ export const useReservations = () => {
       
       console.log('🔵 [useReservations] Rezervasyonlar yüklendi:', response);
 
-      if (response.success && Array.isArray(response.data)) {
-        setReservations(response.data);
-      } else if (response.success && response.data.reservations) {
-        setReservations(response.data.reservations);
+      if (response.success && response.data) {
+        // Backend'den gelen paginated response'u işle
+        const { reservations: reservationData, total: totalCount, page, totalPages: totalPagesCount } = response.data;
+        
+        if (Array.isArray(reservationData)) {
+          setReservations(reservationData);
+          setTotal(totalCount);
+          setCurrentPage(page);
+          setTotalPages(totalPagesCount);
+        } else {
+          console.error('❌ [useReservations] Beklenmeyen veri formatı:', response);
+          setReservations([]);
+          setTotal(0);
+          setCurrentPage(1);
+          setTotalPages(0);
+        }
       } else {
-        console.error('❌ [useReservations] Beklenmeyen veri formatı:', response);
+        console.error('❌ [useReservations] Geçersiz API yanıtı:', response);
         setReservations([]);
+        setTotal(0);
+        setCurrentPage(1);
+        setTotalPages(0);
       }
     } catch (err) {
       console.error('❌ [useReservations] Rezervasyonlar yüklenirken hata:', err);
       setError(err instanceof Error ? err.message : 'Rezervasyonlar yüklenirken bir hata oluştu');
       setReservations([]);
+      setTotal(0);
+      setCurrentPage(1);
+      setTotalPages(0);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const createReservation = async (data: CreateReservationInput) => {
+  const createReservation = async (data: CreateReservationInput): Promise<CreateReservationResponse> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -71,7 +98,7 @@ export const useReservations = () => {
             new Date(b.reservationStartTime).getTime() - new Date(a.reservationStartTime).getTime()
           );
         });
-        return newReservation;
+        return response;
       }
       throw new Error('Rezervasyon oluşturulamadı');
     } catch (err) {
@@ -83,7 +110,7 @@ export const useReservations = () => {
     }
   };
 
-  const updateReservation = async (id: number, data: UpdateReservationInput) => {
+  const updateReservation = async (id: number, data: UpdateReservationInput): Promise<UpdateReservationResponse> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -105,7 +132,7 @@ export const useReservations = () => {
             new Date(b.reservationStartTime).getTime() - new Date(a.reservationStartTime).getTime()
           );
         });
-        return response.data;
+        return response;
       }
       throw new Error('Rezervasyon güncellenemedi');
     } catch (err) {
@@ -231,6 +258,9 @@ export const useReservations = () => {
 
   return {
     reservations,
+    total,
+    currentPage,
+    totalPages,
     isLoading,
     error,
     fetchReservations,

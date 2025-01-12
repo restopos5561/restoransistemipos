@@ -6,6 +6,8 @@ import {
   UpdateReservationInput,
   UpdateReservationStatusInput,
   ReservationFilters,
+  CreateReservationResponse,
+  UpdateReservationResponse
 } from '../types/reservation.types';
 
 class ReservationsService {
@@ -44,12 +46,12 @@ class ReservationsService {
     return response.data;
   }
 
-  async createReservation(data: CreateReservationInput) {
+  async createReservation(data: CreateReservationInput): Promise<CreateReservationResponse> {
     const response = await api.post(API_ENDPOINTS.RESERVATIONS.CREATE, data);
     return response.data;
   }
 
-  async updateReservation(id: number, data: UpdateReservationInput) {
+  async updateReservation(id: number, data: UpdateReservationInput): Promise<UpdateReservationResponse> {
     if (!id || isNaN(id)) {
       throw new Error('Geçerli bir rezervasyon ID\'si gereklidir');
     }

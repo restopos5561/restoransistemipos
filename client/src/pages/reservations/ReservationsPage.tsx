@@ -5,10 +5,10 @@ import {
   Card,
   CardContent,
   Container,
-  Grid,
   Stack,
   Typography,
-  Chip
+  Chip,
+  Pagination
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { format } from 'date-fns';
@@ -31,18 +31,37 @@ const ReservationsPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
-  const { reservations, isLoading, updateReservationStatus, fetchReservations } = useReservations();
+  const { 
+    reservations, 
+    total,
+    currentPage,
+    totalPages,
+    isLoading, 
+    updateReservationStatus, 
+    fetchReservations 
+  } = useReservations();
 
   useEffect(() => {
     fetchReservations();
-  }, [fetchReservations]);
+  }, [fetchReservations, page, pageSize]);
 
   const handleStatusChange = async (status: ReservationStatus) => {
     if (selectedReservation) {
       await updateReservationStatus(selectedReservation.id, status);
       setIsDetailDialogOpen(false);
     }
+  };
+
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1); // Sayfa boyutu değiştiğinde ilk sayfaya dön
   };
 
   const columns: GridColDef[] = [
@@ -113,11 +132,12 @@ const ReservationsPage = () => {
               loading={isLoading}
               autoHeight
               pageSizeOptions={[10, 25, 50, 100]}
-              initialState={{
-                pagination: {
-                  paginationModel: { pageSize: 25 }
-                }
-              }}
+              paginationMode="server"
+              rowCount={total}
+              page={currentPage - 1}
+              pageSize={pageSize}
+              onPageChange={(newPage) => setPage(newPage + 1)}
+              onPageSizeChange={handlePageSizeChange}
               getRowId={(row) => row.id}
               disableRowSelectionOnClick
               onRowClick={(params) => {

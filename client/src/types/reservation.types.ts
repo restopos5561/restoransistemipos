@@ -55,4 +55,14 @@ export interface ReservationFilters {
   status?: ReservationStatus;
   page?: number;
   limit?: number;
+}
+
+export interface UpdateReservationResponse {
+  success: boolean;
+  data: Reservation;
+}
+
+export interface CreateReservationResponse {
+  success: boolean;
+  data: Reservation;
 } 
