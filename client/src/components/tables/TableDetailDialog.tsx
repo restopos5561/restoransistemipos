@@ -310,7 +310,7 @@ const TableDetailDialog: React.FC<TableDetailDialogProps> = ({
                             alignItems="center"
                           >
                             <Typography variant="subtitle2">
-                              {order.orderNumber}
+                              {order.orderNumber || order.id.toString().padStart(6, '0')}
                             </Typography>
                             <Chip
                               size="small"
@@ -327,9 +327,9 @@ const TableDetailDialog: React.FC<TableDetailDialogProps> = ({
                               Toplam Tutar
                             </Typography>
                             <Typography variant="body2">
-                              {order.totalAmount.toLocaleString('tr-TR', {
+                              {order.orderItems?.reduce((total, item) => total + (item.quantity * item.product.price), 0).toLocaleString('tr-TR', {
                                 style: 'currency',
-                                currency: 'TRY',
+                                currency: 'TRY'
                               })}
                             </Typography>
                           </Stack>
@@ -355,7 +355,7 @@ const TableDetailDialog: React.FC<TableDetailDialogProps> = ({
                       <Stack spacing={2}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
                           <Typography variant="subtitle1">
-                            Sipariş #{order.orderNumber}
+                            Sipariş #{order.orderNumber || order.id.toString().padStart(6, '0')}
                           </Typography>
                           <Chip
                             label={getOrderStatusText(order.status)}
@@ -398,7 +398,7 @@ const TableDetailDialog: React.FC<TableDetailDialogProps> = ({
                               </TableCell>
                               <TableCell align="right">
                                 <Typography variant="subtitle2">
-                                  {order.totalAmount.toLocaleString('tr-TR', {
+                                  {order.orderItems?.reduce((total, item) => total + (item.quantity * item.product.price), 0).toLocaleString('tr-TR', {
                                     style: 'currency',
                                     currency: 'TRY'
                                   })}
