@@ -78,12 +78,13 @@ export class TablesController {
     const { id } = req.params;
     const { status } = req.body;
 
-    const table = await this.tablesService.updateTableStatus(Number(id), status);
+    const result = await this.tablesService.updateTableStatus(Number(id), status);
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
 
-    res.status(200).json({
-      success: true,
-      data: table,
-    });
+    res.json(result);
   };
 
   mergeTables = async (req: Request, res: Response) => {

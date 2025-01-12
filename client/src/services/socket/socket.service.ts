@@ -5,34 +5,42 @@ import { tokenService } from '../token.service';
 export class SocketService {
   private static socket: Socket | null = null;
   private static connectionAttempts = 0;
-  private static maxAttempts = 10;
-  private static retryDelay = 2000;
+  private static maxAttempts = 5;
+  private static retryDelay = 1000;
+  private static retryTimer: NodeJS.Timeout | null = null;
 
   static initialize() {
-    if (this.socket) {
-      console.log('🔌 [Socket.IO] Mevcut socket bağlantısı kullanılıyor');
+    if (this.socket?.connected) {
+      console.log('🔌 [Socket.IO] Mevcut aktif bağlantı kullanılıyor');
       return this.socket;
+    }
+
+    if (this.connectionAttempts >= this.maxAttempts) {
+      console.error('🔌 [Socket.IO] Maksimum bağlantı denemesi aşıldı');
+      return null;
     }
 
     const token = tokenService.getAccessToken();
     if (!token) {
-      console.warn('🔌 [Socket.IO] Access token bulunamadı, bağlantı erteleniyor...');
+      console.warn('🔌 [Socket.IO] Access token bulunamadı');
       return null;
     }
 
     try {
-      console.log('🔌 [Socket.IO] Bağlanılıyor:', API_CONFIG.SOCKET_URL);
-      console.log('🔌 [Socket.IO] Token:', token.substring(0, 10) + '...');
+      console.log('🔌 [Socket.IO] Bağlanılıyor:', API_CONFIG.SOCKET_URL, {
+        attempt: this.connectionAttempts + 1,
+        maxAttempts: this.maxAttempts
+      });
 
       this.socket = io(API_CONFIG.SOCKET_URL, {
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
         autoConnect: true,
         withCredentials: true,
         reconnection: true,
         reconnectionDelay: this.retryDelay,
-        reconnectionDelayMax: 10000,
+        reconnectionDelayMax: 5000,
         reconnectionAttempts: this.maxAttempts,
-        timeout: 20000,
+        timeout: 10000,
         forceNew: false,
         path: '/socket.io',
         auth: {
@@ -41,22 +49,63 @@ export class SocketService {
       });
 
       this.socket.on('connect', () => {
-        console.log('🔌 [Socket.IO] Bağlantı başarılı. Socket ID:', this.socket?.id);
+        console.log('✅ [Socket.IO] Bağlantı başarılı:', {
+          socketId: this.socket?.id,
+          attempt: this.connectionAttempts + 1
+        });
         this.connectionAttempts = 0;
+        if (this.retryTimer) {
+          clearTimeout(this.retryTimer);
+          this.retryTimer = null;
+        }
+      });
+
+      this.socket.on('connect_error', (error) => {
+        console.error('❌ [Socket.IO] Bağlantı hatası:', {
+          error: error.message,
+          attempt: this.connectionAttempts + 1
+        });
+        this.connectionAttempts++;
+        this.scheduleReconnect();
       });
 
       this.socket.on('disconnect', (reason) => {
-        console.log('🔌 [Socket.IO] Bağlantı kesildi:', reason);
-        if (reason === 'io server disconnect') {
-          console.log('🔌 [Socket.IO] Server tarafından bağlantı kesildi, yeniden bağlanılıyor...');
-          this.reconnect();
+        console.log('🔌 [Socket.IO] Bağlantı kesildi:', {
+          reason,
+          attempt: this.connectionAttempts + 1
+        });
+        
+        if (reason === 'io server disconnect' || reason === 'transport close') {
+          this.scheduleReconnect();
         }
       });
 
       return this.socket;
     } catch (error) {
-      console.error('🔌 [Socket.IO] Initialization error:', error);
+      console.error('❌ [Socket.IO] Başlatma hatası:', error);
+      this.connectionAttempts++;
+      this.scheduleReconnect();
       return null;
+    }
+  }
+
+  private static scheduleReconnect() {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+    }
+
+    if (this.connectionAttempts < this.maxAttempts) {
+      const delay = this.retryDelay * Math.pow(2, this.connectionAttempts - 1);
+      console.log('🔄 [Socket.IO] Yeniden bağlanma planlandı:', {
+        delay,
+        attempt: this.connectionAttempts,
+        maxAttempts: this.maxAttempts
+      });
+
+      this.retryTimer = setTimeout(() => {
+        console.log('🔄 [Socket.IO] Yeniden bağlanılıyor...');
+        this.reconnect();
+      }, delay);
     }
   }
 

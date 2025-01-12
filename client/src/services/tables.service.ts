@@ -152,7 +152,24 @@ class TablesService {
         tableId: id,
         data
       });
-      throw error;
+
+      // Özel hata mesajlarını kontrol et
+      if (error.response?.data?.error?.message) {
+        throw new Error(error.response.data.error.message);
+      }
+
+      // Network hatası
+      if (error.code === 'ERR_NETWORK') {
+        throw new Error('Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.');
+      }
+
+      // Timeout hatası
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('İstek zaman aşımına uğradı. Lütfen tekrar deneyin.');
+      }
+
+      // Genel hata
+      throw new Error('Masa durumu güncellenirken bir hata oluştu. Lütfen tekrar deneyin.');
     }
   }
 

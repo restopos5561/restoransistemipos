@@ -21,6 +21,11 @@ export const TableSchema = {
   }),
 
   updateStatus: z.object({
+    params: z.object({
+      id: z.coerce.number({
+        required_error: 'Masa ID gereklidir'
+      })
+    }),
     body: z.object({
       status: z.nativeEnum(TableStatus),
     }),

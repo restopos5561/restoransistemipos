@@ -41,14 +41,16 @@ import { SOCKET_EVENTS } from '@/constants/socketEvents';
 import ReservationDialog from '../../components/reservations/ReservationDialog';
 import { ReservationStatus } from '../../types/enums';
 import { CreateReservationInput } from '../../types/reservation.types';
+import { useSocket } from '../../hooks/useSocket';
 
 type ViewMode = 'list' | 'grid' | 'layout';
 
-const TablesPage = (): JSX.Element => {
+const TablesPage: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const confirm = useConfirm();
   const { user } = useAuth();
+  const { on } = useSocket();
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -150,13 +152,12 @@ const TablesPage = (): JSX.Element => {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: TableStatus }) =>
       tablesService.updateTableStatus(id, { status }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tables'] });
-      toast.success('Masa durumu başarıyla güncellendi');
-    },
-    onError: () => {
-      toast.error('Masa durumu güncellenirken bir hata oluştu');
-    },
+    onError: (error: any) => {
+      toast.error('Aktif siparişi olan masa boş duruma alınamaz', {
+        position: 'top-right',
+        autoClose: 3000
+      });
+    }
   });
 
   // Masa birleştirme mutation'ı
@@ -256,8 +257,15 @@ const TablesPage = (): JSX.Element => {
     setFilters(prev => ({ ...prev, page }));
   };
 
-  const handleStatusChange = (table: Table, newStatus: TableStatus) => {
-    updateStatusMutation.mutate({ id: table.id, status: newStatus });
+  const handleStatusChange = async (table: Table, newStatus: TableStatus) => {
+    try {
+      await updateStatusMutation.mutateAsync({
+        id: table.id,
+        status: newStatus
+      });
+    } catch (error) {
+      // Hata zaten mutation'da ele alındı
+    }
   };
 
   const handleViewModeChange = (
@@ -284,50 +292,64 @@ const TablesPage = (): JSX.Element => {
 
   // Socket.IO event dinleyicileri
   useEffect(() => {
-    const socket = SocketService.getSocket();
+    console.log('🔌 [TablesPage] Socket.IO event dinleyicileri ayarlanıyor');
 
-    if (!socket || !user?.branchId) {
-      console.error('🔌 [TablesPage] Socket bağlantısı veya kullanıcı bilgisi bulunamadı!');
-      return;
-    }
+    const handleTableStatusChanged = (data: { tableId: number; status: TableStatus; branchId: number }) => {
+      console.log('🔌 [TablesPage] Masa durumu değişti:', data);
+      
+      // Optimistik güncelleme
+      queryClient.setQueryData(['tables'], (oldData: any) => {
+        if (!oldData?.tables) return oldData;
 
-    console.log('🔌 [TablesPage] Socket.IO dinleyicileri ayarlanıyor');
-
-    // Masa durumu değiştiğinde
-    const handleTableStatusChanged = (data: any) => {
-      console.log('🔌 [TablesPage] Masa durumu değişti:', {
-        event: SOCKET_EVENTS.TABLE_STATUS_CHANGED,
-        tableId: data.tableId,
-        status: data.status
+        return {
+          ...oldData,
+          tables: oldData.tables.map((table: any) =>
+            table.id === data.tableId
+              ? { ...table, status: data.status }
+              : table
+          )
+        };
       });
 
-      // Verileri yenile
+      // Backend'den taze veriyi al
       queryClient.invalidateQueries({ queryKey: ['tables'] });
-    };
 
-    // Masa güncellendiğinde
-    const handleTableUpdated = (data: any) => {
-      console.log('🔌 [TablesPage] Masa güncellendi:', {
-        event: SOCKET_EVENTS.TABLE_UPDATED,
-        tableId: data.tableId
-      });
+      // Bildirim göster
+      let message = 'Masa durumu güncellendi';
+      let type: 'info' | 'success' | 'warning' = 'info';
 
-      // Verileri yenile
-      queryClient.invalidateQueries({ queryKey: ['tables'] });
-    };
-
-    // Event dinleyicilerini ekle
-    socket.on(SOCKET_EVENTS.TABLE_STATUS_CHANGED, handleTableStatusChanged);
-    socket.on(SOCKET_EVENTS.TABLE_UPDATED, handleTableUpdated);
-
-    // Cleanup function
-    return () => {
-      if (socket) {
-        socket.off(SOCKET_EVENTS.TABLE_STATUS_CHANGED, handleTableStatusChanged);
-        socket.off(SOCKET_EVENTS.TABLE_UPDATED, handleTableUpdated);
+      switch (data.status) {
+        case TableStatus.IDLE:
+          message = 'Masa boşaldı';
+          type = 'success';
+          break;
+        case TableStatus.OCCUPIED:
+          message = 'Masa dolu';
+          type = 'info';
+          break;
+        case TableStatus.RESERVED:
+          message = 'Masa rezerve edildi';
+          type = 'warning';
+          break;
       }
+
+      toast[type](message, {
+        position: 'top-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     };
-  }, [queryClient, user?.branchId]);
+
+    const unsubscribe = on(SOCKET_EVENTS.TABLE_STATUS_CHANGED, handleTableStatusChanged);
+
+    return () => {
+      console.log('🔌 [TablesPage] Socket.IO event dinleyicileri temizleniyor');
+      unsubscribe?.();
+    };
+  }, [on, queryClient]);
 
   if (isLoading || !selectedBranch) {
     return (

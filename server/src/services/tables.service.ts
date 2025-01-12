@@ -22,6 +22,14 @@ interface UpdateTableInput {
   positionY?: number;
 }
 
+interface TableResponse {
+  success: boolean;
+  error?: {
+    message: string;
+  };
+  data?: Table;
+}
+
 export class TablesService {
   async getTables(filters: {
     branchId: number;
@@ -235,7 +243,7 @@ export class TablesService {
     });
   }
 
-  async updateTableStatus(id: number, status: TableStatus): Promise<Table> {
+  async updateTableStatus(id: number, status: TableStatus): Promise<TableResponse> {
     const table = await prisma.table.findUnique({
       where: { id },
       include: {
@@ -267,7 +275,12 @@ export class TablesService {
     }
 
     if (status === TableStatus.IDLE && table.orders && table.orders.length > 0) {
-      throw new TableOperationError('Aktif siparişi olan masa boş duruma alınamaz');
+      return {
+        success: false,
+        error: {
+          message: 'Aktif siparişi olan masa boş duruma alınamaz'
+        }
+      };
     }
 
     console.log('🔵 [TablesService] Masa durumu güncelleniyor:', {
@@ -334,7 +347,10 @@ export class TablesService {
       );
     }
 
-    return updatedTable;
+    return {
+      success: true,
+      data: updatedTable
+    };
   }
 
   async mergeTables(mainTableId: number, tableIdsToMerge: number[]): Promise<Table> {

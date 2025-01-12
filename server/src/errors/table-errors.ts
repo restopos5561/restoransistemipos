@@ -1,20 +1,40 @@
-export class TableNotFoundError extends Error {
+import { CustomError } from './custom-error';
+
+export class TableNotFoundError extends CustomError {
+  statusCode = 404;
+
   constructor(tableId: number) {
-    super(`Table with id ${tableId} not found`);
-    this.name = 'TableNotFoundError';
+    super(`Masa bulunamadı: ${tableId}`);
+    Object.setPrototypeOf(this, TableNotFoundError.prototype);
+  }
+
+  serializeErrors() {
+    return [{ message: this.message }];
   }
 }
 
-export class TableOperationError extends Error {
+export class TableOperationError extends CustomError {
+  statusCode = 400;
+
   constructor(message: string) {
     super(message);
-    this.name = 'TableOperationError';
+    Object.setPrototypeOf(this, TableOperationError.prototype);
+  }
+
+  serializeErrors() {
+    return [{ message: this.message }];
   }
 }
 
-export class TableValidationError extends Error {
+export class TableValidationError extends CustomError {
+  statusCode = 400;
+
   constructor(message: string) {
     super(message);
-    this.name = 'TableValidationError';
+    Object.setPrototypeOf(this, TableValidationError.prototype);
+  }
+
+  serializeErrors() {
+    return [{ message: this.message }];
   }
 }

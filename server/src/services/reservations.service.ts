@@ -1,12 +1,14 @@
 import { prisma } from '../app';
 import { BadRequestError } from '../errors/common-errors';
 import { ReservationNotFoundError } from '../errors/reservation-errors';
-import { Prisma, ReservationStatus } from '@prisma/client';
+import { Prisma, ReservationStatus, TableStatus, Table } from '@prisma/client';
 import { format } from 'date-fns';
 import { reservationScheduler } from './reservation-scheduler.service';
+import { SocketService } from '../socket';
+import { SOCKET_EVENTS } from '../socket/socket.events';
 
 type UpdateReservationInput = {
-  tableId?: number;
+  tableId?: number | null;
   reservationStartTime?: string;
   reservationEndTime?: string;
   partySize?: number;
@@ -289,8 +291,44 @@ export class ReservationsService {
   }
 
   async deleteReservation(id: number) {
-    await this.getReservationById(id);
-    await prisma.reservation.delete({ where: { id } });
+    const reservation = await this.getReservationById(id);
+    
+    // Önce zamanlayıcıyı iptal et
+    reservationScheduler.cancelScheduledTasks(id);
+
+    // Masa durumunu güncelle ve rezervasyonu sil
+    await Promise.all([
+      // Masayı boşalt
+      ...(reservation.tableId ? [
+        prisma.table.update({
+          where: { id: reservation.tableId },
+          data: { status: TableStatus.IDLE },
+          select: {
+            id: true,
+            branchId: true,
+            status: true
+          }
+        }).then((updatedTable: Pick<Table, 'id' | 'branchId' | 'status'>) => {
+          // Socket event'i gönder
+          SocketService.emitToRoom(
+            `branch_${updatedTable.branchId}`,
+            SOCKET_EVENTS.TABLE_STATUS_CHANGED,
+            {
+              tableId: updatedTable.id,
+              status: updatedTable.status,
+              branchId: updatedTable.branchId
+            }
+          );
+        })
+      ] : []),
+      // Rezervasyonu sil
+      prisma.reservation.delete({ where: { id } })
+    ]);
+
+    console.log('✅ [ReservationsService] Rezervasyon silindi ve masa boşaltıldı:', {
+      reservationId: id,
+      tableId: reservation.tableId
+    });
   }
 
   async updateReservationStatus(
@@ -299,7 +337,62 @@ export class ReservationsService {
     cancellationReason?: string
   ) {
     const reservation = await this.getReservationById(id);
-    return this.updateReservation(id, { status, cancellationReason });
+
+    // Mevcut zamanlayıcıyı iptal et
+    reservationScheduler.cancelScheduledTasks(id);
+
+    // Eğer rezervasyon iptal ediliyorsa ve masaya atanmışsa, masa durumunu kontrol et
+    if (status === ReservationStatus.CANCELLED && reservation.tableId) {
+      const table = await prisma.table.findUnique({
+        where: { id: reservation.tableId },
+        include: { orders: true }
+      });
+
+      if (table) {
+        // Masada aktif sipariş varsa OCCUPIED, yoksa IDLE
+        const hasActiveOrders = table.orders?.some(order => 
+          order.status === 'PENDING' || 
+          order.status === 'PREPARING' || 
+          order.status === 'READY' || 
+          order.status === 'DELIVERED'
+        );
+        
+        const newStatus = hasActiveOrders ? TableStatus.OCCUPIED : TableStatus.IDLE;
+        
+        await prisma.table.update({
+          where: { id: reservation.tableId },
+          data: { status: newStatus }
+        });
+
+        // Socket event'i gönder
+        SocketService.emitToRoom(
+          `branch_${table.branchId}`,
+          SOCKET_EVENTS.TABLE_STATUS_CHANGED,
+          {
+            tableId: table.id,
+            status: newStatus,
+            branchId: table.branchId
+          }
+        );
+      }
+    }
+
+    // Rezervasyon durumunu güncelle
+    const updatedReservation = await prisma.reservation.update({
+      where: { id },
+      data: { status, cancellationReason },
+      include: {
+        customer: true,
+        table: true,
+      },
+    });
+
+    // Yeni zamanlayıcı oluştur (iptal edilmediyse)
+    if (status !== ReservationStatus.CANCELLED) {
+      await reservationScheduler.scheduleReservation(updatedReservation);
+    }
+
+    return updatedReservation;
   }
 
   async getReservationsByDate(date: Date | undefined) {
