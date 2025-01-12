@@ -109,7 +109,8 @@ export class KitchenService {
           quantity: item.quantity,
           product: {
             id: item.product.id,
-            name: item.product.name
+            name: item.product.name,
+            price: Number(item.unitPrice)
           },
           notes: item.note || ''
         }))

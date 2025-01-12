@@ -191,7 +191,12 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
                       </Typography>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="body2" color="text.secondary">
-                          {`₺${(item.totalPrice || 0).toFixed(2)}`}
+                          {((item.quantity || 0) * (item.product?.price || 0)).toLocaleString('tr-TR', {
+                            style: 'currency',
+                            currency: 'TRY',
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })}
                         </Typography>
                         {item.product?.id && (
                           <Tooltip title="Reçeteyi Görüntüle">
@@ -237,7 +242,12 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onStatusChange }) => {
                     Toplam:
                   </Typography>
                   <Typography variant="subtitle2" color="primary">
-                    ₺{order.totalAmount.toFixed(2)}
+                    {(order.items?.reduce((total, item) => total + ((item.quantity || 0) * (item.product?.price || 0)), 0) || 0).toLocaleString('tr-TR', {
+                      style: 'currency',
+                      currency: 'TRY',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
                   </Typography>
                 </Box>
               </>
