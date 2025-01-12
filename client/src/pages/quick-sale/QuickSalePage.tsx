@@ -25,11 +25,13 @@ import {
   Delete as DeleteIcon,
   QrCodeScanner as BarcodeIcon,
   Clear as ClearIcon,
+  Calculate as CalculateIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import quickSaleService from '@/services/quick.sale.service';
 import CustomerSelectModal from '@/components/customers/CustomerSelectModal';
+import NumericKeypadModal from '@/components/common/NumericKeypadModal';
 import { Customer } from '@/types/customer.types';
 
 interface CartItem {
@@ -40,6 +42,8 @@ interface CartItem {
   total: number;
 }
 
+type KeypadMode = 'quantity' | 'price' | 'barcode';
+
 const QuickSalePage: React.FC = () => {
   const theme = useTheme();
   const { user } = useAuth();
@@ -47,6 +51,9 @@ const QuickSalePage: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isKeypadOpen, setIsKeypadOpen] = useState(false);
+  const [keypadMode, setKeypadMode] = useState<KeypadMode>('quantity');
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
 
   // Toplam tutarı hesapla
   const total = cart.reduce((sum, item) => sum + item.total, 0);
@@ -119,6 +126,63 @@ const QuickSalePage: React.FC = () => {
     setSelectedCustomer(null);
   };
 
+  // Sayısal tuş takımını aç
+  const handleOpenKeypad = (mode: KeypadMode, itemId?: number) => {
+    setKeypadMode(mode);
+    setSelectedItemId(itemId || null);
+    setIsKeypadOpen(true);
+  };
+
+  // Sayısal tuş takımını kapat
+  const handleCloseKeypad = () => {
+    setIsKeypadOpen(false);
+    setSelectedItemId(null);
+  };
+
+  // Sayısal tuş takımı değerini işle
+  const handleKeypadSubmit = (value: string) => {
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return;
+
+    switch (keypadMode) {
+      case 'quantity':
+        if (selectedItemId) {
+          setCart(prev => prev.map(item => {
+            if (item.id === selectedItemId) {
+              return {
+                ...item,
+                quantity: numValue,
+                total: numValue * item.price
+              };
+            }
+            return item;
+          }));
+        }
+        break;
+
+      case 'price':
+        if (selectedItemId) {
+          setCart(prev => prev.map(item => {
+            if (item.id === selectedItemId) {
+              return {
+                ...item,
+                price: numValue,
+                total: item.quantity * numValue
+              };
+            }
+            return item;
+          }));
+        }
+        break;
+
+      case 'barcode':
+        // Barkod okuyucu işlemleri buraya gelecek
+        break;
+    }
+
+    handleCloseKeypad();
+  };
+
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Üst Bar */}
@@ -146,7 +210,7 @@ const QuickSalePage: React.FC = () => {
               ),
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton>
+                  <IconButton onClick={() => handleOpenKeypad('barcode')}>
                     <BarcodeIcon />
                   </IconButton>
                 </InputAdornment>
@@ -301,7 +365,15 @@ const QuickSalePage: React.FC = () => {
                         </IconButton>
                         <Typography
                           variant="body2"
-                          sx={{ minWidth: 20, textAlign: 'center' }}
+                          sx={{ 
+                            minWidth: 20, 
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              color: theme.palette.primary.main
+                            }
+                          }}
+                          onClick={() => handleOpenKeypad('quantity', item.id)}
                         >
                           {item.quantity}
                         </Typography>
@@ -312,9 +384,26 @@ const QuickSalePage: React.FC = () => {
                           <AddIcon fontSize="small" />
                         </IconButton>
                       </Stack>
-                      <Typography variant="body2">
-                        {item.total.toFixed(2)} ₺
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            cursor: 'pointer',
+                            '&:hover': {
+                              color: theme.palette.primary.main
+                            }
+                          }}
+                          onClick={() => handleOpenKeypad('price', item.id)}
+                        >
+                          {item.total.toFixed(2)} ₺
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenKeypad('price', item.id)}
+                        >
+                          <CalculateIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
                     </Stack>
                   </Stack>
                 </Paper>
@@ -353,6 +442,32 @@ const QuickSalePage: React.FC = () => {
         onClose={handleCloseCustomerModal}
         onSelect={handleSelectCustomer}
         selectedCustomerId={selectedCustomer?.id}
+      />
+
+      {/* Sayısal Tuş Takımı Modalı */}
+      <NumericKeypadModal
+        open={isKeypadOpen}
+        onClose={handleCloseKeypad}
+        onSubmit={handleKeypadSubmit}
+        title={
+          keypadMode === 'quantity' ? 'Miktar Gir' :
+          keypadMode === 'price' ? 'Fiyat Gir' :
+          'Barkod Gir'
+        }
+        label={
+          keypadMode === 'quantity' ? 'Ürün Miktarı' :
+          keypadMode === 'price' ? 'Ürün Fiyatı' :
+          'Barkod'
+        }
+        initialValue={
+          keypadMode === 'quantity' && selectedItemId
+            ? cart.find(item => item.id === selectedItemId)?.quantity.toString() || '0'
+            : keypadMode === 'price' && selectedItemId
+            ? cart.find(item => item.id === selectedItemId)?.price.toString() || '0'
+            : '0'
+        }
+        maxLength={keypadMode === 'barcode' ? 13 : 10}
+        allowDecimal={keypadMode === 'price'}
       />
     </Box>
   );
