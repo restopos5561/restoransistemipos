@@ -12,6 +12,7 @@ import {
   TextField,
   InputAdornment,
   Divider,
+  Chip,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -23,10 +24,13 @@ import {
   Remove as RemoveIcon,
   Delete as DeleteIcon,
   QrCodeScanner as BarcodeIcon,
+  Clear as ClearIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import quickSaleService from '@/services/quick.sale.service';
+import CustomerSelectModal from '@/components/customers/CustomerSelectModal';
+import { Customer } from '@/types/customer.types';
 
 interface CartItem {
   id: number;
@@ -41,6 +45,8 @@ const QuickSalePage: React.FC = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   // Toplam tutarı hesapla
   const total = cart.reduce((sum, item) => sum + item.total, 0);
@@ -93,6 +99,26 @@ const QuickSalePage: React.FC = () => {
     }));
   };
 
+  // Müşteri seçim modalını aç
+  const handleOpenCustomerModal = () => {
+    setIsCustomerModalOpen(true);
+  };
+
+  // Müşteri seçim modalını kapat
+  const handleCloseCustomerModal = () => {
+    setIsCustomerModalOpen(false);
+  };
+
+  // Müşteri seç
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+  };
+
+  // Seçili müşteriyi temizle
+  const handleClearCustomer = () => {
+    setSelectedCustomer(null);
+  };
+
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Üst Bar */}
@@ -128,13 +154,24 @@ const QuickSalePage: React.FC = () => {
             }}
             sx={{ maxWidth: 400 }}
           />
-          <Button
-            variant="contained"
-            startIcon={<PersonIcon />}
-            sx={{ minWidth: 130 }}
-          >
-            Müşteri Seç
-          </Button>
+          {selectedCustomer ? (
+            <Chip
+              icon={<PersonIcon />}
+              label={selectedCustomer.name}
+              onDelete={handleClearCustomer}
+              color="primary"
+              variant="outlined"
+            />
+          ) : (
+            <Button
+              variant="contained"
+              startIcon={<PersonIcon />}
+              onClick={handleOpenCustomerModal}
+              sx={{ minWidth: 130 }}
+            >
+              Müşteri Seç
+            </Button>
+          )}
           <Button
             variant="outlined"
             startIcon={<DiscountIcon />}
@@ -213,6 +250,13 @@ const QuickSalePage: React.FC = () => {
               <Stack direction="row" alignItems="center" spacing={1}>
                 <CartIcon color="primary" />
                 <Typography variant="h6">Sepet</Typography>
+                {selectedCustomer && (
+                  <Chip
+                    size="small"
+                    label={selectedCustomer.name}
+                    onDelete={handleClearCustomer}
+                  />
+                )}
               </Stack>
             </Box>
 
@@ -248,14 +292,19 @@ const QuickSalePage: React.FC = () => {
                       justifyContent="space-between"
                       alignItems="center"
                     >
-                      <Stack direction="row" spacing={1} alignItems="center">
+                      <Stack direction="row" spacing={1}>
                         <IconButton
                           size="small"
                           onClick={() => updateQuantity(item.id, -1)}
                         >
                           <RemoveIcon fontSize="small" />
                         </IconButton>
-                        <Typography>{item.quantity}</Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ minWidth: 20, textAlign: 'center' }}
+                        >
+                          {item.quantity}
+                        </Typography>
                         <IconButton
                           size="small"
                           onClick={() => updateQuantity(item.id, 1)}
@@ -263,7 +312,7 @@ const QuickSalePage: React.FC = () => {
                           <AddIcon fontSize="small" />
                         </IconButton>
                       </Stack>
-                      <Typography variant="subtitle2">
+                      <Typography variant="body2">
                         {item.total.toFixed(2)} ₺
                       </Typography>
                     </Stack>
@@ -280,7 +329,7 @@ const QuickSalePage: React.FC = () => {
                   justifyContent="space-between"
                   alignItems="center"
                 >
-                  <Typography variant="h6">Toplam</Typography>
+                  <Typography variant="subtitle1">Toplam</Typography>
                   <Typography variant="h6">{total.toFixed(2)} ₺</Typography>
                 </Stack>
                 <Button
@@ -297,6 +346,14 @@ const QuickSalePage: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Müşteri Seçim Modalı */}
+      <CustomerSelectModal
+        open={isCustomerModalOpen}
+        onClose={handleCloseCustomerModal}
+        onSelect={handleSelectCustomer}
+        selectedCustomerId={selectedCustomer?.id}
+      />
     </Box>
   );
 };

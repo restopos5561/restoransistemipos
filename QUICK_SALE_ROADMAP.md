@@ -35,30 +35,19 @@
   - [ ] Nakit ödeme
   - [ ] Kredi kartı entegrasyonu
   - [ ] Yemek kartı entegrasyonu
-- [ ] Müşteri işlemleri
-  - [ ] Müşteri seçimi/arama
-  - [ ] Yeni müşteri ekleme
+- [x] Müşteri işlemleri
+  - [x] Müşteri seçimi/arama
+  - [x] Müşteri bilgisi gösterimi
 - [ ] İade işlemleri
   - [ ] Fiş numarası ile arama
   - [ ] Kısmi/tam iade seçenekleri
-
-## 4. Test ve Optimizasyon 🚧
-- [ ] Performans testleri
-- [ ] Kullanıcı arayüzü testleri
-- [ ] Yük testleri
-- [ ] Hata senaryoları testleri
-
-## 5. Eğitim ve Dokümantasyon 📝
-- [ ] Kullanım kılavuzu hazırlama
-- [ ] Eğitim dokümanları oluşturma
-- [ ] Video eğitimler hazırlama
 
 ## İlk 3 Gün İçin Öncelikli Görevler
 1. ✅ Backend servisleri oluşturma
 2. ✅ Temel sayfa yapısını kurma
 3. ✅ Ürün arama ve sepet yönetimini tamamlama
 4. 🚧 Ödeme işlemlerini entegre etme
-5. 🚧 Müşteri işlemlerini ekleme
+5. ✅ Müşteri işlemlerini ekleme
 
 ## Teknik Detaylar
 - API Endpoint'leri:
