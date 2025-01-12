@@ -131,4 +131,12 @@ export class TablesController {
 
     res.status(204).send();
   };
+
+  splitTable = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { newCapacity } = req.body;
+
+    const result = await this.tablesService.splitTable(id, newCapacity);
+    res.json(result);
+  };
 }

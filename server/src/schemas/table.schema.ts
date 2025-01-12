@@ -63,4 +63,13 @@ export const TableSchema = {
       toTableId: z.number().int().positive(),
     }),
   }),
+
+  split: z.object({
+    body: z.object({
+      newCapacity: z.number().min(1).max(99),
+    }),
+    params: z.object({
+      id: z.string(),
+    }),
+  }),
 };

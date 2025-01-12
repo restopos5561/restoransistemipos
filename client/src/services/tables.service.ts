@@ -1,18 +1,17 @@
-import api from './api';
-import { API_ENDPOINTS } from '../config/constants';
 import {
   Table,
   TableFilters,
-  TablesResponse,
-  TableResponse,
   CreateTableInput,
   UpdateTableInput,
   UpdateTableStatusInput,
   MergeTablesInput,
   TransferTableInput,
   TableStatus,
-  Order
+  TablesResponse,
+  TableResponse
 } from '../types/table.types';
+import { API_ENDPOINTS } from '../config/constants';
+import api from './api';
 
 class TablesService {
   async getTables(filters: TableFilters): Promise<TablesResponse> {
@@ -249,6 +248,13 @@ class TablesService {
       });
       throw error;
     }
+  }
+
+  async splitTable(tableId: string, newCapacity: number) {
+    const { data } = await api.post(API_ENDPOINTS.TABLES.SPLIT(tableId), {
+      newCapacity
+    });
+    return data;
   }
 }
 

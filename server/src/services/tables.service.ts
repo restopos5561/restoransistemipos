@@ -73,9 +73,8 @@ export class TablesService {
           orders: {
             where: {
               status: {
-                in: [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY],
-              },
-              closingTime: null
+                notIn: ['COMPLETED', 'CANCELLED']
+              }
             },
             include: {
               orderItems: {
@@ -94,8 +93,42 @@ export class TablesService {
       prisma.table.count({ where }),
     ]);
 
+    // Her masanın durumunu aktif siparişlere göre güncelle
+    const updatedTables = await Promise.all(tables.map(async (table) => {
+      const hasActiveOrders = table.orders && table.orders.length > 0;
+      
+      // Eğer aktif sipariş varsa ve masa IDLE ise, OCCUPIED olarak güncelle
+      if (hasActiveOrders && table.status === TableStatus.IDLE) {
+        const updatedTable = await prisma.table.update({
+          where: { id: table.id },
+          data: { status: TableStatus.OCCUPIED },
+          include: {
+            branch: true,
+            orders: {
+              where: {
+                status: {
+                  notIn: ['COMPLETED', 'CANCELLED']
+                }
+              },
+              include: {
+                orderItems: {
+                  include: {
+                    product: true
+                  }
+                },
+                payment: true
+              }
+            }
+          }
+        });
+        return updatedTable;
+      }
+      
+      return table;
+    }));
+
     // Her masanın adisyon detaylarını logla
-    tables.forEach(table => {
+    updatedTables.forEach(table => {
       console.log('🔍 [TablesService] Masa detayları:', {
         tableId: table.id,
         tableNumber: table.tableNumber,
@@ -141,7 +174,7 @@ export class TablesService {
     });
 
     return {
-      tables,
+      tables: updatedTables,
       total,
       page: filters.page || 1,
       limit: filters.limit || 10,
@@ -284,7 +317,19 @@ export class TablesService {
 
   async mergeTables(mainTableId: number, tableIdsToMerge: number[]): Promise<Table> {
     // Ana masayı kontrol et
-    const mainTable = await this.getTableById(mainTableId);
+    const mainTable = await prisma.table.findUnique({
+      where: { id: mainTableId },
+      include: {
+        orders: {
+          where: {
+            status: {
+              notIn: ['COMPLETED', 'CANCELLED']
+            }
+          }
+        }
+      }
+    });
+
     if (!mainTable) {
       throw new TableNotFoundError(mainTableId);
     }
@@ -299,9 +344,9 @@ export class TablesService {
         orders: {
           where: {
             status: {
-              in: [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY],
-            },
-          },
+              notIn: ['COMPLETED', 'CANCELLED']
+            }
+          }
         },
       },
     });
@@ -316,26 +361,22 @@ export class TablesService {
       throw new TableOperationError('Masalar farklı şubelerde');
     }
 
-    // Masaların boş olduğunu kontrol et
-    const busyTables = tablesToMerge.filter(
-      (table) => table.status !== TableStatus.IDLE || (table.orders && table.orders.length > 0)
+    // Ana masada aktif sipariş var mı kontrol et
+    const mainTableActiveOrders = mainTable.orders?.filter(
+      (order: { status: string }) => !['COMPLETED', 'CANCELLED'].includes(order.status)
     );
-    if (busyTables.length > 0) {
-      throw new TableOperationError('Birleştirilecek masalar boş olmalı');
-    }
 
     // Transaction ile masaları birleştir
     return prisma.$transaction(async (tx) => {
-      // Birleştirilecek masaları pasife al
+      // Birleştirilecek masaları pasif yap
       await tx.table.updateMany({
         where: { id: { in: tableIdsToMerge } },
         data: {
           isActive: false,
-          status: TableStatus.IDLE,
         },
       });
 
-      // Ana masayı güncelle (örn: kapasite artırımı)
+      // Ana masayı güncelle
       const totalCapacity = tablesToMerge.reduce(
         (sum, table) => sum + (table.capacity || 0),
         mainTable.capacity || 0
@@ -345,7 +386,7 @@ export class TablesService {
         where: { id: mainTableId },
         data: {
           capacity: totalCapacity,
-          status: TableStatus.IDLE,
+          status: mainTableActiveOrders && mainTableActiveOrders.length > 0 ? TableStatus.OCCUPIED : TableStatus.IDLE,
         },
         include: { branch: true },
       });
@@ -441,5 +482,101 @@ export class TablesService {
     }
 
     await prisma.table.delete({ where: { id } });
+  }
+
+  async splitTable(id: string, newCapacity: number): Promise<TableResponse> {
+    const table = await prisma.table.findUnique({
+      where: { id: Number(id) },
+      include: { orders: true }
+    });
+
+    if (!table) {
+      return {
+        success: false,
+        error: {
+          message: 'Masa bulunamadı'
+        }
+      };
+    }
+
+    // Aktif siparişleri kontrol et (COMPLETED veya CANCELLED olmayan siparişler)
+    const activeOrders = table.orders.filter((order: { status: string }) => 
+      !['COMPLETED', 'CANCELLED'].includes(order.status)
+    );
+
+    if (activeOrders.length > 0) {
+      return {
+        success: false,
+        error: {
+          message: 'Aktif siparişi olan masa ayrılamaz. Lütfen önce siparişleri tamamlayın.'
+        }
+      };
+    }
+
+    // Masa ayırma işlemine devam et...
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        // Ana masanın kapasitesini güncelle
+        const updatedMainTable = await tx.table.update({
+          where: { id: Number(id) },
+          data: {
+            capacity: (table.capacity || 0) - newCapacity,
+          },
+        });
+
+        // Yeni masa oluştur
+        const newTable = await tx.table.create({
+          data: {
+            branchId: table.branchId,
+            tableNumber: await this.generateNewTableNumber(table.branchId),
+            capacity: newCapacity,
+            location: table.location,
+            status: TableStatus.IDLE,
+            isActive: true,
+            positionX: (table.positionX || 0) + 120, // Ana masanın yanına yerleştir
+            positionY: table.positionY,
+          },
+        });
+
+        return updatedMainTable;
+      });
+
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: 'Masa ayrılırken bir hata oluştu'
+        }
+      };
+    }
+  }
+
+  private async generateNewTableNumber(branchId: number): Promise<string> {
+    // Şubedeki en son masa numarasını bul
+    const lastTable = await prisma.table.findFirst({
+      where: { branchId },
+      orderBy: { tableNumber: 'desc' },
+    });
+
+    if (!lastTable) {
+      return 'A1';
+    }
+
+    // Mevcut masa numarasını analiz et (örn: A1, B2, vs.)
+    const letter = lastTable.tableNumber.charAt(0);
+    const number = parseInt(lastTable.tableNumber.slice(1));
+
+    // Yeni masa numarası oluştur
+    if (number < 99) {
+      return `${letter}${number + 1}`;
+    } else {
+      // 99'dan sonra harf değiştir (A->B, B->C, vs.)
+      const nextLetter = String.fromCharCode(letter.charCodeAt(0) + 1);
+      return `${nextLetter}1`;
+    }
   }
 }

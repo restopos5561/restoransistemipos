@@ -42,4 +42,8 @@ router.patch(
 router.get('/branch/:branchId', requireAuth, controller.getTables);
 router.get('/location/:location', requireAuth, controller.getTables);
 
+router.post('/:id/merge', requireAuth, validateRequest(TableSchema.merge), controller.mergeTables);
+
+router.post('/:id/split', requireAuth, validateRequest(TableSchema.split), controller.splitTable);
+
 export { router as tablesRouter };

@@ -112,7 +112,8 @@ export const API_ENDPOINTS = {
     STATUS: (id: string) => `/api/tables/${id}/status`,
     MERGE: '/api/tables/merge',
     TRANSFER: '/api/tables/transfer',
-    BY_BRANCH: (branchId: string) => `/api/tables/branch/${branchId}`
+    BY_BRANCH: (branchId: string) => `/api/tables/branch/${branchId}`,
+    SPLIT: (id: string) => `/api/tables/${id}/split`
   },
   CUSTOMERS: {
     LIST: '/api/customers',

@@ -29,19 +29,17 @@ import {
   TableStats,
   TableFormDialog,
   TableTransferDialog,
-  TableMergeDialog,
   TableDetailDialog,
   TableMergeWizard,
   TableLayout,
 } from '../../components/tables';
 import { useConfirm } from '../../hooks';
 import { useAuth } from '@/hooks/useAuth';
-import { SocketService } from '@/services/socket';
+import { useSocket } from '../../hooks/useSocket';
 import { SOCKET_EVENTS } from '@/constants/socketEvents';
 import ReservationDialog from '../../components/reservations/ReservationDialog';
 import { ReservationStatus } from '../../types/enums';
 import { CreateReservationInput } from '../../types/reservation.types';
-import { useSocket } from '../../hooks/useSocket';
 
 type ViewMode = 'list' | 'grid' | 'layout';
 

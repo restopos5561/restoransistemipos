@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Grid,
   Paper,
@@ -25,8 +25,10 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DoNotDisturbIcon from '@mui/icons-material/DoNotDisturb';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import AddIcon from '@mui/icons-material/Add';
+import CallSplitIcon from '@mui/icons-material/CallSplit';
 
 import { Table as TableType, TableStatus } from '../../types/table.types';
+import { TableSplitDialog } from './TableSplitDialog';
 
 interface TableGridProps {
   tables: TableType[];
@@ -89,6 +91,7 @@ const TableCard: React.FC<{
   onStatusChange: (table: TableType, newStatus: TableStatus) => void;
   onOrdersClick: (table: TableType) => void;
   onQuickReservation?: (table: TableType) => void;
+  onSplitClick: (table: TableType) => void;
 }> = ({
   table,
   onEditClick,
@@ -99,6 +102,7 @@ const TableCard: React.FC<{
   onStatusChange,
   onOrdersClick,
   onQuickReservation,
+  onSplitClick,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [statusAnchorEl, setStatusAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -331,6 +335,14 @@ const TableCard: React.FC<{
           </MenuItem>
         ))}
       </Menu>
+
+      <IconButton
+        onClick={() => onSplitClick(table)}
+        disabled={!table.capacity || table.capacity <= 1}
+        title="Masayı Ayır"
+      >
+        <CallSplitIcon />
+      </IconButton>
     </Paper>
   );
 };
@@ -346,6 +358,14 @@ const TableGrid: React.FC<TableGridProps> = ({
   onOrdersClick,
   onQuickReservation,
 }) => {
+  const [splitDialogState, setSplitDialogState] = useState<{
+    open: boolean;
+    table: TableType | null;
+  }>({
+    open: false,
+    table: null,
+  });
+
   if (!tables.length) {
     return (
       <Box sx={{ textAlign: 'center', py: 3 }}>
@@ -357,23 +377,37 @@ const TableGrid: React.FC<TableGridProps> = ({
   }
 
   return (
-    <Grid container spacing={2}>
-      {tables.map((table) => (
-        <Grid item xs={12} sm={6} md={4} lg={3} key={table.id}>
-          <TableCard
-            table={table}
-            onEditClick={onEditClick}
-            onTransferClick={onTransferClick}
-            onMergeClick={onMergeClick}
-            onDeleteClick={onDeleteClick}
-            onDetailClick={onDetailClick}
-            onStatusChange={onStatusChange}
-            onOrdersClick={onOrdersClick}
-            onQuickReservation={onQuickReservation}
-          />
-        </Grid>
-      ))}
-    </Grid>
+    <>
+      <Grid container spacing={2}>
+        {tables.map((table) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={table.id}>
+            <TableCard
+              table={table}
+              onEditClick={onEditClick}
+              onTransferClick={onTransferClick}
+              onMergeClick={onMergeClick}
+              onDeleteClick={onDeleteClick}
+              onDetailClick={onDetailClick}
+              onStatusChange={onStatusChange}
+              onOrdersClick={onOrdersClick}
+              onQuickReservation={onQuickReservation}
+              onSplitClick={(table) => setSplitDialogState({ open: true, table })}
+            />
+          </Grid>
+        ))}
+      </Grid>
+
+      {splitDialogState.open && splitDialogState.table && (
+        <TableSplitDialog
+          open={splitDialogState.open}
+          onClose={() => setSplitDialogState({ open: false, table: null })}
+          table={{
+            id: splitDialogState.table.id,
+            capacity: splitDialogState.table.capacity || 0
+          }}
+        />
+      )}
+    </>
   );
 };
 
