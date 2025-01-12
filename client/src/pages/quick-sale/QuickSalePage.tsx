@@ -15,6 +15,14 @@ import {
   Chip,
   Switch,
   FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -36,6 +44,7 @@ import CustomerSelectModal from '@/components/customers/CustomerSelectModal';
 import NumericKeypadModal from '@/components/common/NumericKeypadModal';
 import { Customer } from '@/types/customer.types';
 import CategorySelector from '@/components/quick-sale/CategorySelector';
+import { toast } from 'react-hot-toast';
 
 interface CartItem {
   id: number;
@@ -43,6 +52,7 @@ interface CartItem {
   quantity: number;
   price: number;
   total: number;
+  notes?: string;
 }
 
 type KeypadMode = 'quantity' | 'price' | 'barcode';
@@ -59,6 +69,10 @@ const QuickSalePage: React.FC = () => {
   const [keypadMode, setKeypadMode] = useState<KeypadMode>('quantity');
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [showPopularOnly, setShowPopularOnly] = useState(false);
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
+  const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'AMOUNT'>('PERCENTAGE');
+  const [discountValue, setDiscountValue] = useState<string>('');
+  const [discountedTotal, setDiscountedTotal] = useState<number>(0);
 
   // Toplam tutarı hesapla
   const total = cart.reduce((sum, item) => sum + item.total, 0);
@@ -190,6 +204,72 @@ const QuickSalePage: React.FC = () => {
     }
 
     handleCloseKeypad();
+  };
+
+  // İndirim hesaplama
+  const calculateDiscount = () => {
+    const value = parseFloat(discountValue) || 0;
+    if (discountType === 'PERCENTAGE') {
+      return total * (value / 100);
+    }
+    return value;
+  };
+
+  // İndirim uygulama
+  const handleApplyDiscount = () => {
+    const discountAmount = calculateDiscount();
+    setDiscountedTotal(total - discountAmount);
+    setIsDiscountModalOpen(false);
+  };
+
+  // İndirim modalını sıfırlama
+  const handleCloseDiscountModal = () => {
+    setIsDiscountModalOpen(false);
+    setDiscountType('PERCENTAGE');
+    setDiscountValue('');
+  };
+
+  // Ödeme işlemi
+  const handlePayment = async () => {
+    if (!user?.branchId || !user?.restaurantId) {
+      toast.error('Kullanıcı bilgileri eksik');
+      return;
+    }
+
+    try {
+      const finalAmount = discountedTotal > 0 ? discountedTotal : total;
+      
+      const response = await quickSaleService.processQuickSale({
+        branchId: user.branchId,
+        restaurantId: user.restaurantId,
+        customerId: selectedCustomer?.id,
+        items: cart.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          note: item.notes
+        })),
+        paymentMethod: 'CASH',
+        paymentAmount: finalAmount,
+        ...(discountedTotal > 0 && {
+          discount: {
+            type: discountType,
+            value: parseFloat(discountValue)
+          }
+        })
+      });
+
+      if (response.success) {
+        toast.success('Satış başarıyla tamamlandı');
+        // Sepeti temizle
+        setCart([]);
+        setDiscountedTotal(0);
+        setDiscountValue('');
+        setDiscountType('PERCENTAGE');
+      }
+    } catch (error) {
+      console.error('Satış işlemi sırasında hata:', error);
+      toast.error('Satış işlemi sırasında bir hata oluştu');
+    }
   };
 
   return (
@@ -436,23 +516,38 @@ const QuickSalePage: React.FC = () => {
             {/* Toplam ve Ödeme */}
             <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
               <Stack spacing={2}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
-                  <Typography variant="subtitle1">Toplam</Typography>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography variant="subtitle1">Ara Toplam</Typography>
                   <Typography variant="h6">{total.toFixed(2)} ₺</Typography>
                 </Stack>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  startIcon={<ReceiptIcon />}
-                  disabled={cart.length === 0}
-                >
-                  Ödeme Al
-                </Button>
+
+                {discountedTotal > 0 && (
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="subtitle1" color="error">İndirimli Toplam</Typography>
+                    <Typography variant="h6" color="error">{discountedTotal.toFixed(2)} ₺</Typography>
+                  </Stack>
+                )}
+
+                <Stack direction="row" spacing={2}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<DiscountIcon />}
+                    onClick={() => setIsDiscountModalOpen(true)}
+                    disabled={cart.length === 0}
+                  >
+                    İndirim Uygula
+                  </Button>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    startIcon={<ReceiptIcon />}
+                    disabled={cart.length === 0}
+                    onClick={handlePayment}
+                  >
+                    Ödeme Al
+                  </Button>
+                </Stack>
               </Stack>
             </Box>
           </Paper>
@@ -492,6 +587,54 @@ const QuickSalePage: React.FC = () => {
         maxLength={keypadMode === 'barcode' ? 13 : 10}
         allowDecimal={keypadMode === 'price'}
       />
+
+      {/* İndirim Modal */}
+      <Dialog open={isDiscountModalOpen} onClose={handleCloseDiscountModal}>
+        <DialogTitle>İndirim Uygula</DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 2, minWidth: 300 }}>
+            <FormControl fullWidth>
+              <InputLabel>İndirim Türü</InputLabel>
+              <Select
+                value={discountType}
+                label="İndirim Türü"
+                onChange={(e) => setDiscountType(e.target.value as 'PERCENTAGE' | 'AMOUNT')}
+              >
+                <MenuItem value="PERCENTAGE">Yüzde (%)</MenuItem>
+                <MenuItem value="AMOUNT">Tutar (₺)</MenuItem>
+              </Select>
+            </FormControl>
+
+            <TextField
+              label={discountType === 'PERCENTAGE' ? 'İndirim Yüzdesi' : 'İndirim Tutarı'}
+              type="number"
+              value={discountValue}
+              onChange={(e) => setDiscountValue(e.target.value)}
+              InputProps={{
+                endAdornment: <Typography>{discountType === 'PERCENTAGE' ? '%' : '₺'}</Typography>
+              }}
+            />
+
+            {discountValue && (
+              <Typography variant="body2" color="text.secondary">
+                İndirim Tutarı: {calculateDiscount().toFixed(2)} ₺
+                <br />
+                İndirimli Toplam: {(total - calculateDiscount()).toFixed(2)} ₺
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDiscountModal}>İptal</Button>
+          <Button 
+            onClick={handleApplyDiscount}
+            variant="contained"
+            disabled={!discountValue || parseFloat(discountValue) <= 0}
+          >
+            Uygula
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

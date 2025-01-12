@@ -13,6 +13,10 @@ interface QuickSaleInput {
   branchId: number;
   paymentMethod: string;
   paymentAmount: number;
+  discount?: {
+    type: 'PERCENTAGE' | 'AMOUNT';
+    value: number;
+  };
 }
 
 const quickSaleService = {

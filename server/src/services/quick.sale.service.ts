@@ -23,6 +23,10 @@ interface QuickSaleInput {
     lastFourDigits: string;
     transactionId?: string;
   };
+  discount?: {
+    type: 'PERCENTAGE' | 'AMOUNT';
+    value: number;
+  };
 }
 
 export class QuickSaleService {
@@ -39,24 +43,46 @@ export class QuickSaleService {
   async processQuickSale(data: QuickSaleInput) {
     return prisma.$transaction(async (tx) => {
       // 1. Sipariş oluştur
+      const orderItems = data.items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        notes: item.note
+      }));
+
+      // Toplam tutarı hesapla
+      const totalBeforeDiscount = await this.calculateTotal(orderItems);
+      
+      // İndirim tutarını hesapla
+      let discountAmount = 0;
+      if (data.discount) {
+        if (data.discount.type === 'PERCENTAGE') {
+          discountAmount = totalBeforeDiscount * (data.discount.value / 100);
+        } else {
+          discountAmount = data.discount.value;
+        }
+      }
+
+      // İndirimli toplam tutarı hesapla
+      const totalAfterDiscount = totalBeforeDiscount - discountAmount;
+
       const order = await this.ordersService.createOrder({
         branchId: data.branchId,
         restaurantId: data.restaurantId,
         customerId: data.customerId,
-        items: data.items.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          notes: item.note
-        })),
+        items: orderItems,
         orderSource: 'IN_STORE',
         status: OrderStatus.PENDING,
-        paymentStatus: PaymentStatus.PENDING
+        paymentStatus: PaymentStatus.PENDING,
+        totalPriceBeforeDiscounts: totalBeforeDiscount,
+        discountAmount: discountAmount,
+        discountType: data.discount?.type || null,
+        totalAmount: totalAfterDiscount
       });
 
       // 2. Ödeme işlemini gerçekleştir
       const payment = await this.paymentService.createPayment({
         orderId: order.id,
-        amount: order.totalAmount,
+        amount: totalAfterDiscount,
         paymentMethod: data.paymentMethod,
         cardPayment: data.cardPayment
       });
@@ -75,6 +101,20 @@ export class QuickSaleService {
         payment
       };
     });
+  }
+
+  // Toplam tutarı hesaplama yardımcı fonksiyonu
+  private async calculateTotal(items: { productId: number; quantity: number }[]) {
+    let total = 0;
+    for (const item of items) {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId }
+      });
+      if (product) {
+        total += product.price * item.quantity;
+      }
+    }
+    return total;
   }
 
   async searchProducts(query: string, branchId: number, categoryId?: number | null) {

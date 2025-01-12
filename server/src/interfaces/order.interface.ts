@@ -3,18 +3,19 @@ import { OrderSource, OrderStatus, PaymentStatus } from '@prisma/client';
 export interface CreateOrderInput {
   branchId: number;
   restaurantId: number;
-  tableId?: number | null;
-  customerId?: number | null;
-  customerCount?: number;
-  orderSource: OrderSource;
+  customerId?: number;
   items: {
     productId: number;
     quantity: number;
     notes?: string;
   }[];
-  notes?: string;
-  status?: OrderStatus;
-  paymentStatus?: PaymentStatus;
+  orderSource: OrderSource;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  totalPriceBeforeDiscounts?: number;
+  discountAmount?: number;
+  discountType?: 'PERCENTAGE' | 'AMOUNT' | null;
+  totalAmount?: number;
 }
 
 export interface OrderListParams {

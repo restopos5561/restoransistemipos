@@ -25,11 +25,16 @@
 - ✅ Kategori yönetimi ve filtreleme
 - ❌ Barkod okuyucu entegrasyonu
 - ❌ Hızlı ürün seçimi
-- ❌ İndirim uygulama
+- ✅ İndirim uygulama
 - ❌ Ücretsiz ürün ekleme
+- ❌ Fiş yazdırma
+- ✅ Ödeme işlemi
+- ✅ Ürün silme veya miktar değiştirme
+- ✅ Müşteri seçimi
+- ❌ Özel fiyatlandırma
 - ❌ Promosyon yönetimi
 - ❌ Sadakat puanı kullanımı
-- ❌ Varyant ürün yönetimi
+- ❌ Varyantlı ürün yönetimi
 - ❌ Ekstra tercihler
 - ❌ Hızlı iade işlemi
 
@@ -58,7 +63,9 @@
 - ❌ Varyantlar (variants)
 - ❌ Özel fiyatlar (special_prices)
 - ❌ Sadakat puanları (loyalty_points)
+- ✅ İndirimler
 
 ### Güvenlik Kontrolleri
 - ❌ İndirim limitleri
-- ❌ Ücretsiz ürün izinleri 
+- ❌ Ücretsiz ürün yetkileri
+- ❌ İade yetkileri 
