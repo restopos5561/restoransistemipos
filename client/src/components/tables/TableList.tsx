@@ -23,6 +23,7 @@ import CallMergeIcon from '@mui/icons-material/CallMerge';
 import InfoIcon from '@mui/icons-material/Info';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import ReceiptIcon from '@mui/icons-material/Receipt';
+import AddIcon from '@mui/icons-material/Add';
 
 import { Table as TableType, TableStatus } from '../../types/table.types';
 
@@ -37,6 +38,7 @@ interface TableListProps {
   onDeleteClick: (table: TableType) => void;
   onDetailClick: (table: TableType) => void;
   onOrdersClick: (table: TableType) => void;
+  onQuickReservation?: (table: TableType) => void;
 }
 
 const getStatusColor = (status: TableStatus) => {
@@ -76,6 +78,7 @@ const TableList: React.FC<TableListProps> = ({
   onDeleteClick,
   onDetailClick,
   onOrdersClick,
+  onQuickReservation,
 }) => {
   if (!tables.length) {
     return (
@@ -226,6 +229,20 @@ const TableList: React.FC<TableListProps> = ({
                         </IconButton>
                       </span>
                     </Tooltip>
+
+                    {onQuickReservation && (
+                      <Tooltip title="Hızlı Rezervasyon">
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => onQuickReservation(table)}
+                            disabled={table.status !== TableStatus.IDLE}
+                          >
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    )}
                   </Stack>
                 </TableCell>
               </TableRow>

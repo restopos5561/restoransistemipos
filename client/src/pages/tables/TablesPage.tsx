@@ -38,6 +38,9 @@ import { useConfirm } from '../../hooks';
 import { useAuth } from '@/hooks/useAuth';
 import { SocketService } from '@/services/socket';
 import { SOCKET_EVENTS } from '@/constants/socketEvents';
+import ReservationDialog from '../../components/reservations/ReservationDialog';
+import { ReservationStatus } from '../../types/enums';
+import { CreateReservationInput } from '../../types/reservation.types';
 
 type ViewMode = 'list' | 'grid' | 'layout';
 
@@ -57,6 +60,8 @@ const TablesPage = (): JSX.Element => {
   const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<Table | undefined>(undefined);
+  const [isReservationDialogOpen, setIsReservationDialogOpen] = useState(false);
+  const [selectedTableForReservation, setSelectedTableForReservation] = useState<Table | undefined>(undefined);
 
   // Filtreler
   const [filters, setFilters] = useState<TableFiltersType>({
@@ -272,6 +277,11 @@ const TablesPage = (): JSX.Element => {
     updatePositionMutation.mutate({ id: tableId, position });
   };
 
+  const handleQuickReservation = (table: Table) => {
+    setSelectedTableForReservation(table);
+    setIsReservationDialogOpen(true);
+  };
+
   // Socket.IO event dinleyicileri
   useEffect(() => {
     const socket = SocketService.getSocket();
@@ -419,6 +429,7 @@ const TablesPage = (): JSX.Element => {
               onDetailClick={handleDetailClick}
               onStatusChange={handleStatusChange}
               onOrdersClick={handleOrdersClick}
+              onQuickReservation={handleQuickReservation}
             />
           ) : (
             <TableLayout
@@ -487,6 +498,33 @@ const TablesPage = (): JSX.Element => {
         onUpdateNotes={handleUpdateNotes}
         onOrdersClick={handleOrdersClick}
       />
+
+      {/* Hızlı Rezervasyon Dialog'u */}
+      {selectedTableForReservation && (
+        <ReservationDialog
+          open={isReservationDialogOpen}
+          onClose={() => {
+            setIsReservationDialogOpen(false);
+            setSelectedTableForReservation(undefined);
+          }}
+          onSuccess={() => {
+            setIsReservationDialogOpen(false);
+            setSelectedTableForReservation(undefined);
+            queryClient.invalidateQueries({ queryKey: ['tables'] });
+            toast.success('Rezervasyon başarıyla oluşturuldu');
+          }}
+          initialData={{
+            tableId: selectedTableForReservation.id,
+            restaurantId: user?.restaurantId || 0,
+            branchId: user?.branchId || 0,
+            customerId: 0,
+            reservationStartTime: new Date().toISOString(),
+            reservationEndTime: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            partySize: selectedTableForReservation.capacity || 1,
+            status: ReservationStatus.PENDING
+          } satisfies CreateReservationInput}
+        />
+      )}
 
       {/* Onay Dialog'u */}
       <confirm.ConfirmationDialog />

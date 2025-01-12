@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack, TextField, Autocomplete } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers';
 import { isValid } from 'date-fns';
@@ -10,11 +10,12 @@ import customersService from '../../services/customers.service';
 import tablesService from '../../services/tables.service';
 import { Customer, CustomerListResponse } from '../../types/customer.types';
 import { Table } from '../../types/table.types';
+import { toast } from 'react-hot-toast';
 
 interface ReservationDialogProps {
   open: boolean;
   onClose: () => void;
-  initialData?: Reservation;
+  initialData?: Reservation | CreateReservationInput;
   onSuccess?: () => void;
 }
 
@@ -182,7 +183,11 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
     }
 
     try {
-      if (initialData) {
+      if (initialData && 'id' in initialData) {
+        console.log('🔵 [ReservationDialog] Rezervasyon güncelleniyor:', {
+          id: initialData.id,
+          data: formData
+        });
         await updateReservation(initialData.id, {
           reservationStartTime: formData.reservationStartTime,
           reservationEndTime: formData.reservationEndTime,
@@ -191,12 +196,14 @@ const ReservationDialog: React.FC<ReservationDialogProps> = ({ open, onClose, in
           notes: formData.notes
         });
       } else {
+        console.log('🔵 [ReservationDialog] Yeni rezervasyon oluşturuluyor:', formData);
         await createReservation(formData);
       }
       onSuccess?.();
       onClose();
     } catch (error) {
-      console.error('Rezervasyon işlemi başarısız:', error);
+      console.error('❌ [ReservationDialog] Rezervasyon işlemi başarısız:', error);
+      toast.error(error instanceof Error ? error.message : 'Rezervasyon işlemi sırasında bir hata oluştu');
     }
   };
 

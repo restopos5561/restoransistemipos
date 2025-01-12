@@ -50,8 +50,24 @@ class ReservationsService {
   }
 
   async updateReservation(id: number, data: UpdateReservationInput) {
-    const response = await api.put(API_ENDPOINTS.RESERVATIONS.UPDATE(id.toString()), data);
-    return response.data;
+    if (!id || isNaN(id)) {
+      throw new Error('Geçerli bir rezervasyon ID\'si gereklidir');
+    }
+
+    console.log('🔵 [ReservationsService] Rezervasyon güncelleme isteği:', {
+      id,
+      data,
+      endpoint: API_ENDPOINTS.RESERVATIONS.UPDATE(id.toString())
+    });
+
+    try {
+      const response = await api.put(API_ENDPOINTS.RESERVATIONS.UPDATE(id.toString()), data);
+      console.log('✅ [ReservationsService] Ham backend yanıtı:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ [ReservationsService] Rezervasyon güncelleme hatası:', error);
+      throw error;
+    }
   }
 
   async deleteReservation(id: number) {

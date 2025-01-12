@@ -24,6 +24,7 @@ import EventSeatIcon from '@mui/icons-material/EventSeat';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DoNotDisturbIcon from '@mui/icons-material/DoNotDisturb';
 import ReceiptIcon from '@mui/icons-material/Receipt';
+import AddIcon from '@mui/icons-material/Add';
 
 import { Table as TableType, TableStatus } from '../../types/table.types';
 
@@ -36,6 +37,7 @@ interface TableGridProps {
   onDetailClick: (table: TableType) => void;
   onStatusChange: (table: TableType, newStatus: TableStatus) => void;
   onOrdersClick: (table: TableType) => void;
+  onQuickReservation?: (table: TableType) => void;
 }
 
 const getStatusColor = (status: TableStatus) => {
@@ -86,6 +88,7 @@ const TableCard: React.FC<{
   onDetailClick: (table: TableType) => void;
   onStatusChange: (table: TableType, newStatus: TableStatus) => void;
   onOrdersClick: (table: TableType) => void;
+  onQuickReservation?: (table: TableType) => void;
 }> = ({
   table,
   onEditClick,
@@ -95,6 +98,7 @@ const TableCard: React.FC<{
   onDetailClick,
   onStatusChange,
   onOrdersClick,
+  onQuickReservation,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [statusAnchorEl, setStatusAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -256,6 +260,25 @@ const TableCard: React.FC<{
               </IconButton>
             </span>
           </Tooltip>
+          {onQuickReservation && (
+            <Tooltip title="Hızlı Rezervasyon">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={() => onQuickReservation(table)}
+                  disabled={table.status !== TableStatus.IDLE}
+                  sx={{
+                    color: '#1976d2',
+                    '&:hover': {
+                      bgcolor: alpha('#1976d2', 0.1),
+                    },
+                  }}
+                >
+                  <AddIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
         </Stack>
       </Stack>
 
@@ -274,6 +297,14 @@ const TableCard: React.FC<{
         >
           <ReceiptIcon fontSize="small" sx={{ mr: 1 }} /> Adisyonlar
         </MenuItem>
+        {onQuickReservation && (
+          <MenuItem 
+            onClick={() => { handleClose(); onQuickReservation(table); }}
+            disabled={table.status !== TableStatus.IDLE}
+          >
+            <AddIcon fontSize="small" sx={{ mr: 1 }} /> Hızlı Rezervasyon
+          </MenuItem>
+        )}
         <MenuItem onClick={() => { handleClose(); onEditClick(table); }}>
           <EditIcon fontSize="small" sx={{ mr: 1 }} /> Düzenle
         </MenuItem>
@@ -331,6 +362,7 @@ const TableGrid: React.FC<TableGridProps> = ({
   onDetailClick,
   onStatusChange,
   onOrdersClick,
+  onQuickReservation,
 }) => {
   if (!tables.length) {
     return (
@@ -355,6 +387,7 @@ const TableGrid: React.FC<TableGridProps> = ({
             onDetailClick={onDetailClick}
             onStatusChange={onStatusChange}
             onOrdersClick={onOrdersClick}
+            onQuickReservation={onQuickReservation}
           />
         </Grid>
       ))}

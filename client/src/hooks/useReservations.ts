@@ -64,10 +64,9 @@ export const useReservations = () => {
 
       if (response.success && response.data) {
         // Yeni rezervasyonu listeye ekle ve sırala
-        const newReservation = response.data;
+        const newReservation: Reservation = response.data;
         setReservations(prev => {
           const updated = [...prev, newReservation];
-          // Tarihe göre sırala (en yeni en üstte)
           return updated.sort((a, b) => 
             new Date(b.reservationStartTime).getTime() - new Date(a.reservationStartTime).getTime()
           );
@@ -88,17 +87,20 @@ export const useReservations = () => {
     try {
       setIsLoading(true);
       setError(null);
+
+      if (!id) {
+        throw new Error('Rezervasyon ID gereklidir');
+      }
+
+      console.log('🔵 [useReservations] Rezervasyon güncelleme isteği:', { id, data });
       const response = await reservationsService.updateReservation(id, data);
-      
       console.log('✅ [useReservations] Rezervasyon güncellendi:', response);
 
       if (response.success && response.data) {
-        // Güncellenmiş rezervasyonu listede güncelle ve sırala
         setReservations(prev => {
           const updated = prev.map(reservation =>
             reservation.id === id ? response.data : reservation
           );
-          // Tarihe göre sırala (en yeni en üstte)
           return updated.sort((a, b) => 
             new Date(b.reservationStartTime).getTime() - new Date(a.reservationStartTime).getTime()
           );
