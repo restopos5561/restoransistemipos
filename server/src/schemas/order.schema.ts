@@ -114,6 +114,11 @@ export const OrderStatusSchema = {
     body: z.object({
       status: z.nativeEnum(OrderStatus),
     }),
+    params: z.object({
+      id: z.string({
+        required_error: 'Sipariş ID gereklidir'
+      })
+    })
   }),
 };
 
