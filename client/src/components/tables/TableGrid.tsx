@@ -242,24 +242,6 @@ const TableCard: React.FC<{
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="Rezerve">
-            <span>
-              <IconButton
-                size="small"
-                onClick={() => onStatusChange(table, TableStatus.RESERVED)}
-                disabled={table.status === TableStatus.RESERVED}
-                sx={{
-                  color: '#ed6c02',
-                  bgcolor: table.status === TableStatus.RESERVED ? alpha('#ed6c02', 0.1) : 'transparent',
-                  '&:hover': {
-                    bgcolor: alpha('#ed6c02', 0.1),
-                  },
-                }}
-              >
-                <EventSeatIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
           {onQuickReservation && (
             <Tooltip title="Hızlı Rezervasyon">
               <span>
